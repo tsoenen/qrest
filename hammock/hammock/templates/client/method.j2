@@ -1,0 +1,56 @@
+def {{ method_name }}(self
+        {%- if args -%}
+            , {{ args|join(', ') }}
+        {%- endif -%}
+        {%- if kwargs -%}
+            {%- for k, v in kwargs.items() -%}
+                , {{ k }}=NOT_SET
+            {%- endfor -%}
+        {%- endif -%}
+        {%- if keywords %}, **{{ keywords }}{% endif -%}
+        ):
+        {%- if doc_string %}
+    """{{ doc_string }}
+    """
+        {%- endif %}
+    {%- if kw_list not in args %}
+    json = {
+        {%- for p in params_kw %}'{{ p }}': {{ p }}, {% endfor -%}
+        {%- for k, v in defaults.items() %}'{{ k }}': {{ v }}, {% endfor -%}
+        {%- for k in kwargs %}'{{ k }}': {{ k }}, {% endfor -%}
+        }
+    {% if keyword_map -%}
+    keyword_map = {{ keyword_map }}
+    for key in json.keys():
+        json[keyword_map.get(key, key)] = json.pop(key)
+    {% endif -%}
+    {%- else %}
+    json = {{ kw_list }}
+    {% endif -%}
+    return self._fetch(
+        method='{{ method }}',
+        url=
+            {%- if url %}url_join({% endif -%}
+            self._url
+            {%- if url -%}
+                , '{{ url }}')
+            {%- endif -%}
+        ,
+        url_kw=
+            {%- if url_kw -%}
+                {
+                {%- for name in url_kw %}'{{ name }}': {{ name }}, {% endfor -%}
+                }
+            {%- else -%}
+                {}
+            {%- endif -%}
+        ,
+        json=json,
+        {%- if keywords %}
+        kwargs={{ keywords }},
+        {% endif -%}
+        {%- if kw_file in args  %}
+        file_stream={{ kw_file }},
+        {%- endif %}
+        success_code={{ success_code }},
+    )
