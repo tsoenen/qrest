@@ -1,0 +1,20 @@
+language: python
+
+python:
+  - "2.7"
+  - "pypy"
+  - "3.3"
+  - "3.4"
+
+env:
+  - TORNADO_VERSION=''
+  - TORNADO_VERSION='>=3.0,<4.0'
+
+install:
+ - python setup.py sdist
+ - pip install tornado$TORNADO_VERSION
+ - pip install dist/`python setup.py --name`-`python setup.py --version`.tar.gz
+ - pip install -r test-requirements.txt
+
+script:
+ - nosetests tests/unit
