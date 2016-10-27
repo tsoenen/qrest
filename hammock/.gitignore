@@ -1,0 +1,13 @@
+.venv*
+*.swp
+__pycache__
+*.py[cod]
+build
+dist
+sdist
+*.egg-info
+.tox
+.coverage
+*.log
+*.sw[ponlm]
+*.idea

@@ -1,0 +1,10 @@
+dist/*
+docs/_build/*
+.tox
+*.pyc
+slumber.egg-info
+build/
+.coverage
+/.project
+/.pydevproject
+/.settings/
