@@ -1,0 +1,6 @@
+requests
+six
+pycontracts
+django
+requests-mock
+Sphinx
