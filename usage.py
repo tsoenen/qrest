@@ -2,10 +2,10 @@ import marker_repository
 import uid_generator
 import pprint
 
-markerUrl = "https://example.com/markerrepo"
+markerUrl = "https://glent-test-1.be.bayercropscience/markerrepo/services/rest/v1"
 uidUrl = "https://example.com/uid"
-user = ""  # or use something like os.getenv('MARKER_USER', 'default_value')
-password = ""
+user = "gfjom"  # or use something like os.getenv('MARKER_USER', 'default_value')
+password = "Welkom1001"
 pp = pprint.PrettyPrinter(indent=4)
 
 
@@ -14,7 +14,9 @@ def use_marker_repository_client():
     client = marker_repository.MarkerRepositoryClient(url=markerUrl,
                                                       user=user,
                                                       password=password)
-    pp.pprint(client.list_targets())
+    pp.pprint(client.resources())
+    x = client.get_a_marker_by_id(id='mTO100')
+    pp.pprint(x)
 
 
 def use_uid_generator_client():
@@ -27,4 +29,4 @@ def use_uid_generator_client():
 
 if __name__ == '__main__':
     use_marker_repository_client()
-    use_uid_generator_client()
+    #use_uid_generator_client()

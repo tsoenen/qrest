@@ -207,9 +207,12 @@ class RestResponse(object):
 
 
 class RestClient(object):
+    
+    #placeholder for subclassed resources
+    config = {}
 
     @contract
-    def __init__(self, url, user="", password="", resources={}, verifySSL=False):
+    def __init__(self, url, user="", password="", config={}, verifySSL=False):
         """ RestClient constructor
 
             :param url: The base URL of the REST API
@@ -221,18 +224,17 @@ class RestClient(object):
             :param password: The password for authenticating with the REST API
             :type password: ``string_type_or_none``
 
-            :param resources: The configuration object of the REST API resources
-            :type resources: ``dict``
+            :param config: The configuration object of the REST API resources
+            :type config: ``dict``
 
             :param verifySSL: Whether the REST client should verify SSL certificates upon making a request
             :type verifySSL: ``bool``
         """
-
+        
         # Only allow http or https schemes for the REST API base URL
-        self.url_validator = URLValidator(schemes=["http", "https"])
-
         # Validate the REST API base URL
-        self.url_validator.__call__(url)
+        url_validator = URLValidator(schemes=["http", "https"])
+        url_validator.__call__(url)
 
         self.url = url
 
@@ -243,120 +245,40 @@ class RestClient(object):
         else:
             self.auth = None
 
-        validate_resources_configuration(resources)
-        self.resources = resources
+        # load targets from subclass
+        if not config:
+            config = self.config
+        validate_resources_configuration(config)
+        self.config = config
 
-        for resource in self.resources:
-            setattr(RestClient, resource, self.create_request_function(
-                resource=resource))
+        for name, config in self.config.items():
+            setattr(self, name, self.create_request_function(resource_name=name, config=config))
 
         self.verifySSL = verifySSL
 
-    @contract
-    def list_resources(self):
+    # ---------------------------------------------------------------------------------------------
+    @property
+    def resources(self):
         """ Lists the available resources for this REST API
 
             :return: A list of the available resources for this REST API
             :rtype: ``list(string_type)``
         """
+        
+        resources = []
+        fieldnames = dir(self)
+        for fieldname in fieldnames:
+            if fieldname == 'resources':
+                continue
+            field = getattr(self, fieldname)
+            if isinstance(field, RestResource):
+                resources.append(field.name)
+            pass
+        return resources
 
-        keys = list(self.resources.keys())
-        return keys
 
-    @contract
-    def list_parameters(self, resource):
-        """ Lists the required and optional parameters for the specified REST API resource
-
-            :param resource: A string that represents the REST API resource
-            :type resource: ``string_type``
-
-            :return: A dictionary of the 'optional' and 'required' (keys) parameters (value, a list) for the specified REST API resource
-            :rtype: ``dict``
-        """
-
-        if resource not in self.resources:
-            raise InvalidResourceError(name=type(self).__name__, resource=resource)
-
-        # TODO: show that a parameter is a list/multiple?
-        result = {"required": [], "optional": []}
-        result["required"].extend(self.list_path_parameters(resource))
-        query_parameters = self.list_query_parameters(resource)
-        result["required"].extend(query_parameters["required"])
-        result["optional"].extend(query_parameters["optional"])
-        return result
-
-    @contract
-    def list_query_parameters(self, resource):
-        """ Lists the required and optional query parameters for the specified REST API resource.
-            Also summarises the query parameters that can be multiple.
-
-            :param resource: A string that represents the REST API resource
-            :type resource: ``string_type``
-
-            :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters (value, a list) for the specified REST API resource
-            :rtype: ``dict``
-        """
-        if resource not in self.resources:
-            raise InvalidResourceError(name=type(self).__name__, resource=resource)
-
-        result = {"required": [], "optional": [], "multiple": []}
-        if "query_parameters" in self.resources[resource]:
-            for parameter in self.resources[resource]["query_parameters"]:
-                if ("required" in parameter) and (parameter["required"] is True):
-                    result["required"].append(parameter["name"])
-                else:
-                    result["optional"].append(parameter["name"])
-                if ("multiple" in parameter) and (parameter["multiple"] is True):
-                    result["multiple"].append(parameter["name"])
-        return result
-
-    @contract
-    def list_query_parameter_groups(self, resource):
-        """ Lists the different groups of query parameters for the specified
-            REST API resource. When query parameters are in a group, only one of
-            them can be used in a query at a time, unless the 'multiple' property
-            has been used for every query parameter of that group.
-
-            :param resource: A string that represents the REST API resource
-            :type resource: ``string_type``
-
-            :return: A dictionary of the different groups (key) of query parameters (value, is list) for the specified REST API resource
-            :rtype: ``dict``
-        """
-        if resource not in self.resources:
-            raise InvalidResourceError(name=type(self).__name__, resource=resource)
-
-        result = {}
-        if "query_parameters" in self.resources[resource]:
-            for parameter in self.resources[resource]["query_parameters"]:
-                # TODO: check if string, maybe also support int?
-                if ("group" in parameter) and (parameter["group"].strip() != ""):
-                    if parameter["group"] not in result:
-                        result[parameter["group"]] = []
-                    result[parameter["group"]].append(parameter["name"])
-        return result
-
-    @contract
-    def list_path_parameters(self, resource):
-        """ Lists the (always required) path parameters for the specified REST API resource
-
-            :param resource: A string that represents the REST API resource
-            :type resource: ``string_type``
-
-            :return: A list of the (always required) path parameters for the specified REST API resource
-            :rtype: ``list(string_type)``
-        """
-        if resource not in self.resources:
-            raise InvalidResourceError(name=type(self).__name__, resource=resource)
-
-        path_parameters = []
-        if "path" in self.resources[resource]:
-            for part in self.resources[resource]["path"]:
-                if part.startswith("{") and part.endswith("}"):
-                    path_parameters.append(part[1:-1])
-        return path_parameters
-
-    def create_request_function(self, resource):
+    # ---------------------------------------------------------------------------------------------
+    def create_request_function(self, resource_name, config):
         """ This function is used to dynamically create request functions for a specified REST API resource
 
             :param resource: A string that represents the REST API resource
@@ -365,110 +287,305 @@ class RestClient(object):
             :return: A function that builds and sends a request for the specified REST API resource and validates the function call
             :rtype: ``list(string_type)``
         """
-        if resource not in self.resources:
-            raise InvalidResourceError(name=type(self).__name__, resource=resource)
 
-        if "method" in self.resources[resource]:
-            method = self.resources[resource]["method"]
-        else:
-            method = "GET"
-        if "path" in self.resources[resource]:
-            path = self.resources[resource]["path"]
-        else:
-            path = []
+        if not config:
+            raise InvalidResourceError(name=type(self).__name__, resource=resource_name)
+        
+        rest_resource = RestResource(client=self, name=resource_name, config=config)
+        return rest_resource
 
+    # ---------------------------------------------------------------------------------------------
+    # functions for backwards compatibility
+    # ---------------------------------------------------------------------------------------------
+    def list_parameters(self, resource):
+        tmp = getattr(self, resource)
+        return tmp.resource_parameters.all_parameter
+
+    def list_query_parameters(self, resource):
+        tmp = getattr(self, resource)
+        return tmp.resource_parameters.query_parameters
+
+    def list_query_parameter_groups(self, resource):
+        tmp = getattr(self, resource)
+        return tmp.resource_parameters.query_parameter_groups
+
+    def list_path_parameters(self, resource):
+        tmp = getattr(self, resource)
+        return tmp.resource_parameters.path_parameters
+
+
+
+class ResourceParameters():
+    '''
+    Wrapper for the parameter handling, this allows the RestResource to focus on the execution
+    Code here is collected from multiple location, it hasnt been refactored but shows the redundancy
+    in the original code.
+    '''
+    
+    def __init__(self, config):
+        self.config = config
+        
+        # although all functions below are properties, it may be more CPU friendly to 
+        # store the result locally instead.
+        self.path_parameters = self._path_parameters
+        self.query_parameters = self._query_parameters
+        self.multiple_parameters = self.query_parameters["multiple"]
+        self.query_parameter_groups = self._query_parameter_groups
+        self.required_parameters = self._required_parameters
+        self.all_query_parameters = self._all_query_parameters
+        self.all_parameters = self._all_parameters
+        
+
+    # ---------------------------------------------------------------------------------------------
+    @property
+    @contract
+    def all_parameter(self):
+        """ show all parameters in path or query
+
+            :return: A dictionary that contains required and optional parameters.
+            :rtype: ``dict``
+        """
+
+        # TODO: show that a parameter is a list/multiple?
+        result = {"required": [], "optional": []}
+        result["required"].extend(self.path_parameters)
+        result["required"].extend(self.query_parameters["required"])
+        result["optional"].extend(self.query_parameters["optional"])
+        
+        return result
+
+    # --------------------------------------------------------------------------------------------
+    @property
+    @contract
+    def _required_parameters(self):
+        """ Lists the required parameters for the specified REST API resource.
+            Also summarises the query parameters that can be multiple.
+
+            :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters (value, a list) for the specified REST API resource
+            :rtype: ``list``
+        """
         required_parameters = []
+        required_parameters.extend(self.path_parameters)
+        required_parameters.extend(self.query_parameters["required"])
+        return required_parameters
+
+
+    # --------------------------------------------------------------------------------------------
+    @property
+    @contract
+    def _all_query_parameters(self):
+        """ Lists the required and optional query parameters for the specified REST API resource.
+            Also summarises the query parameters that can be multiple.
+
+            :return: A list of parameters
+            :rtype: ``list``
+        """
         all_query_parameters = []
-        path_parameters = self.list_path_parameters(resource)
-        query_parameters = self.list_query_parameters(resource)
-        required_parameters.extend(path_parameters)
-        required_parameters.extend(query_parameters["required"])
-        multiple_parameters = query_parameters["multiple"]
-        all_query_parameters.extend(query_parameters["optional"])
-        all_query_parameters.extend(query_parameters["required"])
+        all_query_parameters.extend(self.query_parameters["optional"])
+        all_query_parameters.extend(self.query_parameters["required"])
+        return all_query_parameters
+
+    # --------------------------------------------------------------------------------------------
+    @property
+    @contract
+    def _all_parameters(self):
+        """ Aggregates all parameters into a single structure
+
+            :return: A list of parameters
+            :rtype: ``list``
+        """
+        all_query_parameters = []
         all_parameters = []
-        all_parameters.extend(all_query_parameters)
-        all_parameters.extend(path_parameters)
+        all_parameters.extend(self.all_query_parameters)
+        all_parameters.extend(self.path_parameters)
         all_parameters.append("data")  # data (request body) can be a parameter as well
-        groups = self.list_query_parameter_groups(resource)
+        
+        return all_parameters
 
-        def function_template(self, **kwargs):
-            """ This function builds and sends a request for a specified REST API resource.
-                The parameters are validated dynamically, depending on the configuration of said REST API resource.
-                It returns a dictionary of the response or throws an appropriate error, depending on the HTTP return code.
-            """
-            diff = set(kwargs.keys()).difference(all_parameters)
-            if len(diff) > 0:
-                raise SyntaxError("parameters {difference} are supplied but not usable for resource '{resource}'".format(
-                    difference=list(diff),
-                    resource=resource
-                ))
-            parameters = {}
-            # Resolve path parameters in path
-            resolved_path = "/".join(path)
-            for parameter in required_parameters:
-                if parameter not in kwargs.keys():
-                    raise SyntaxError("parameter '{parameter}' is missing for resource '{resource}'".format(
-                        parameter=parameter,
-                        resource=resource
-                    ))
-                if parameter in path_parameters:
-                    resolved_path = resolved_path.format(**{parameter: kwargs[parameter]})
 
-            # Construct URL using base URL and path
-            url = "{url}/{path}".format(url=self.url, path=resolved_path)
+    # ---------------------------------------------------------------------------------------------
+    @property
+    @contract
+    def _query_parameters(self):
+        """ Lists the required and optional query parameters for the specified REST API resource.
+            Also summarises the query parameters that can be multiple.
 
-            # Prepare & check query parameters
-            intersection = set(all_query_parameters).intersection(kwargs.keys())
-            groups_used = {}
-            for kwarg in intersection:
-                for group in groups:
-                    if kwarg in groups[group]:
-                        if group in groups_used:
-                            raise SyntaxError(
-                                "parameter '{kwarg1}' and '{kwarg2}' from group '{group}' can't be used together".format(
-                                    kwarg1=kwarg,
-                                    kwarg2=groups_used[group],
-                                    group=group
-                                ))
-                        else:
-                            groups_used[group] = kwarg
-                        break
-                # TODO: is this necessary? wouldn't we get HTTP 400?
-                if isinstance(kwargs[kwarg], list) and kwarg not in multiple_parameters:
-                    raise SyntaxError("parameter '{kwarg}' is not multiple".format(
-                        kwarg=kwarg
-                    ))
+            :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters (value, a list) for the specified REST API resource
+            :rtype: ``dict``
+        """
+        result = {"required": [], "optional": [], "multiple": []}
+        if "query_parameters" in self.config:
+            for parameter in self.config["query_parameters"]:
+                if ("required" in parameter) and (parameter["required"] is True):
+                    result["required"].append(parameter["name"])
                 else:
-                    parameters[kwarg] = kwargs[kwarg]
+                    result["optional"].append(parameter["name"])
+                if ("multiple" in parameter) and (parameter["multiple"] is True):
+                    result["multiple"].append(parameter["name"])
+        return result
 
-            # Add request body data
-            data = None
-            if "data" in kwargs:
-                data = kwargs["data"]
+    # ---------------------------------------------------------------------------------------------
+    @property
+    @contract
+    def _query_parameter_groups(self):
+        """ Lists the different groups of query parameters for the specified
+            REST API resource. When query parameters are in a group, only one of
+            them can be used in a query at a time, unless the 'multiple' property
+            has been used for every query parameter of that group.
 
-            # Check if valid URL
-            self.url_validator.__call__(url)
+            :return: A dictionary of the different groups (key) of query parameters (value, is list) for the specified REST API resource
+            :rtype: ``dict``
+        """
 
-            # JSON options
-            if "json" in self.resources[resource]:
-                json_options = self.resources[resource]["json"]
+        result = {}
+        if "query_parameters" in self.config:
+            for parameter in self.config["query_parameters"]:
+                # TODO: check if string, maybe also support int?
+                if ("group" in parameter) and (parameter["group"].strip() != ""):
+                    if parameter["group"] not in result:
+                        result[parameter["group"]] = []
+                    result[parameter["group"]].append(parameter["name"])
+        return result
+
+    # ---------------------------------------------------------------------------------------------
+    @property
+    @contract
+    def _path_parameters(self):
+        """ Lists the (always required) path parameters for the specified REST API resource
+
+            #:param resource: A string that represents the REST API resource
+            #:type resource: ``string_type``
+
+            :return: A list of the (always required) path parameters for the specified REST API resource
+            :rtype: ``list(string_type)``
+        """
+
+        path_parameters = []
+        if "path" in self.config:
+            for part in self.config["path"]:
+                if part.startswith("{") and part.endswith("}"):
+                    path_parameters.append(part[1:-1])
+        return path_parameters
+    
+
+class RestResource():
+    '''
+    A resource is defined as a single REST endpoint.
+    This class wraps functionality of creating and querying this resources, starting with a
+    configuration string
+    '''
+    
+    def __init__(self, client, name, config):
+        self.client = client
+        self.config = config
+        self.name = name
+        self.path = self.config.get('path', [])
+        self.method = self.config.get('method', 'GET')
+        self.resource_parameters = ResourceParameters(config)
+    
+    # ---------------------------------------------------------------------------------------------
+    def __call__(self, *args, **kwargs):
+        # catch accidential positional arguments
+        if args:
+            raise SyntaxError("all parameters must by keyword arguments")
+        
+        return self._get_rest_data(**kwargs)
+
+    #---------------------------------------------------------------------------------------------
+    def validate_request(self, **kwargs):
+        '''
+        check the input request parameters before sending it to the remote service
+        '''
+        
+        rp = self.resource_parameters
+        
+        diff = set(kwargs.keys()).difference(rp.all_parameters)
+        if len(diff) > 0:
+            raise SyntaxError("parameters {difference} are supplied but not usable for resource '{resource}'".format(
+                difference=list(diff),
+                resource=self.name
+            ))
+        request_parameters = {}
+        # Resolve path parameters in path
+        resolved_path = "/".join(self.path)
+        for parameter in rp.required_parameters:
+            if parameter not in kwargs.keys():
+                raise SyntaxError("parameter '{parameter}' is missing for resource '{resource}'".format(
+                    parameter=parameter,
+                    resource=self.name
+                ))
+            if parameter in rp.path_parameters:
+                resolved_path = resolved_path.format(**{parameter: kwargs[parameter]})
+
+        # Construct URL using base URL and path
+        url = "{url}/{path}".format(url=self.client.url, path=resolved_path)
+
+        # Add request body data
+        data = kwargs.get('data', None)
+
+        # Check if valid URL
+        # Only allow http or https schemes for the REST API base URL
+        url_validator = URLValidator(schemes=["http", "https"])
+        url_validator(url)
+
+
+        # Prepare & check query parameters
+        intersection = set(rp.all_query_parameters).intersection(kwargs.keys())
+        groups_used = {}
+        for kwarg in intersection:
+            for group in rp.query_parameter_groups:
+                if kwarg in rp.query_parameter_groups[group]:
+                    if group in groups_used:
+                        raise SyntaxError(
+                            "parameter '{kwarg1}' and '{kwarg2}' from group '{group}' can't be used together".format(
+                                kwarg1=kwarg,
+                                kwarg2=groups_used[group],
+                                group=group
+                            ))
+                    else:
+                        groups_used[group] = kwarg
+                    break
+            # TODO: is this necessary? wouldn't we get HTTP 400?
+            if isinstance(kwargs[kwarg], list) and kwarg not in rp.multiple_parameters:
+                raise SyntaxError("parameter '{kwarg}' is not multiple".format(
+                    kwarg=kwarg
+                ))
             else:
-                json_options = {}
+                request_parameters[kwarg] = kwargs[kwarg]
+        
+        return {'url': url,
+                'parameters': request_parameters,
+                'data': data,
+                }
+        
 
-            # Do HTTP request to REST API
-            try:
-                response = requests.request(method=method,
-                                            url=url,
-                                            params=parameters,
-                                            data=data,
-                                            auth=self.auth,
-                                            verify=self.verifySSL)
-                return RestResponse(response=response,
-                                    options=json_options).to_python()
-            except ValueError:
-                return response.content
-            except requests.HTTPError as http:
-                raise http
+    # ---------------------------------------------------------------------------------------------
+    def _get_rest_data(self, **kwargs):
+        """ This function builds and sends a request for a specified REST API resource.
+            The parameters are validated dynamically, depending on the configuration of said REST API resource.
+            It returns a dictionary of the response or throws an appropriate error, depending on the HTTP return code.
+        """
 
-        return function_template
+        # JSON options
+        json_options = self.config.get('json', {})
+        
+        # url and parameters
+        validated_input = self.validate_request(**kwargs)
+        
+
+        # Do HTTP request to REST API
+        try:
+            response = requests.request(method=self.method,
+                                        auth=self.client.auth,
+                                        verify=self.client.verifySSL,
+                                        url=validated_input['url'], 
+                                        params=validated_input['parameters'],
+                                        data=validated_input['data']
+                                        )
+            return RestResponse(response=response,
+                                options=json_options).to_python()
+        except ValueError:
+            return response.content
+        except requests.HTTPError as http:
+            raise http
+
