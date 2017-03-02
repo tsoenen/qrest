@@ -1,7 +1,15 @@
+import six
 
+#local imports
+from .resources import RestResource,  validate_resources_configuration
+from .utils import InvalidResourceError, URLValidator
+from .utils import contract, new_contract, string_type, string_type_or_none
 
 
 class RestClient(object):
+    '''
+    This is the main point of contact for end users, that is why it is in __init__
+    '''
     
     #placeholder for subclassed resources
     config = {}

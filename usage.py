@@ -14,7 +14,7 @@ def use_marker_repository_client():
     client = marker_repository.MarkerRepositoryClient(url=markerUrl,
                                                       user=user,
                                                       password=password)
-    pp.pprint(client.resources())
+    pp.pprint(client.resources)
     x = client.get_a_marker_by_id(id='mTO100')
     pp.pprint(x)
 
