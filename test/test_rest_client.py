@@ -1,5 +1,5 @@
 import unittest
-import cls_rest_client as client
+import bcs_rest_client as client
 
 
 class TestRestClient(unittest.TestCase):
@@ -45,7 +45,7 @@ class TestRestClient(unittest.TestCase):
     def test_init_resources(self):
 
         rc = client.RestClient(url=self.url)
-        self.assertEqual(rc.resources, {})
+        self.assertEqual(rc.resources, [])
         resources = {
             "some_function_name": {
                 "path": ["some", "collection", "{id}"],
@@ -55,9 +55,9 @@ class TestRestClient(unittest.TestCase):
                 ]
             }
         }
-        rc = client.RestClient(url=self.url, resources=resources)
-        self.assertEqual(rc.resources, resources)
-        self.assertEqual(len(rc.list_resources()), 1)
+        rc = client.RestClient(url=self.url, config=resources)
+        self.assertEqual(rc.resources, ['some_function_name'])
+        self.assertEqual(len(rc.resources), 1)
         self.assertEqual(len(rc.list_parameters("some_function_name")), 2)
         self.assertEqual(len(rc.list_path_parameters("some_function_name")), 1)
         self.assertEqual(len(rc.list_query_parameters("some_function_name")["optional"]), 1)

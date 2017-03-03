@@ -20,22 +20,24 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='rest-client',
+    name='bcs-rest-client',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.0.0',
+    version='0.9.0',
 
     description='The Python REST client project',
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://scm.openanalytics.eu/scm/git/python-phoenix.git',
+    url='https://stash.be.bayercropscience/projects/PYA/repos/rest_client/',
 
     # Author details
     author='Jonas Van Malder (Open Analytics)',
     author_email='jonas.vanmalder@openanalytics.eu',
+    maintainer='Joris Benschop (BCS-VS)', 
+    maintainer_email='joris.benschop@', 
 
     # Choose your license
     license='GPLv3',
@@ -46,10 +48,11 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 5 - Production/Stable',
+        'Development Status :: 4 - Beta',
+        #'Development Status :: 5 - Production/Stable',
 
         # Indicate who your project is intended for
-        'Intended Audience :: Developers',
+        'Intended Audience :: data scientists',
         'Topic :: Software Development :: Libraries :: Python Modules',
 
         # Pick your license as you wish (should match "license" above)
@@ -72,7 +75,7 @@ setup(
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
-    py_modules=["cls_rest_client"],
+    py_modules=["bcs_rest_client"],
 
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's
