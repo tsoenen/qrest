@@ -1,1 +1,0 @@
-CLI_COMMAND_NAME = False

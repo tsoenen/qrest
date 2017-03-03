@@ -11,3 +11,4 @@ sdist
 *.log
 *.sw[ponlm]
 *.idea
+*~
