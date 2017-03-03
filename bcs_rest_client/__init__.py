@@ -102,7 +102,7 @@ class RestClient(object):
     # ---------------------------------------------------------------------------------------------
     def list_parameters(self, resource):
         tmp = getattr(self, resource)
-        return tmp.resource_parameters.all_parameter
+        return tmp.resource_parameters.parameter_dict
 
     def list_query_parameters(self, resource):
         tmp = getattr(self, resource)

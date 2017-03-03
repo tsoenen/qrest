@@ -19,13 +19,23 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-cls_rest_client
+bcs_rest_client
 ===============
 
-.. automodule:: cls_rest_client
-   :members:
+.. automodule:: bcs_rest_client
 
 .. autoclass:: RestClient
+   :members:
+   :private-members: 
+   :special-members: __init__
+
+
+bcs_rest_client.resources
+=========================
+
+.. automodule:: bcs_rest_client.resources
+
+.. autoclass:: RestResource
    :members:
    :private-members:
    :special-members: __init__
@@ -35,24 +45,10 @@ cls_rest_client
    :private-members:
    :special-members: __init__
 
-marker_repository
-=================
-
-.. automodule:: marker_repository
-
-.. autoclass:: MarkerRepositoryClient
+.. autoclass:: ResourceParameters
    :members:
-   :undoc-members:
-   :private-members:
+   :private-members: 
+   :exclude-members: _path_parameters, _query_parameters, _query_parameter_groups 
    :special-members: __init__
 
-uid_generator
-=============
 
-.. automodule:: uid_generator
-
-.. autoclass:: UidGeneratorClient
-   :members:
-   :undoc-members:
-   :private-members:
-   :special-members: __init__

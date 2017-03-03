@@ -1,5 +1,5 @@
 import unittest
-import cls_rest_client as client
+import bcs_rest_client as client
 
 
 class TestRestClient(unittest.TestCase):

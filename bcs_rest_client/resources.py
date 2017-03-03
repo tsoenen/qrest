@@ -3,7 +3,7 @@ import copy
 import six
 
 #local imports
-from .utils import URLValidator
+from .utils import URLValidator, InvalidResourceError
 from .utils import contract, new_contract, string_type, string_type_or_none
 
 @contract
@@ -105,6 +105,10 @@ def validate_resources_configuration(resources={}):
 
 
 class RestResponse(object):
+    '''
+    Wrapper around the REST response. This is meant to process the response coming from the requests
+    call into a python object
+    '''
 
     def __init__(self, response, options={}):
         """ RestResponse constructor
@@ -115,24 +119,26 @@ class RestResponse(object):
             :type options: ``dict``
 
         """
+        assert isinstance(response, requests.models.Response)
         self.response = response
         self.response.raise_for_status()
         self.headers = response.headers
         self.content = response.content
         self.options = options
 
-    def is_json(self):
+    @property
+    def response_type(self):
         """ Checks whether the Requests Response object contains JSON or not
 
             :return: True when the Requests Response object contains JSON and False when it does not
             :rtype: ``bool``
         """
         if ('content-type' in self.headers) and ("json" in self.headers['content-type']):
-            return True
+            return 'json'
         else:
-            return False
+            return 'unknown'
 
-    def to_json(self):
+    def parse_json_response(self):
         """ Returns the JSON contained in the Requests Response object, following the options specified in the JSON configuration
 
             :return: A dictionary containing the Requests Response object, adapted to the JSON configuration
@@ -172,8 +178,8 @@ class RestResponse(object):
 
             :return: A dictionary containing the response body JSON content, adapted to the JSON configuration or the raw response body content in bytes if it is not JSON
         """
-        if self.is_json():
-            return self.to_json()
+        if self.response_type == 'json':
+            return self.parse_json_response()
         else:
             return self.content
 
@@ -183,26 +189,53 @@ class ResourceParameters():
     Wrapper for the parameter handling, this allows the RestResource to focus on the execution
     Code here is collected from multiple location, it hasnt been refactored but shows the redundancy
     in the original code.
+    
+    :param list path_parameters: all parameters that end up in the url of the request
+    :param dict query_parameters: Lists the required and optional query parameters for the specified REST API resource.
+    :param dict query_parameter_groups: A dictionary of the different groups (key) of query parameters (value, is list) for the specified REST API resource
     '''
     
     def __init__(self, config):
+        '''
+        loads a config file and extract information in specific data structures
+        '''
         self.config = config
         
         # although all functions below are properties, it may be more CPU friendly to 
         # store the result locally instead.
+        
         self.path_parameters = self._path_parameters
         self.query_parameters = self._query_parameters
-        self.multiple_parameters = self.query_parameters["multiple"]
         self.query_parameter_groups = self._query_parameter_groups
-        self.required_parameters = self._required_parameters
-        self.all_query_parameters = self._all_query_parameters
-        self.all_parameters = self._all_parameters
-        
+
+    # --------------------------------------------------------------------------------------------
+    @property
+    @contract
+    def multiple_parameters(self):
+        """ Returns all parameters that can be used simultaneously
+
+            :return: A list of parameters
+            :rtype: ``list``
+        """
+        return self.query_parameters["multiple"]
+
+    # --------------------------------------------------------------------------------------------
+    @property
+    @contract
+    def all_parameters(self):
+        """ Aggregates all parameters into a single structure
+
+            :return: A list of parameters
+            :rtype: ``list``
+        """
+        all_parameters = self.all_query_parameters + self.path_parameters
+        all_parameters.append("data")  # data (request body) can be a parameter as well
+        return all_parameters
 
     # ---------------------------------------------------------------------------------------------
     @property
     @contract
-    def all_parameter(self):
+    def parameter_dict(self):
         """ show all parameters in path or query
 
             :return: A dictionary that contains required and optional parameters.
@@ -220,50 +253,26 @@ class ResourceParameters():
     # --------------------------------------------------------------------------------------------
     @property
     @contract
-    def _required_parameters(self):
+    def required_parameters(self):
         """ Lists the required parameters for the specified REST API resource.
             Also summarises the query parameters that can be multiple.
 
             :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters (value, a list) for the specified REST API resource
             :rtype: ``list``
         """
-        required_parameters = []
-        required_parameters.extend(self.path_parameters)
-        required_parameters.extend(self.query_parameters["required"])
-        return required_parameters
-
+        return self.path_parameters + self.query_parameters["required"]
 
     # --------------------------------------------------------------------------------------------
     @property
     @contract
-    def _all_query_parameters(self):
+    def all_query_parameters(self):
         """ Lists the required and optional query parameters for the specified REST API resource.
             Also summarises the query parameters that can be multiple.
 
             :return: A list of parameters
             :rtype: ``list``
         """
-        all_query_parameters = []
-        all_query_parameters.extend(self.query_parameters["optional"])
-        all_query_parameters.extend(self.query_parameters["required"])
-        return all_query_parameters
-
-    # --------------------------------------------------------------------------------------------
-    @property
-    @contract
-    def _all_parameters(self):
-        """ Aggregates all parameters into a single structure
-
-            :return: A list of parameters
-            :rtype: ``list``
-        """
-        all_query_parameters = []
-        all_parameters = []
-        all_parameters.extend(self.all_query_parameters)
-        all_parameters.extend(self.path_parameters)
-        all_parameters.append("data")  # data (request body) can be a parameter as well
-        
-        return all_parameters
+        return self.query_parameters["optional"] + self.query_parameters["required"]
 
 
     # ---------------------------------------------------------------------------------------------
@@ -434,7 +443,6 @@ class RestResource():
         
         # url and parameters
         validated_input = self.validate_request(**kwargs)
-        
 
         # Do HTTP request to REST API
         try:
