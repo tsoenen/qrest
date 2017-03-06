@@ -362,6 +362,18 @@ class RestResource():
             raise SyntaxError("all parameters must by keyword arguments")
         
         return self._get_rest_data(**kwargs)
+    
+    @property
+    @contract
+    def parameters(self):
+        '''
+        return the configuration parameters for this rest resource
+        :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters (value, a list)
+        :rtype: ``dict``
+        
+        '''
+        return self.resource_parameters.parameter_dict
+        
 
     #---------------------------------------------------------------------------------------------
     def validate_request(self, **kwargs):

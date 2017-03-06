@@ -19,13 +19,19 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
+    for line in open('bcs_rest_client/__init__.py'):
+        if (line.startswith('__version__')):
+            exec(line.strip())
+
+
 setup(
     name='bcs-rest-client',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.9.0',
+    #version='0.9.0',
+    version=__version__, 
 
     description='The Python REST client project',
     long_description=long_description,
