@@ -21,7 +21,7 @@ class TestQuickMarkerRepository(unittest.TestCase):
             "method": "GET",
             "query_parameters": [
                 {"name": "markerUid"},
-                {"name": "taxonomy", "multiple": True},
+                {"name": "taxonId", "multiple": True},
                 {"name": "alias"},
                 {"name": "sourceCategory"},
                 {"name": "technology"},

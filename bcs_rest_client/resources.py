@@ -135,12 +135,13 @@ class RestResponse(object):
 
         """
         assert isinstance(response, requests.models.Response)
-        self.response = response
-        self.response.raise_for_status()
+        self._response = response
+        self._response.raise_for_status()
         self.headers = response.headers
+        self._data = None
         self.content = response.content
         self.options = options
-
+        
     @property
     def response_type(self):
         """ Checks whether the Requests Response object contains JSON or not
@@ -159,15 +160,16 @@ class RestResponse(object):
             :return: A dictionary containing the Requests Response object, adapted to the JSON configuration
             :rtype: ``dict``
         """
-        json = copy.deepcopy(self.response.json())
-        json_source = copy.deepcopy(self.response.json())
+        json = copy.deepcopy(self._response.json())
+        json_source = copy.deepcopy(self._response.json())
         if isinstance(json, dict):
             if ("root" in self.options) and (len(self.options["root"]) > 0):
                 for element in self.options["root"]:
                     if element in json:
                         json = json[element]
                     else:
-                        raise ValueError("")
+                        raise ValueError("Element %s could not be found")
+        
         if not isinstance(json, dict):
             json_dict = {}
             if "result_name" in self.options:
@@ -180,6 +182,7 @@ class RestResponse(object):
         if ("root" in self.options) and (len(self.options["root"]) > 0):
             if "source_name" in self.options:
                 json_dict[self.options["source_name"]] = json_source
+                #setattr(self, self.options["source_name"], json_source)
             elif "source" not in json_dict:
                 json_dict["source"] = json_source
             else:
@@ -197,6 +200,15 @@ class RestResponse(object):
             return self.parse_json_response()
         else:
             return self.content
+
+    @property
+    def data(self):
+        '''
+        cashing wrapper around the to_python object below
+        '''
+        if not self._data:
+            self._data = self.to_python()
+        return self._data
 
 
 class ResourceParameters():
@@ -481,7 +493,7 @@ class RestResource():
                                         data=validated_input['data']
                                         )
             return RestResponse(response=response,
-                                options=json_options).to_python()
+                                options=json_options)
         except ValueError:
             return response.content
         except requests.HTTPError as http:
