@@ -1,7 +1,33 @@
 import unittest
 import bcs_rest_client as client
 
+class TestInvalidResourceError(unittest.TestCase):
+    
+    def test_raise(self):
+        from bcs_rest_client.utils import InvalidResourceError
+        
+        def broken_function():
+            name = 'rest client name'
+            resource = 'resource_name'
+            raise InvalidResourceError(name, resource)
+        
+        with self.assertRaises(InvalidResourceError):
+            broken_function()
 
+    def test_try(self):
+        from bcs_rest_client.utils import InvalidResourceError
+        
+        try:
+            name = 'rest client name'
+            resource = 'resource_name'
+            raise InvalidResourceError(name, resource)
+        except InvalidResourceError as e:
+            expected = '"\'resource_name\' is not a valid resource for \'rest client name\'"'
+            received = str(e)
+            self.assertEqual(expected, received)
+            
+        
+            
 class TestRestClient(unittest.TestCase):
 
     url = "https://example.com"
@@ -24,6 +50,8 @@ class TestRestClient(unittest.TestCase):
         rc = client.RestClient(url=self.url)
         self.assertEqual(rc.auth, None)
         rc = client.RestClient(url=self.url, user="test")
+        self.assertEqual(rc.auth, ('test', ''))
+        rc = client.RestClient(url=self.url, user="test", password=None)
         self.assertEqual(rc.auth, ('test', ''))
         rc = client.RestClient(url=self.url, user="test", password="pass")
         self.assertEqual(rc.auth, ('test', 'pass'))
@@ -51,7 +79,11 @@ class TestRestClient(unittest.TestCase):
                 "path": ["some", "collection", "{id}"],
                 "method": "GET",
                 "query_parameters": [
-                    {"name": "some_parameter"}
+                    {"name": "some_parameter"}, 
+                    {"name": "alias", "group": "likeSearch"},
+                    {"name": "markerUid", "group": "likeSearch"},
+                    {"name": "breedingContactEmployeeId", "group": "exact", "required": True},
+                    {"name": "researchContactEmployeeId", "group": "exact", "required": True},
                 ]
             }
         }
@@ -60,13 +92,34 @@ class TestRestClient(unittest.TestCase):
         self.assertEqual(len(rc.resources), 1)
         self.assertEqual(len(rc.list_parameters("some_function_name")), 2)
         self.assertEqual(len(rc.list_path_parameters("some_function_name")), 1)
-        self.assertEqual(len(rc.list_query_parameters("some_function_name")["optional"]), 1)
+        self.assertEqual(len(rc.list_query_parameters("some_function_name")["optional"]), 3)
+        self.assertEqual(len(rc.list_query_parameters("some_function_name")["required"]), 2)
+        self.assertEqual(len(rc.list_query_parameter_groups("some_function_name")), 2)
+        
+        # also test direct addressing
+        f = rc.some_function_name
+        self.assertEqual(len(f.parameters), 2)
+        self.assertEqual(len(f._parameters.path_parameters), 1)
+        self.assertEqual(len(f._parameters.query_parameters["optional"]), 3)
+        self.assertEqual(len(f._parameters.query_parameters["required"]), 2)
+        self.assertEqual(len(f._parameters.query_parameter_groups), 2)
+        self.assertEqual(len(f._parameters.multiple_parameters), 0)
+
+        
+    def test_init_resources_no_config(self):
+
+        rc = client.RestClient(url=self.url)
+        self.assertEqual(rc.resources, [])
+        resources = {}
+        rc = client.RestClient(url=self.url, config=resources)
+        with self.assertRaises(Exception):
+            rc.create_request_function('resource_name', config=resources)
 
     @unittest.expectedFailure
     def test_init_resources_wrong_syntax_path(self):
 
         rc = client.RestClient(url=self.url)
-        self.assertEqual(rc.resources, {})
+        self.assertEqual(rc.resources, [])
         resources = {
             "some_function_name": {
                 "path": ["some", "collection", "{id}", "{data}"],
@@ -76,7 +129,7 @@ class TestRestClient(unittest.TestCase):
                 ]
             }
         }
-        rc = client.RestClient(url=self.url, resources=resources)
+        rc = client.RestClient(url=self.url, config=resources)
 
     @unittest.expectedFailure
     def test_init_resources_wrong_syntax_query(self):
@@ -93,7 +146,7 @@ class TestRestClient(unittest.TestCase):
                 ]
             }
         }
-        rc = client.RestClient(url=self.url, resources=resources)
+        rc = client.RestClient(url=self.url, config=resources)
 
     def test_init_url(self):
 

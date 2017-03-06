@@ -29,8 +29,7 @@ class InvalidResourceError(KeyError):
             :type resource: ``string``
 
         """
-        super("'{resource}' is not a valid resource for '{name}'".format(
-            resource=resource,
-            name=name
-        ))
+        response = "'{resource}' is not a valid resource for '{name}'".format(resource=resource,name=name)
+        super(InvalidResourceError, self).__init__(response)
+        
 
