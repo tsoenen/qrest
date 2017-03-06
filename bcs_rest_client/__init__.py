@@ -1,3 +1,5 @@
+__version__ = '0.9.20170306.1'
+
 import six
 
 #local imports
@@ -15,7 +17,7 @@ class RestClient(object):
     config = {}
 
     @contract
-    def __init__(self, url, user="", password="", config={}, verifySSL=False):
+    def __init__(self, url,user="", password="",  config={}, verifySSL=False):
         """ RestClient constructor
 
             :param url: The base URL of the REST API
@@ -76,7 +78,6 @@ class RestClient(object):
             field = getattr(self, fieldname)
             if isinstance(field, RestResource):
                 resources.append(field.name)
-            pass
         return resources
 
 
@@ -93,7 +94,7 @@ class RestClient(object):
 
         if not config:
             raise InvalidResourceError(name=type(self).__name__, resource=resource_name)
-        
+
         rest_resource = RestResource(client=self, name=resource_name, config=config)
         return rest_resource
 
@@ -102,17 +103,17 @@ class RestClient(object):
     # ---------------------------------------------------------------------------------------------
     def list_parameters(self, resource):
         tmp = getattr(self, resource)
-        return tmp.resource_parameters.parameter_dict
+        return tmp.parameters
 
     def list_query_parameters(self, resource):
         tmp = getattr(self, resource)
-        return tmp.resource_parameters.query_parameters
+        return tmp._parameters.query_parameters
 
     def list_query_parameter_groups(self, resource):
         tmp = getattr(self, resource)
-        return tmp.resource_parameters.query_parameter_groups
+        return tmp._parameters.query_parameter_groups
 
     def list_path_parameters(self, resource):
         tmp = getattr(self, resource)
-        return tmp.resource_parameters.path_parameters
+        return tmp._parameters.path_parameters
 

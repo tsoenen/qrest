@@ -8,21 +8,23 @@ https://github.com/pypa/sampleproject
 """
 
 # Always prefer setuptools over distutils
-from setuptools import setup
+from setuptools import setup, find_packages
 # To use a consistent encoding
 from codecs import open
 from os import path
 
 here = path.abspath(path.dirname(__file__))
 
+# get version from init
+for line in open('bcs_rest_client/__init__.py'):
+    if (line.startswith('__version__')):
+        exec(line.strip())
+        break
+
+
 # Get the long description from the README file
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
-
-    for line in open('bcs_rest_client/__init__.py'):
-        if (line.startswith('__version__')):
-            exec(line.strip())
-
 
 setup(
     name='bcs-rest-client',
@@ -43,7 +45,7 @@ setup(
     author='Jonas Van Malder (Open Analytics)',
     author_email='jonas.vanmalder@openanalytics.eu',
     maintainer='Joris Benschop (BCS-VS)', 
-    maintainer_email='joris.benschop@', 
+    maintainer_email='joris.benschop@bayer.com', 
 
     # Choose your license
     license='GPLv3',
@@ -77,11 +79,11 @@ setup(
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    # packages=find_packages(exclude=['docs', 'test']),
+    packages=find_packages(exclude=['docs', 'test']),
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
-    py_modules=["bcs_rest_client"],
+    #py_modules=["bcs_rest_client"],
 
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's
