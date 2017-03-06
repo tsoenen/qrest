@@ -3,104 +3,119 @@ import copy
 import six
 
 #local imports
-from .utils import URLValidator, InvalidResourceError
-from .utils import contract, new_contract, string_type, string_type_or_none
+from .utils import URLValidator
+from .utils import contract
 
 @contract
-def validate_resources_configuration(resources={}):
+def validate_resources_configuration(config_dict):
     """ Validates a resources configuration and raises appropriate exceptions
 
-        :param resources: The object that represents the REST API resources
-        :type resources: ``dict``
+        :param config_dict: The object that represents the REST API resources
+        :type config_dict: ``dict``
     """
-    for resource in resources:
-        if not isinstance(resource, six.string_types):
+    for resource_name, resource_config in config_dict.items():
+        if not isinstance(resource_name, six.string_types):
             raise ValueError("resource name '{resource}' is not a string".format(
-                resource=resource
+                resource=resource_name
             ))
-        if "path" in resources[resource]:
-            if not isinstance(resources[resource]["path"], list):
+        if not isinstance(resource_config, dict):
+            raise ValueError("resource name '{resource}' value is not a dictionary".format(
+                resource=resource_name
+            ))
+        
+        # path configuration
+        if "path" in resource_config:
+            if not isinstance(resource_config["path"], list):
                 raise ValueError("path for resource '{resource}' is not a list".format(
-                    resource=resource
+                    resource=resource_name
                 ))
-            for part in resources[resource]["path"]:
+            for part in resource_config["path"]:
                 if not isinstance(part, six.string_types):
                     raise ValueError("part '{part}' of path for resource '{resource}' is not a string".format(
-                        resource=resource,
+                        resource=resource_name,
                         part=part
                     ))
                 elif part == "{data}":
                     raise SyntaxError("'data' isn't a valid path parameter name for resource '{resource}'".format(
-                        resource=resource
+                        resource=resource_name
                     ))
-        if "method" in resources[resource]:
-            if not isinstance(resources[resource]["method"], six.string_types):
+
+        # method
+        if "method" in resource_config:
+            if not isinstance(resource_config["method"], six.string_types):
                 raise ValueError("method for resource '{resource}' is not a string".format(
-                    resource=resource
+                    resource=resource_name
                 ))
-        if "query_parameters" in resources[resource]:
-            if not isinstance(resources[resource]["query_parameters"], list):
+
+        # query parameters
+        if "query_parameters" in resource_config:
+            if not isinstance(resource_config["query_parameters"], list):
                 raise ValueError("query parameters for resource '{resource}' is not a list".format(
-                    resource=resource
+                    resource=resource_name
                 ))
-            for parameter in resources[resource]["query_parameters"]:
+            if not resource_config["query_parameters"]:
+                raise ValueError("query parameters for resource '{resource}' is empty".format(
+                    resource=resource_name
+                ))
+            for parameter in resource_config["query_parameters"]:
                 if not isinstance(parameter, dict):
                     raise ValueError("not all query parameters for resource '{resource}' are a dictionary".format(
-                        resource=resource
+                        resource=resource_name
                     ))
                 if "name" in parameter:
                     if not isinstance(parameter["name"], six.string_types):
                         raise ValueError("not all query parameter names for resource '{resource}' are a string".format(
-                            resource=resource
+                            resource=resource_name
                         ))
                     elif parameter["name"] == "data":
                         raise SyntaxError("'data' isn't a valid query parameter name for resource '{resource}'".format(
-                            resource=resource
+                            resource=resource_name
                         ))
                 else:
                     raise SyntaxError("not all query parameters for resource '{resource}' have a name".format(
-                        resource=resource
+                        resource=resource_name
                     ))
                 if "group" in parameter:
                     if not isinstance(parameter["group"], six.string_types):
                         raise ValueError("not all query parameter group names for resource '{resource}' are a string".format(
-                            resource=resource
+                            resource=resource_name
                         ))
                 if "required" in parameter:
                     if not isinstance(parameter["required"], bool):
                         raise ValueError("not all query parameter 'required' options for resource '{resource}' are a boolean".format(
-                            resource=resource
+                            resource=resource_name
                         ))
                 if "multiple" in parameter:
                     if not isinstance(parameter["multiple"], bool):
                         raise ValueError("not all query parameter 'multiple' options for resource '{resource}' are a boolean".format(
-                            resource=resource
+                            resource=resource_name
                         ))
-        if "json" in resources[resource]:
-            if not isinstance(resources[resource]["json"], dict):
+        # json
+        if "json" in resource_config:
+            if not isinstance(resource_config["json"], dict):
                 raise ValueError("json option for resource '{resource}' is not a dictionary".format(
-                    resource=resource
+                    resource=resource_name
                 ))
-            if "root" in resources[resource]["json"]:
-                if not isinstance(resources[resource]["json"]["root"], list):
+            if "root" in resource_config["json"]:
+                if not isinstance(resource_config["json"]["root"], list):
                     raise ValueError("json.root option for resource '{resource}' is not a list".format(
-                        resource=resource
+                        resource=resource_name
                     ))
-                for key in resources[resource]["json"]["root"]:
+                for key in resource_config["json"]["root"]:
                     if not isinstance(key, six.string_types):
-                        raise ValueError("not all json.root list elements for resource '{resource}' are a string".format(
-                            resource=resource,
+                        raise ValueError("json.root list element {key} for resource '{resource}' is not a string".format(
+                            resource=resource_name,
                             key=key
                         ))
-            if "source_name" in resources[resource]["json"]:
-                if not isinstance(resources[resource]["json"]["source_name"], six.string_types):
+            if "source_name" in resource_config["json"]:
+                if not isinstance(resource_config["json"]["source_name"], six.string_types):
                     raise ValueError("json.source_name option for resource '{resource}' is not a string".format(
-                        resource=resource
+                        resource=resource_name
                     ))
-            if "result_name" in resources[resource]["json"]:
-                if not isinstance(resources[resource]["json"]["result_name"], six.string_types):
+            if "result_name" in resource_config["json"]:
+                if not isinstance(resource_config["json"]["result_name"], six.string_types):
                     raise ValueError("json.result_name option for resource '{resource}' is not a string".format(
-                        resource=resource
+                        resource=resource_name
                     ))
 
 
@@ -235,7 +250,7 @@ class ResourceParameters():
     # ---------------------------------------------------------------------------------------------
     @property
     @contract
-    def parameter_dict(self):
+    def as_dict(self):
         """ show all parameters in path or query
 
             :return: A dictionary that contains required and optional parameters.
@@ -353,7 +368,7 @@ class RestResource():
         self.name = name
         self.path = self.config.get('path', [])
         self.method = self.config.get('method', 'GET')
-        self.resource_parameters = ResourceParameters(config)
+        self._parameters = ResourceParameters(config)
     
     # ---------------------------------------------------------------------------------------------
     def __call__(self, *args, **kwargs):
@@ -362,6 +377,18 @@ class RestResource():
             raise SyntaxError("all parameters must by keyword arguments")
         
         return self._get_rest_data(**kwargs)
+    
+    @property
+    @contract
+    def parameters(self):
+        '''
+        return the configuration parameters for this rest resource
+        :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters (value, a list)
+        :rtype: ``dict``
+        
+        '''
+        return self._parameters.as_dict
+        
 
     #---------------------------------------------------------------------------------------------
     def validate_request(self, **kwargs):
@@ -369,7 +396,7 @@ class RestResource():
         check the input request parameters before sending it to the remote service
         '''
         
-        rp = self.resource_parameters
+        rp = self._parameters
         
         diff = set(kwargs.keys()).difference(rp.all_parameters)
         if len(diff) > 0:
