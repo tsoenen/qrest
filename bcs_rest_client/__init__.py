@@ -1,9 +1,9 @@
-__version__ = '0.9.20170306.2'
+__version__ = '0.9.20170309.2'
 
 import six
 
 #local imports
-from .resources import RestResource,  validate_resources_configuration
+from .resources import RestResource, ResourceParameters, validate_resources_configuration
 from .utils import InvalidResourceError, URLValidator
 from .utils import contract, new_contract, string_type, string_type_or_none
 
@@ -50,14 +50,22 @@ class RestClient(object):
         else:
             self.auth = None
 
+
         # load targets from subclass
         if not config:
             config = self.config
+
+        # extract the default from the config
+        default = self.config.pop("default", {})
         validate_resources_configuration(config)
         self.config = config
-
-        for name, config in self.config.items():
-            setattr(self, name, self.create_request_function(resource_name=name, config=config))
+        
+        for name, item_config_dict in self.config.items():
+            return_class = item_config_dict.get('return_class', RestResource)
+            item_config = ResourceParameters(item_config_dict, default)
+            setattr(self,
+                    name,
+                    self.create_rest_resource(return_class, resource_name=name, config=item_config))
 
         self.verifySSL = verifySSL
 
@@ -73,8 +81,8 @@ class RestClient(object):
         resources = []
         fieldnames = dir(self)
         for fieldname in fieldnames:
-            if fieldname == 'resources':
-                continue
+            # this exclusion is to prevent endless loops
+            if fieldname == 'resources': continue
             field = getattr(self, fieldname)
             if isinstance(field, RestResource):
                 resources.append(field.name)
@@ -82,7 +90,7 @@ class RestClient(object):
 
 
     # ---------------------------------------------------------------------------------------------
-    def create_request_function(self, resource_name, config):
+    def create_rest_resource(self, return_class, resource_name, config):
         """ This function is used to dynamically create request functions for a specified REST API resource
 
             :param resource: A string that represents the REST API resource
@@ -95,7 +103,7 @@ class RestClient(object):
         if not config:
             raise InvalidResourceError(name=type(self).__name__, resource=resource_name)
 
-        rest_resource = RestResource(client=self, name=resource_name, config=config)
+        rest_resource = return_class(client=self, name=resource_name, config=config)
         return rest_resource
 
     # ---------------------------------------------------------------------------------------------
@@ -107,13 +115,13 @@ class RestClient(object):
 
     def list_query_parameters(self, resource):
         tmp = getattr(self, resource)
-        return tmp._parameters.query_parameters
+        return tmp.config.query_parameters
 
     def list_query_parameter_groups(self, resource):
         tmp = getattr(self, resource)
-        return tmp._parameters.query_parameter_groups
+        return tmp.config.query_parameter_groups
 
     def list_path_parameters(self, resource):
         tmp = getattr(self, resource)
-        return tmp._parameters.path_parameters
+        return tmp.config.path_parameters
 

@@ -1,6 +1,9 @@
 import requests
 import copy
 import six
+from requests.packages.urllib3 import disable_warnings
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+disable_warnings(InsecureRequestWarning)
 
 #local imports
 from .utils import URLValidator
@@ -35,10 +38,10 @@ def validate_resources_configuration(config_dict):
                         resource=resource_name,
                         part=part
                     ))
-                elif part == "{data}":
-                    raise SyntaxError("'data' isn't a valid path parameter name for resource '{resource}'".format(
-                        resource=resource_name
-                    ))
+                #elif part == "{data}":
+                    #raise SyntaxError("'data' isn't a valid path parameter name for resource '{resource}'".format(
+                        #resource=resource_name
+                    #))
 
         # method
         if "method" in resource_config:
@@ -46,6 +49,14 @@ def validate_resources_configuration(config_dict):
                 raise ValueError("method for resource '{resource}' is not a string".format(
                     resource=resource_name
                 ))
+            elif resource_config["method"] not in ['GET', 'POST']:
+                raise ValueError("method for resource '{resource}' must be GET or POST".format(
+                    resource=resource_name
+                ))
+        else:
+            raise ValueError("method for resource '{resource}' is missing".format(
+                resource=resource_name
+            ))
 
         # query parameters
         if "query_parameters" in resource_config:
@@ -67,10 +78,10 @@ def validate_resources_configuration(config_dict):
                         raise ValueError("not all query parameter names for resource '{resource}' are a string".format(
                             resource=resource_name
                         ))
-                    elif parameter["name"] == "data":
-                        raise SyntaxError("'data' isn't a valid query parameter name for resource '{resource}'".format(
-                            resource=resource_name
-                        ))
+                    #elif parameter["name"] == "data":
+                        #raise SyntaxError("'data' isn't a valid query parameter name for resource '{resource}'".format(
+                            #resource=resource_name
+                        #))
                 else:
                     raise SyntaxError("not all query parameters for resource '{resource}' have a name".format(
                         resource=resource_name
@@ -162,6 +173,9 @@ class RestResponse(object):
         """
         json = copy.deepcopy(self._response.json())
         json_source = copy.deepcopy(self._response.json())
+
+        result_name = self.options.get("result_name", "result")
+        
         if isinstance(json, dict):
             if ("root" in self.options) and (len(self.options["root"]) > 0):
                 for element in self.options["root"]:
@@ -170,24 +184,28 @@ class RestResponse(object):
                     else:
                         raise ValueError("Element %s could not be found")
         
+
         if not isinstance(json, dict):
             json_dict = {}
-            if "result_name" in self.options:
-                json_dict[self.options["result_name"]] = json
-            else:
-                json_dict["result"] = json
+            json_dict[result_name] = json
+            setattr(self, result_name, json_dict[result_name])
         else:
             json_dict = json
 
         if ("root" in self.options) and (len(self.options["root"]) > 0):
             if "source_name" in self.options:
                 json_dict[self.options["source_name"]] = json_source
-                #setattr(self, self.options["source_name"], json_source)
             elif "source" not in json_dict:
                 json_dict["source"] = json_source
             else:
                 json_dict["_source"] = json_source
-        return json_dict
+                
+        # replace content by interpreted content
+        self.content = json_source
+
+        #create _data object
+        self._data = json_dict
+        
 
     def to_python(self):
         """ Returns the response body content contained in the Requests Response object.
@@ -197,7 +215,7 @@ class RestResponse(object):
             :return: A dictionary containing the response body JSON content, adapted to the JSON configuration or the raw response body content in bytes if it is not JSON
         """
         if self.response_type == 'json':
-            return self.parse_json_response()
+            self.parse_json_response()
         else:
             return self.content
 
@@ -207,7 +225,7 @@ class RestResponse(object):
         cashing wrapper around the to_python object below
         '''
         if not self._data:
-            self._data = self.to_python()
+            self.to_python()
         return self._data
 
 
@@ -222,18 +240,59 @@ class ResourceParameters():
     :param dict query_parameter_groups: A dictionary of the different groups (key) of query parameters (value, is list) for the specified REST API resource
     '''
     
-    def __init__(self, config):
+    def __init__(self, config, default):
         '''
         loads a config file and extract information in specific data structures
         '''
-        self.config = config
+        self.config = self.apply_default(config, default)
         
         # although all functions below are properties, it may be more CPU friendly to 
         # store the result locally instead.
         
+        self.path = config['path']
+        self.method = config['method']
+        self.json_options = config.get('json', {})
+        self.headers = config.get('headers', {})
         self.path_parameters = self._path_parameters
         self.query_parameters = self._query_parameters
         self.query_parameter_groups = self._query_parameter_groups
+
+
+    # --------------------------------------------------------------------------------------------
+    @staticmethod
+    def apply_default(config, default):
+        '''
+        create a combined object that includes default configurations. For internal use.
+        Note that this default only provides functionality for
+        * method
+        * headers
+        * json
+        '''
+
+        # check
+        allowed_default = ['headers', 'json']
+        if not isinstance(default, dict):
+            raise ValueError('default must be a dictionary')
+        
+        if set(default.keys()) - set(allowed_default):
+            raise ValueError('default config may only contain %s' % ', '.join(allowed_default))
+
+        # apply defaults
+        if 'method' in default and not 'method' in config:
+            config['method'] = default['method']
+        if 'headers' in default:
+            def_head = default['headers']
+            if 'headers' in config:
+                def_head.update(config['headers'])
+            config['headers'] = def_head
+        if 'json' in default:
+            def_json = default['json']
+            if 'json' in config:
+                def_json.update(config['json'])
+            config['json'] = def_json
+
+        return config
+        
 
     # --------------------------------------------------------------------------------------------
     @property
@@ -256,7 +315,6 @@ class ResourceParameters():
             :rtype: ``list``
         """
         all_parameters = self.all_query_parameters + self.path_parameters
-        all_parameters.append("data")  # data (request body) can be a parameter as well
         return all_parameters
 
     # ---------------------------------------------------------------------------------------------
@@ -376,20 +434,22 @@ class RestResource():
     
     def __init__(self, client, name, config):
         self.client = client
-        self.config = config
         self.name = name
-        self.path = self.config.get('path', [])
-        self.method = self.config.get('method', 'GET')
-        self._parameters = ResourceParameters(config)
+
+        assert isinstance(config, ResourceParameters)
+        self.config = config
+        self.path = self.config.path
+        self.method = self.config.method
     
     # ---------------------------------------------------------------------------------------------
     def __call__(self, *args, **kwargs):
         # catch accidential positional arguments
-        if args:
-            raise SyntaxError("all parameters must by keyword arguments")
         
-        return self._get_rest_data(**kwargs)
+        self.validate_request(*args, **kwargs)
+        return self._get()
     
+
+    # ---------------------------------------------------------------------------------------------
     @property
     @contract
     def parameters(self):
@@ -399,16 +459,21 @@ class RestResource():
         :rtype: ``dict``
         
         '''
-        return self._parameters.as_dict
+        return self.config.as_dict
         
 
     #---------------------------------------------------------------------------------------------
-    def validate_request(self, **kwargs):
+    def validate_request(self, *args, **kwargs):
         '''
         check the input request parameters before sending it to the remote service
         '''
         
-        rp = self._parameters
+        rp = self.config
+        
+        #----------------------------------
+        # deny superfluous input
+        if args:
+            raise SyntaxError("all parameters must by keyword arguments")
         
         diff = set(kwargs.keys()).difference(rp.all_parameters)
         if len(diff) > 0:
@@ -416,7 +481,8 @@ class RestResource():
                 difference=list(diff),
                 resource=self.name
             ))
-        request_parameters = {}
+
+        #----------------------------------
         # Resolve path parameters in path
         resolved_path = "/".join(self.path)
         for parameter in rp.required_parameters:
@@ -431,16 +497,14 @@ class RestResource():
         # Construct URL using base URL and path
         url = "{url}/{path}".format(url=self.client.url, path=resolved_path)
 
-        # Add request body data
-        data = kwargs.get('data', None)
-
         # Check if valid URL
         # Only allow http or https schemes for the REST API base URL
         url_validator = URLValidator(schemes=["http", "https"])
         url_validator(url)
 
-
+        #----------------------------------
         # Prepare & check query parameters
+        query_parameters = {}
         intersection = set(rp.all_query_parameters).intersection(kwargs.keys())
         groups_used = {}
         for kwarg in intersection:
@@ -462,38 +526,47 @@ class RestResource():
                     kwarg=kwarg
                 ))
             else:
-                request_parameters[kwarg] = kwargs[kwarg]
+                query_parameters[kwarg] = kwargs[kwarg]
         
-        return {'url': url,
-                'parameters': request_parameters,
-                'data': data,
-                }
+        #----------------------------------
+        # depending on request type, return parameters in request or body
+        if self.method == 'GET':
+            request_parameters = query_parameters
+            body_parameters = {}
+        else:
+            request_parameters = {}
+            body_parameters = query_parameters
+        
+        self.cleaned_data = {'url': url,
+                             'parameters': request_parameters,
+                             'data': body_parameters,
+                             }
         
 
     # ---------------------------------------------------------------------------------------------
-    def _get_rest_data(self, **kwargs):
+    def _get(self):
         """ This function builds and sends a request for a specified REST API resource.
             The parameters are validated dynamically, depending on the configuration of said REST API resource.
             It returns a dictionary of the response or throws an appropriate error, depending on the HTTP return code.
         """
 
-        # JSON options
-        json_options = self.config.get('json', {})
-        
         # url and parameters
-        validated_input = self.validate_request(**kwargs)
+        if not 'cleaned_data' in dir(self):
+            raise KeyError('request data is not cleaned')
 
         # Do HTTP request to REST API
         try:
             response = requests.request(method=self.method,
                                         auth=self.client.auth,
                                         verify=self.client.verifySSL,
-                                        url=validated_input['url'], 
-                                        params=validated_input['parameters'],
-                                        data=validated_input['data']
+                                        url=self.cleaned_data['url'], 
+                                        params=self.cleaned_data['parameters'],
+                                        json=self.cleaned_data['data'],
+                                        #data=...,
+                                        headers=self.config.headers
                                         )
             return RestResponse(response=response,
-                                options=json_options)
+                                options=self.config.json_options)
         except ValueError:
             return response.content
         except requests.HTTPError as http:
