@@ -21,6 +21,8 @@ def validate_resources_configuration(config_dict):
             raise ValueError("resource name '{resource}' is not a string".format(
                 resource=resource_name
             ))
+        if resource_name == 'data':
+            raise ValueError("resource name may not be named 'data'")
         if not isinstance(resource_config, dict):
             raise ValueError("resource name '{resource}' value is not a dictionary".format(
                 resource=resource_name
@@ -149,9 +151,12 @@ class RestResponse(object):
         self._response = response
         self._response.raise_for_status()
         self.headers = response.headers
-        self._data = None
         self.content = response.content
         self.options = options
+
+        #prepare the content to a python object
+        self.data = None
+        self.to_python()
         
     @property
     def response_type(self):
@@ -160,8 +165,13 @@ class RestResponse(object):
             :return: True when the Requests Response object contains JSON and False when it does not
             :rtype: ``bool``
         """
-        if ('content-type' in self.headers) and ("json" in self.headers['content-type']):
+        
+        content_type = self.headers.get('content-type', None)
+        
+        if "json" in content_type:
             return 'json'
+        elif 'text/csv' in content_type:
+            return 'csv'
         else:
             return 'unknown'
 
@@ -182,7 +192,7 @@ class RestResponse(object):
                     if element in json:
                         json = json[element]
                     else:
-                        raise ValueError("Element %s could not be found")
+                        raise ValueError("Element '%s' could not be found" % element)
         
 
         if not isinstance(json, dict):
@@ -204,8 +214,18 @@ class RestResponse(object):
         self.content = json_source
 
         #create _data object
-        self._data = json_dict
+        self.data = json_dict
         
+    def parse_csv_response(self):
+        '''
+        processes a raw CSV into lines. For very large content this may be better served by a generator
+        
+        : return:  a list of lists
+        '''
+        data = self._response.content
+        self.content = data.decode('UTF-8')
+        data = self.content.strip().split('\n')
+        self.data = [x.split(",") for x in data]
 
     def to_python(self):
         """ Returns the response body content contained in the Requests Response object.
@@ -216,17 +236,11 @@ class RestResponse(object):
         """
         if self.response_type == 'json':
             self.parse_json_response()
-        else:
-            return self.content
+        elif self.response_type == 'csv':
+            self.parse_csv_response()
+        
 
-    @property
-    def data(self):
-        '''
-        cashing wrapper around the to_python object below
-        '''
-        if not self._data:
-            self.to_python()
-        return self._data
+
 
 
 class ResourceParameters():
@@ -281,12 +295,12 @@ class ResourceParameters():
         if 'method' in default and not 'method' in config:
             config['method'] = default['method']
         if 'headers' in default:
-            def_head = default['headers']
+            def_head = default['headers'].copy()
             if 'headers' in config:
                 def_head.update(config['headers'])
             config['headers'] = def_head
         if 'json' in default:
-            def_json = default['json']
+            def_json = default['json'].copy()
             if 'json' in config:
                 def_json.update(config['json'])
             config['json'] = def_json
@@ -565,10 +579,12 @@ class RestResource():
                                         #data=...,
                                         headers=self.config.headers
                                         )
-            return RestResponse(response=response,
-                                options=self.config.json_options)
-        except ValueError:
+        except ValueError as e:
             return response.content
         except requests.HTTPError as http:
             raise http
+        else:
+            return RestResponse(response=response,
+                                options=self.config.json_options)
+            
 
