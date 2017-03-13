@@ -21,7 +21,7 @@ class TestQuickMarkerRepository(unittest.TestCase):
             "method": "GET",
             "query_parameters": [
                 {"name": "markerUid"},
-                {"name": "taxonomy", "multiple": True},
+                {"name": "taxonId", "multiple": True},
                 {"name": "alias"},
                 {"name": "sourceCategory"},
                 {"name": "technology"},
@@ -93,98 +93,98 @@ class TestConfig(unittest.TestCase):
         e = ValueError
         self.parse_config(c, e, r)
 
-    def test_path_data(self):
-        c = {'some_resource': {'path':['x', '{data}', ]}}
-        r = "'data' isn't a valid path parameter name for resource 'some_resource'"   
-        e = SyntaxError
-        self.parse_config(c, e, r)
+    #def test_path_data(self):
+        #c = {'some_resource': {'path':['x', '{data}', ]}}
+        #r = "'data' isn't a valid path parameter name for resource 'some_resource'"   
+        #e = SyntaxError
+        #self.parse_config(c, e, r)
 
     def test_method(self):
-        c = {'some_resource': {'method':1}}
+        c = {'some_resource': {'method':1, }}
         r = "method for resource 'some_resource' is not a string"
         e = ValueError
         self.parse_config(c, e, r)
 
     def test_query_parameters(self):
-        c = {'some_resource': {'query_parameters':1}}
+        c = {'some_resource': {'method':'GET', 'query_parameters':1}}
         r = "query parameters for resource 'some_resource' is not a list"
         e = ValueError
         self.parse_config(c, e, r)
 
     def test_query_parameters_emptylist(self):
-        c = {'some_resource': {'query_parameters':[]}}
+        c = {'some_resource': {'method':'GET','query_parameters':[]}}
         r = "query parameters for resource 'some_resource' is empty"
         e = ValueError
         self.parse_config(c, e, r)
 
     def test_query_parameters_isdict(self):
-        c = {'some_resource': {'query_parameters':[1, 2]}}
+        c = {'some_resource': {'method':'GET','query_parameters':[1, 2]}}
         r = "not all query parameters for resource 'some_resource' are a dictionary"
         e = ValueError
         self.parse_config(c, e, r)
 
     def test_query_parameters_name(self):
-        c = {'some_resource': {'query_parameters':[{}]}}
+        c = {'some_resource': {'method':'GET','query_parameters':[{}]}}
         r = "not all query parameters for resource 'some_resource' have a name"
         e = SyntaxError
         self.parse_config(c, e, r)
 
     def test_query_parameters_name_string(self):
-        c = {'some_resource': {'query_parameters':[{'name': 1,}]}}
+        c = {'some_resource': {'method':'GET','query_parameters':[{'name': 1,}]}}
         r = "not all query parameter names for resource 'some_resource' are a string"
         e = ValueError
         self.parse_config(c, e, r)
 
-    def test_query_parameters_data(self):
-        c = {'some_resource': {'query_parameters':[{'name': 'data',}]}}
-        r = "'data' isn't a valid query parameter name for resource 'some_resource'" 
-        e = SyntaxError
-        self.parse_config(c, e, r)
+    #def test_query_parameters_data(self):
+        #c = {'some_resource': {'query_parameters':[{'name': 'data',}]}}
+        #r = "'data' isn't a valid query parameter name for resource 'some_resource'" 
+        #e = SyntaxError
+        #self.parse_config(c, e, r)
 
     def test_query_parameters_group(self):
-        c = {'some_resource': {'query_parameters':[{'name': 'my_name', 'group': 1,}]}}
+        c = {'some_resource': {'method':'GET','query_parameters':[{'name': 'my_name', 'group': 1,}]}}
         r = "not all query parameter group names for resource 'some_resource' are a string"
         e = ValueError
         self.parse_config(c, e, r)
 
     def test_query_parameters_required(self):
-        c = {'some_resource': {'query_parameters':[{'name': 'my_name', 'required': 'yes',}]}}
+        c = {'some_resource': {'method':'GET','query_parameters':[{'name': 'my_name', 'required': 'yes',}]}}
         r = "not all query parameter 'required' options for resource 'some_resource' are a boolean"
         e = ValueError
         self.parse_config(c, e, r)
 
     def test_query_parameters_multiple(self):
-        c = {'some_resource': {'query_parameters':[{'name': 'my_name', 'multiple': 'yes',}]}}
+        c = {'some_resource': {'method':'GET','query_parameters':[{'name': 'my_name', 'multiple': 'yes',}]}}
         r = "not all query parameter 'multiple' options for resource 'some_resource' are a boolean"
         e = ValueError
         self.parse_config(c, e, r)
 
     def test_json_dict(self):
-        c = {'some_resource': {'json': 1,}}
+        c = {'some_resource': {'method':'GET','json': 1,}}
         r = "json option for resource 'some_resource' is not a dictionary"
         e = ValueError
         self.parse_config(c, e, r)
 
     def test_json_root_list(self):
-        c = {'some_resource': {'json': {'root': 1,},}}
+        c = {'some_resource': {'method':'GET','json': {'root': 1,},}}
         r = "json.root option for resource 'some_resource' is not a list"
         e = ValueError
         self.parse_config(c, e, r)
 
     def test_json_root_list_string(self):
-        c = {'some_resource': {'json': {'root': [1, 2, 3],},}}
+        c = {'some_resource': {'method':'GET','json': {'root': [1, 2, 3],},}}
         r = "json.root list element 1 for resource 'some_resource' is not a string" 
         e = ValueError
         self.parse_config(c, e, r)
 
     def test_json_source_name(self):
-        c = {'some_resource': {'json': {'source_name': [1, 2, 3],},}}
+        c = {'some_resource': {'method':'GET','json': {'source_name': [1, 2, 3],},}}
         r = "json.source_name option for resource 'some_resource' is not a string"
         e = ValueError
         self.parse_config(c, e, r)
 
     def test_json_result_name(self):
-        c = {'some_resource': {'json': {'result_name': [1, 2, 3],},}}
+        c = {'some_resource': {'method':'GET','json': {'result_name': [1, 2, 3],},}}
         r = "json.result_name option for resource 'some_resource' is not a string"
         e = ValueError
         self.parse_config(c, e, r)
