@@ -1,7 +1,7 @@
 import six
 
 #centralized import from external libraries
-from django.core.validators import URLValidator
+from .validator import URLValidator
 from contracts import contract, new_contract
 
 
