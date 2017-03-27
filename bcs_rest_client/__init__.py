@@ -1,6 +1,7 @@
-__version__ = '0.9.20170317.1'
+__version__ = '0.9.20170327.1'
 
 import six
+import importlib
 
 #local imports
 from .resources import RestResource, ResourceParameters, validate_resources_configuration
@@ -61,11 +62,19 @@ class RestClient(object):
         self.config = config
         
         for name, item_config_dict in self.config.items():
-            return_class = item_config_dict.get('return_class', RestResource)
+            
+            cls = item_config_dict.get('return_class', None)
+            if cls:
+                module_name, class_name = cls.rsplit(".", 1)
+                somemodule = importlib.import_module(module_name)
+                return_class = getattr(somemodule, class_name)
+            else:
+                return_class = RestResource
+                
             item_config = ResourceParameters(item_config_dict, default)
             setattr(self,
                     name,
-                    self.create_rest_resource(return_class, resource_name=name, config=item_config))
+                    self._create_rest_resource(return_class, resource_name=name, config=item_config))
 
         self.verifySSL = verifySSL
 
@@ -90,7 +99,7 @@ class RestClient(object):
 
 
     # ---------------------------------------------------------------------------------------------
-    def create_rest_resource(self, return_class, resource_name, config):
+    def _create_rest_resource(self, return_class, resource_name, config):
         """ This function is used to dynamically create request functions for a specified REST API resource
 
             :param resource: A string that represents the REST API resource
@@ -105,23 +114,3 @@ class RestClient(object):
 
         rest_resource = return_class(client=self, name=resource_name, config=config)
         return rest_resource
-
-    # ---------------------------------------------------------------------------------------------
-    # functions for backwards compatibility
-    # ---------------------------------------------------------------------------------------------
-    def list_parameters(self, resource):
-        tmp = getattr(self, resource)
-        return tmp.parameters
-
-    def list_query_parameters(self, resource):
-        tmp = getattr(self, resource)
-        return tmp.config.query_parameters
-
-    def list_query_parameter_groups(self, resource):
-        tmp = getattr(self, resource)
-        return tmp.config.query_parameter_groups
-
-    def list_path_parameters(self, resource):
-        tmp = getattr(self, resource)
-        return tmp.config.path_parameters
-
