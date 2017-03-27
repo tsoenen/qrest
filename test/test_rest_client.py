@@ -90,11 +90,11 @@ class TestRestClient(unittest.TestCase):
         rc = client.RestClient(url=self.url, config=resources)
         self.assertEqual(rc.resources, ['some_function_name'])
         self.assertEqual(len(rc.resources), 1)
-        self.assertEqual(len(rc.list_parameters("some_function_name")), 2)
-        self.assertEqual(len(rc.list_path_parameters("some_function_name")), 1)
-        self.assertEqual(len(rc.list_query_parameters("some_function_name")["optional"]), 3)
-        self.assertEqual(len(rc.list_query_parameters("some_function_name")["required"]), 2)
-        self.assertEqual(len(rc.list_query_parameter_groups("some_function_name")), 2)
+        self.assertEqual(len(rc.some_function_name.parameters), 2)
+        self.assertEqual(len(rc.some_function_name.config.path_parameters), 1)
+        self.assertEqual(len(rc.some_function_name.config.query_parameters["optional"]), 3)
+        self.assertEqual(len(rc.some_function_name.config.query_parameters["required"]), 2)
+        self.assertEqual(len(rc.some_function_name.config.query_parameter_groups), 2)
         
         # also test direct addressing
         f = rc.some_function_name
@@ -113,7 +113,7 @@ class TestRestClient(unittest.TestCase):
         resources = {}
         rc = client.RestClient(url=self.url, config=resources)
         with self.assertRaises(Exception):
-            rc.create_rest_resource('resource_name', config=resources)
+            rc._create_rest_resource('resource_name', config=resources)
 
     #@unittest.expectedFailure
     #def test_init_resources_wrong_syntax_path(self):

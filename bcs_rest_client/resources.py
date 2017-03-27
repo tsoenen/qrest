@@ -5,6 +5,15 @@ from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 disable_warnings(InsecureRequestWarning)
 
+if six.PY2:
+    from urllib import quote
+elif six.PY3:
+    from urllib.parse import quote
+else:
+    raise Exception('gvd')
+    
+
+
 #local imports
 from .utils import URLValidator
 from .utils import contract
@@ -149,14 +158,14 @@ class RestResponse(object):
         """
         assert isinstance(response, requests.models.Response)
         self._response = response
-        self._response.raise_for_status()
+        #self._response.raise_for_status()
         self.headers = response.headers
         self.content = response.content
         self.options = options
 
         #prepare the content to a python object
         self.data = None
-        self.to_python()
+        self._to_python()
         
     @property
     def response_type(self):
@@ -175,7 +184,7 @@ class RestResponse(object):
         else:
             return 'unknown'
 
-    def parse_json_response(self):
+    def _parse_json_response(self):
         """ Returns the JSON contained in the Requests Response object, following the options specified in the JSON configuration
 
             :return: A dictionary containing the Requests Response object, adapted to the JSON configuration
@@ -186,6 +195,7 @@ class RestResponse(object):
 
         result_name = self.options.get("result_name", "result")
         
+        #subset the response dictionary
         if isinstance(json, dict):
             if ("root" in self.options) and (len(self.options["root"]) > 0):
                 for element in self.options["root"]:
@@ -194,14 +204,14 @@ class RestResponse(object):
                     else:
                         raise ValueError("Element '%s' could not be found" % element)
         
-
+        # look into the subset JSON: stick it into the self object
         if not isinstance(json, dict):
             json_dict = {}
             json_dict[result_name] = json
-            setattr(self, result_name, json_dict[result_name])
         else:
             json_dict = json
-
+            
+        # 
         if ("root" in self.options) and (len(self.options["root"]) > 0):
             if "source_name" in self.options:
                 json_dict[self.options["source_name"]] = json_source
@@ -210,13 +220,14 @@ class RestResponse(object):
             else:
                 json_dict["_source"] = json_source
                 
-        # replace content by interpreted content
+        # replace content by decoded content
         self.content = json_source
 
-        #create _data object
+        #create data objects
         self.data = json_dict
+        setattr(self, result_name, json)
         
-    def parse_csv_response(self):
+    def _parse_csv_response(self):
         '''
         processes a raw CSV into lines. For very large content this may be better served by a generator
         
@@ -227,7 +238,7 @@ class RestResponse(object):
         data = self.content.strip().split('\n')
         self.data = [x.split(",") for x in data]
 
-    def to_python(self):
+    def _to_python(self):
         """ Returns the response body content contained in the Requests Response object.
             If the content is JSON, then the JSON content is returned adapted to the JSON configuration.
             If the content is not JSON, then the raw response body content is returned (in bytes).
@@ -235,9 +246,9 @@ class RestResponse(object):
             :return: A dictionary containing the response body JSON content, adapted to the JSON configuration or the raw response body content in bytes if it is not JSON
         """
         if self.response_type == 'json':
-            self.parse_json_response()
+            self._parse_json_response()
         elif self.response_type == 'csv':
-            self.parse_csv_response()
+            self._parse_csv_response()
         
 
 
@@ -258,7 +269,7 @@ class ResourceParameters():
         '''
         loads a config file and extract information in specific data structures
         '''
-        self.config = self.apply_default(config, default)
+        self.config = self._apply_default(config, default)
         
         # although all functions below are properties, it may be more CPU friendly to 
         # store the result locally instead.
@@ -274,7 +285,7 @@ class ResourceParameters():
 
     # --------------------------------------------------------------------------------------------
     @staticmethod
-    def apply_default(config, default):
+    def _apply_default(config, default):
         '''
         create a combined object that includes default configurations. For internal use.
         Note that this default only provides functionality for
@@ -505,8 +516,10 @@ class RestResource():
                     parameter=parameter,
                     resource=self.name
                 ))
-            if parameter in rp.path_parameters:
-                resolved_path = resolved_path.format(**{parameter: kwargs[parameter]})
+        
+        # construct the URL path
+        path_para = {parameter: quote(kwargs[parameter], safe='') for parameter in kwargs if parameter in rp.path_parameters}
+        resolved_path = resolved_path.format(**path_para)
 
         # Construct URL using base URL and path
         url = "{url}/{path}".format(url=self.client.url, path=resolved_path)
@@ -566,7 +579,7 @@ class RestResource():
 
         # url and parameters
         if not 'cleaned_data' in dir(self):
-            raise KeyError('request data is not cleaned')
+            raise KeyError('request data is not cleaned. Run validate_request first')
 
         # Do HTTP request to REST API
         try:
@@ -579,12 +592,16 @@ class RestResource():
                                         #data=...,
                                         headers=self.config.headers
                                         )
+            assert isinstance(response, requests.Response)
+            response.raise_for_status()
         except ValueError as e:
             return response.content
         except requests.HTTPError as http:
+            '''
+            This block is meant to provide more userfriendly responses
+            '''
             raise http
         else:
-            return RestResponse(response=response,
-                                options=self.config.json_options)
+            return RestResponse(response=response, options=self.config.json_options)
             
 
