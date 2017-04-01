@@ -10,23 +10,6 @@ from decimal import Decimal
 
 NON_FIELD_ERRORS = '__all__'
 
-class InvalidTargetError(KeyError):
-    """An error when specifying an invalid target for a given REST API."""
-    def __init__(self, name, target):
-        """ InvalidTargetError constructor
-
-            :param name: The name of the REST API client
-            :type name: ``string``
-
-            :param target: The REST API target name
-            :type target: ``string``
-
-        """
-        super("'{target}' is not a valid target for '{name}'".format(
-            target=target,
-            name=name
-        ))
-
 
 class ValidationError(Exception):
     """An error while validating data."""
