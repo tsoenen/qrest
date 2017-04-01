@@ -5,6 +5,8 @@ from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 disable_warnings(InsecureRequestWarning)
 
+from .exception import BCSRestResourceHTTPError
+
 if six.PY2:
     from urllib import quote
 elif six.PY3:
@@ -593,13 +595,23 @@ class RestResource():
                                         headers=self.config.headers
                                         )
             assert isinstance(response, requests.Response)
+            
+            if response.status_code > 399:
+                '''
+                Nicely catch exceptions 
+                '''
+                x = 1
+                raise BCSRestResourceHTTPError(response_object=response)
+            # for completeness sake: let requests check for valid output
+            # code should not get here...
             response.raise_for_status()
         except ValueError as e:
+            # Weird response errors: just give back the raw data. This has the risk of dismissing
+            # valid errors!
             return response.content
         except requests.HTTPError as http:
-            '''
-            This block is meant to provide more userfriendly responses
-            '''
+            # This is a back-catcher for HTTP errors that were not caught before. Code shoul
+            # not get here
             raise http
         else:
             return RestResponse(response=response, options=self.config.json_options)
