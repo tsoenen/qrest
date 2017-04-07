@@ -25,6 +25,8 @@ class InvalidTargetError(KeyError):
 class BCSRestResourceError(Exception):
     pass
 
+class BCSRestResourceMissingContentError(BCSRestResourceError):
+    pass
 
 class BCSRestResourceNotFoundError(BCSRestResourceError):
     pass
@@ -50,7 +52,7 @@ class BCSRestResourceHTTPError(HTTPError):
         if self.code == 404:
             raise BCSRestResourceNotFoundError('Object could not be found in database')
         elif self.code in (401, 402, 403):
-            raise BCSRestAccessDeniedError('error %d: Access is denied to this resource' % self.code)
+            raise BCSRestAccessDeniedError('error %d: Access is denied to resource %s' % (self.code, self.response.url))
         elif self.code in (500, ):
             raise BCSRestInternalServerError('error %d: Internal Server error (%s)' % (self.code, self.reason))
         else:
