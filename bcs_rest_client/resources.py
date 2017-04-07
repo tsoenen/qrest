@@ -5,7 +5,7 @@ from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 disable_warnings(InsecureRequestWarning)
 
-from .exception import BCSRestResourceHTTPError
+from .exception import BCSRestResourceHTTPError, BCSRestResourceMissingContentError
 
 if six.PY2:
     from urllib import quote
@@ -204,7 +204,7 @@ class RestResponse(object):
                     if element in json:
                         json = json[element]
                     else:
-                        raise ValueError("Element '%s' could not be found" % element)
+                        raise BCSRestResourceMissingContentError("Element '%s' could not be found" % element)
         
         # look into the subset JSON: stick it into the self object
         if not isinstance(json, dict):
