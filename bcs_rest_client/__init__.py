@@ -2,12 +2,15 @@ __version__ = '0.9.20170407.1'
 
 import six
 import importlib
+import inspect
 
 #local imports
-from .resources import RestResource, ResourceParameters, validate_resources_configuration
-from .utils import InvalidResourceError, URLValidator
-from .utils import contract, new_contract, string_type, string_type_or_none
-
+from bcs_rest_client.resources import RestResource
+from bcs_rest_client.utils import InvalidResourceError, URLValidator
+from bcs_rest_client.utils import contract, new_contract, string_type, string_type_or_none
+from bcs_rest_client.conf import RESTConfig
+from bcs_rest_client.exception import BCSRestConfigurationError
+from bcs_rest_client.validator import ValidationError
 
 class RestClient(object):
     '''
@@ -17,30 +20,19 @@ class RestClient(object):
     #placeholder for subclassed resources
     config = {}
 
-    @contract
-    def __init__(self, url,user="", password="",  config={}, verifySSL=False):
-        """ RestClient constructor
+    def __init__(self, url, config=None, user="", password="",  verifySSL=False):
+        """
+        RestClient constructor
 
-            :param url: The base URL of the REST API
-            :type url: ``string_type``
-
-            :param user: The user for authenticating with the REST API
-            :type user: ``string_type_or_none``
-
-            :param password: The password for authenticating with the REST API
-            :type password: ``string_type_or_none``
-
-            :param config: The configuration object of the REST API resources
-            :type config: ``dict``
-
-            :param verifySSL: Whether the REST client should verify SSL certificates upon making a request
-            :type verifySSL: ``bool``
         """
         
         # Only allow http or https schemes for the REST API base URL
         # Validate the REST API base URL
         url_validator = URLValidator(schemes=["http", "https"])
-        url_validator.__call__(url)
+        try:
+            url_validator.__call__(url)
+        except ValidationError as e:
+            raise BCSRestConfigurationError(e.message)
 
         self.url = url
 
@@ -50,33 +42,38 @@ class RestClient(object):
             self.auth = (user, password)
         else:
             self.auth = None
-
-
-        # load targets from subclass
-        if not config:
-            config = self.config
-
-        # extract the default from the config
-        default = self.config.pop("default", {})
-        validate_resources_configuration(config)
-        self.config = config
         
-        for name, item_config_dict in self.config.items():
+        # -------------------------------------------------------    
+        # allow empty config for testing
+        if not config:
+            return
+        
+        # set the config
+        if not inspect.isclass(config):
+            raise BCSRestConfigurationError('configuration is not a class')
+        
+        # execute and init the config class
+        self.config = config()
+        if not isinstance(self.config, RESTConfig):
+            raise BCSRestConfigurationError('configuration is not a RESTConfig')
+
+        for name, item_config in self.config.endpoints.items():
             
-            cls = item_config_dict.get('return_class', None)
+            cls = item_config.return_class
             if cls:
-                module_name, class_name = cls.rsplit(".", 1)
+                try:
+                    module_name, class_name = cls.rsplit(".", 1)
+                except ValueError as e:
+                    raise BCSRestConfigurationError('unable to parse %s into module and class name' % cls)
                 somemodule = importlib.import_module(module_name)
                 return_class = getattr(somemodule, class_name)
             else:
                 return_class = RestResource
                 
-            item_config = ResourceParameters(item_config_dict, default)
-            setattr(self,
-                    name,
-                    self._create_rest_resource(return_class, resource_name=name, config=item_config))
+            setattr(self,name,self._create_rest_resource(return_class, resource_name=name, config=item_config))
 
         self.verifySSL = verifySSL
+        
 
     # ---------------------------------------------------------------------------------------------
     @property

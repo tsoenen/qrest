@@ -5,7 +5,21 @@ local exceptions
 from requests import HTTPError
 from requests.models import Response
 
-class InvalidTargetError(KeyError):
+
+class BCSRestException(Exception):
+    pass
+
+class BCSRestResourceError(BCSRestException):
+    pass
+
+class BCSRestConfigurationError(BCSRestException):
+    pass
+
+class BCSRestQueryError(BCSRestException):
+    pass
+
+
+class InvalidTargetError(BCSRestException):
     """An error when specifying an invalid target for a given REST API."""
     def __init__(self, name, target):
         """ InvalidTargetError constructor
@@ -22,8 +36,6 @@ class InvalidTargetError(KeyError):
             name=name
         ))
 
-class BCSRestResourceError(Exception):
-    pass
 
 class BCSRestResourceMissingContentError(BCSRestResourceError):
     pass

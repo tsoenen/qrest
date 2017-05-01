@@ -71,23 +71,23 @@ class TestRestClient(unittest.TestCase):
         self.assertEqual(rc.auth, None)
 
     def test_init_resources(self):
+        from bcs_rest_client.conf import RESTConfig, EndPointConfig, ParameterConfig
 
         rc = client.RestClient(url=self.url)
         self.assertEqual(rc.resources, [])
-        resources = {
-            "some_function_name": {
-                "path": ["some", "collection", "{id}"],
-                "method": "GET",
-                "query_parameters": [
-                    {"name": "some_parameter"}, 
-                    {"name": "alias", "group": "likeSearch"},
-                    {"name": "markerUid", "group": "likeSearch"},
-                    {"name": "breedingContactEmployeeId", "group": "exact", "required": True},
-                    {"name": "researchContactEmployeeId", "group": "exact", "required": True},
-                ]
-            }
-        }
-        rc = client.RestClient(url=self.url, config=resources)
+        
+        class TestConfig(RESTConfig):
+            some_function_name = EndPointConfig(path=["some", "collection", "{id}"],
+                                                method="GET",
+                                                parameters={
+                                                    'some_parameter': ParameterConfig("some_parameter"),
+                                                    'alias': ParameterConfig(name="alias", exclusion_group="likeSearch"),
+                                                    'markerUid': ParameterConfig(name="markerUid", exclusion_group="likeSearch"),
+                                                    'breedingContactEmployeeId': ParameterConfig(name="breedingContactEmployeeId", exclusion_group="exact", required=True),
+                                                    'researchContactEmployeeId': ParameterConfig(name="researchContactEmployeeId", exclusion_group="exact", required=True),
+                                                }
+                                                )
+        rc = client.RestClient(url=self.url, config=TestConfig)
         self.assertEqual(rc.resources, ['some_function_name'])
         self.assertEqual(len(rc.resources), 1)
         self.assertEqual(len(rc.some_function_name.parameters), 2)
@@ -186,5 +186,3 @@ class TestRestClient(unittest.TestCase):
         client.RestClient(url="https://255.255.1")
 
 
-if __name__ == '__main__':
-    unittest.main()
