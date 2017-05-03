@@ -6,6 +6,7 @@ from requests import HTTPError
 from requests.models import Response
 
 
+# ================================================================================================
 class BCSRestException(Exception):
     pass
 
@@ -21,20 +22,21 @@ class BCSRestQueryError(BCSRestException):
 
 class InvalidTargetError(BCSRestException):
     """An error when specifying an invalid target for a given REST API."""
-    def __init__(self, name, target):
-        """ InvalidTargetError constructor
 
-            :param name: The name of the REST API client
-            :type name: ``string``
+    # def __init__(self, name, target):
+        # """ InvalidTargetError constructor
 
-            :param target: The REST API target name
-            :type target: ``string``
+            # :param name: The name of the REST API client
+            # :type name: ``string``
 
-        """
-        super("'{target}' is not a valid target for '{name}'".format(
-            target=target,
-            name=name
-        ))
+            # :param target: The REST API target name
+            # :type target: ``string``
+
+        # """
+        # super()"'{target}' is not a valid target for '{name}'".format(
+            # target=target,
+            # name=name
+        # ))
 
 
 class BCSRestResourceMissingContentError(BCSRestResourceError):
@@ -42,25 +44,25 @@ class BCSRestResourceMissingContentError(BCSRestResourceError):
 
 class BCSRestResourceNotFoundError(BCSRestResourceError):
     pass
-    
+
 class BCSRestAccessDeniedError(BCSRestResourceError):
     pass
 
 class BCSRestInternalServerError(BCSRestResourceError):
     pass
-    
+
 class BCSRestResourceHTTPError(HTTPError):
     """An error when specifying an invalid target for a given REST API."""
     def __init__(self, response_object, *args, **kwargs):
         """
         BCSRestResourceError constructor
         """
-        
+
         assert isinstance(response_object, Response)
         self.response = response_object
         self.code = self.response.status_code
         self.reason = self.response.reason
-        
+
         if self.code == 404:
             raise BCSRestResourceNotFoundError('Object could not be found in database')
         elif self.code in (401, 402, 403):
@@ -69,8 +71,8 @@ class BCSRestResourceHTTPError(HTTPError):
             raise BCSRestInternalServerError('error %d: Internal Server error (%s)' % (self.code, self.reason))
         else:
             raise Exception('REST error %d: %s' % (self.code, self.reason))
-        
-        
+
+
         super().__init__(*args, **kwargs)
 
 

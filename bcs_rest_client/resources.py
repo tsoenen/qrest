@@ -1,11 +1,11 @@
 import requests
 import copy
 import six
+from contracts import contract
+
 from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 disable_warnings(InsecureRequestWarning)
-
-from .exception import BCSRestQueryError
 
 
 if six.PY2:
@@ -15,11 +15,12 @@ elif six.PY3:
 else:
     raise Exception('gvd')
 
-#local imports
-from .utils import URLValidator
-from .utils import contract
-from .exception import BCSRestResourceHTTPError, BCSRestResourceMissingContentError
-from .conf import EndPointConfig
+# ================================================================================================
+# local imports
+from bcs_rest_client.validator import URLValidator
+from bcs_rest_client.exception import BCSRestQueryError
+from bcs_rest_client.exception import BCSRestResourceHTTPError, BCSRestResourceMissingContentError
+from bcs_rest_client.conf import EndPointConfig
 
 # =================================================================================================
 class RestResponse(object):
@@ -47,7 +48,7 @@ class RestResponse(object):
         #prepare the content to a python object
         self.data = None
         self._to_python()
-        
+
     @property
     def response_type(self):
         """ Checks whether the Requests Response object contains JSON or not
@@ -55,9 +56,9 @@ class RestResponse(object):
             :return: True when the Requests Response object contains JSON and False when it does not
             :rtype: ``bool``
         """
-        
+
         content_type = self.headers.get('content-type', None)
-        
+
         if "json" in content_type:
             return 'json'
         elif 'text/csv' in content_type:
@@ -75,7 +76,7 @@ class RestResponse(object):
         json_source = copy.deepcopy(self._response.json())
 
         result_name = self.options.get("result_name", "result")
-        
+
         #subset the response dictionary
         if isinstance(json, dict):
             if ("root" in self.options) and (len(self.options["root"]) > 0):
@@ -84,15 +85,15 @@ class RestResponse(object):
                         json = json[element]
                     else:
                         raise BCSRestResourceMissingContentError("Element '%s' could not be found" % element)
-        
+
         # look into the subset JSON: stick it into the self object
         if not isinstance(json, dict):
             json_dict = {}
             json_dict[result_name] = json
         else:
             json_dict = json
-            
-        # 
+
+        #
         if ("root" in self.options) and (len(self.options["root"]) > 0):
             if "source_name" in self.options:
                 json_dict[self.options["source_name"]] = json_source
@@ -100,18 +101,18 @@ class RestResponse(object):
                 json_dict["source"] = json_source
             else:
                 json_dict["_source"] = json_source
-                
+
         # replace content by decoded content
         self.content = json_source
 
         #create data objects
         self.data = json_dict
         setattr(self, result_name, json)
-        
+
     def _parse_csv_response(self):
         '''
         processes a raw CSV into lines. For very large content this may be better served by a generator
-        
+
         : return:  a list of lists
         '''
         data = self._response.content
@@ -132,14 +133,14 @@ class RestResponse(object):
             self._parse_csv_response()
 
 
-# ===================================================================================================        
+# ===================================================================================================
 class RestResource():
     '''
     A resource is defined as a single REST endpoint.
     This class wraps functionality of creating and querying this resources, starting with a
     configuration string
     '''
-    
+
     def __init__(self, client, name, config):
         self.client = client
         self.name = name
@@ -149,12 +150,12 @@ class RestResource():
         self.path = self.config.path
         self.method = self.config.method
         self.cleaned_data = {}
-    
+
     # ---------------------------------------------------------------------------------------------
     def __call__(self, *args, **kwargs):
         '''
         runs the REST query using supplied arguments, checks input quality and format the REST
-        parameters. 
+        parameters.
         '''
 
         self.cleaned_data = {}
@@ -169,19 +170,19 @@ class RestResource():
         return the configuration parameters for this rest resource
         :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters (value, a list)
         :rtype: ``dict``
-        
+
         '''
         return self.config.as_dict
-        
+
 
     #---------------------------------------------------------------------------------------------
     def validate_query(self, *args, **kwargs):
         '''
         check the input request parameters before sending it to the remote service
         '''
-        
+
         rp = self.config
-        
+
         #----------------------------------
         # deny superfluous input
         if args:
@@ -220,12 +221,11 @@ class RestResource():
                     else:
                         groups_used[group] = kwarg
                     break
-            # TODO: is this necessary? wouldn't we get HTTP 400?
             if isinstance(kwargs[kwarg], list) and kwarg not in rp.multiple_parameters:
                 raise BCSRestQueryError("parameter '{kwarg}' is not multiple".format(
                     kwarg=kwarg
                 ))
-        
+
         self.cleaned_data = kwargs
 
     #---------------------------------------------------------------------------------------------
@@ -233,24 +233,24 @@ class RestResource():
     def query_url(self):
         # construct the URL path
         rp = self.config
-        
+
         # url and parameters
         if not 'cleaned_data' in dir(self):
             raise KeyError('request data is not cleaned. Run validate_request first')
-            
-            
+
+
         resolved_path = "/".join(self.path)
         path_para = {parameter: quote(self.cleaned_data[parameter], safe='') for parameter in self.cleaned_data if parameter in rp.path_parameters}
         resolved_path = resolved_path.format(**path_para)
-    
+
         # Construct URL using base URL and path
         url = "{url}/{path}".format(url=self.client.url, path=resolved_path)
-    
+
         # Check if valid URL
         # Only allow http or https schemes for the REST API base URL
         url_validator = URLValidator(schemes=["http", "https"])
         url_validator(url)
-        
+
         return url
 
     # ---------------------------------------------------------------------------------------------
@@ -261,8 +261,8 @@ class RestResource():
         '''
         request_parameters = {}
         body_parameters = {}
-        
-        # process via the config 
+
+        # process via the config
         config_parameters = self.config.parameters
         for para_name, para_val in self.cleaned_data.items():
             if para_name in self.config.path_parameters:
@@ -278,9 +278,9 @@ class RestResource():
         qp = {'request': request_parameters,
               'body': body_parameters,
               }
-        
+
         return qp
-        
+
 
     # ---------------------------------------------------------------------------------------------
     def _get(self, extra_request=None, extra_body=None):
@@ -294,7 +294,7 @@ class RestResource():
             raise KeyError('request data is not cleaned. Run validate_request first')
 
         query_parameters = self.query_parameters
-        
+
         # add hooks to extend get function
         for location, data_dict in [('request', extra_request), ('body', extra_body)]:
             if not data_dict:
@@ -311,17 +311,14 @@ class RestResource():
             response = requests.request(method=self.method,
                                         auth=self.client.auth,
                                         verify=self.client.verifySSL,
-                                        url=self.query_url, 
+                                        url=self.query_url,
                                         params=query_parameters['request'],
                                         json=query_parameters['body'],
                                         headers=self.config.headers
                                         )
             assert isinstance(response, requests.Response)
-            
-            if response.status_code > 399:
-                '''
-                Nicely catch exceptions 
-                '''
+
+            if response.status_code > 399:  #Nicely catch exceptions
                 raise BCSRestResourceHTTPError(response_object=response)
             # for completeness sake: let requests check for valid output
             # code should not get here...
@@ -336,5 +333,5 @@ class RestResource():
             raise http
         else:
             return RestResponse(response=response, options=self.config.json_options)
-            
+
 

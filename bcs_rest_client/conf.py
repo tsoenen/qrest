@@ -1,6 +1,5 @@
 import six
-import importlib
-import inspect
+from contracts import contract
 
 from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -8,17 +7,17 @@ disable_warnings(InsecureRequestWarning)
 
 from collections import defaultdict
 
-
 if six.PY2:
     from urllib import quote
 elif six.PY3:
     from urllib.parse import quote
 else:
     raise Exception('gvd')
-    
-##local imports
-from bcs_rest_client.utils import contract
+
+# ================================================================================================
+## local imports
 from bcs_rest_client.exception import BCSRestConfigurationError
+from bcs_rest_client.utils import string_type, string_type_or_none
 
 
 
@@ -27,7 +26,7 @@ class ParameterConfig(object):
     '''
     contain and validate parameters for and endpoint
     '''
-    
+
     def __init__(self, name, required=False, multiple=False, exclusion_group=None, force_get=False):
         '''
         parameter configuration class to segregate validation and allow separation of python and REST
@@ -72,7 +71,7 @@ class EndPointConfig(object):
         self.headers = headers
         self.return_class = return_class
         self.validate()
-        
+
     # ----------------------------------------------------
     def validate(self):
         '''
@@ -84,13 +83,13 @@ class EndPointConfig(object):
         self.validate_json()
         self.validate_parameters()
         self.validate_return_class()
-        
+
         # integration tests
         if self.method == 'GET':
             if any([x.force_get for x in self.parameters.values()]):
                 raise BCSRestConfigurationError('force-get parameter not allowed in GET request')
-        
-        
+
+
     # ----------------------------------------------------
     def validate_path(self):
         if not isinstance(self.path, list):
@@ -103,7 +102,7 @@ class EndPointConfig(object):
                 raise BCSRestConfigurationError("header is not a dict")
         else:
             self.headers = {}
-            
+
     # ----------------------------------------------------
     def validate_method(self):
         if self.method not in ['GET', 'POST']:
@@ -114,7 +113,7 @@ class EndPointConfig(object):
         if self.json_options:
             if not isinstance(self.json_options, dict):
                 raise BCSRestConfigurationError("json option is not a dictionary")
-            
+
             for key in ['source_name', 'result_name']:
                 if key in self.json_options:
                     if not isinstance(self.json_options[key], six.string_types):
@@ -130,7 +129,7 @@ class EndPointConfig(object):
         '''
         validation of the GET and POST parameters
         '''
-        
+
         if self.parameters:
             if not isinstance(self.parameters, dict):
                 raise BCSRestConfigurationError("parameters must be dictionary")
@@ -146,11 +145,11 @@ class EndPointConfig(object):
         This validation generates circular import and all kinds of interesting behaviour
         This routine is here to indicate that this validation is deliberatley ignored, and
         passed on to the restresource config itself
-    
+
         '''
-        
+
         pass
-        
+
     # --------------------------------------------------------------------------------------------
     def apply_default(self, default):
         '''
@@ -165,7 +164,7 @@ class EndPointConfig(object):
         allowed_default = ['headers', 'json']
         if not isinstance(default, dict):
             raise BCSRestConfigurationError('default must be a dictionary')
-        
+
         if set(default.keys()) - set(allowed_default):
             raise BCSRestConfigurationError('default config may only contain %s' % ', '.join(allowed_default))
 
@@ -183,7 +182,7 @@ class EndPointConfig(object):
 
         # re-validate to be sure current data is OK
         self.validate()
-        
+
     # ---------------------------------------------------------------------------------------------
     @property
     @contract
@@ -196,13 +195,13 @@ class EndPointConfig(object):
             :return: A list of the (always required) path parameters for the specified REST API resource
             :rtype: ``list(string_type)``
         """
-        
+
         path_parameters = []
         for part in self.path:
             if part.startswith("{") and part.endswith("}"):
                 path_parameters.append(part[1:-1])
         return path_parameters
-    
+
 
     # ---------------------------------------------------------------------------------------------
     @property
@@ -242,7 +241,7 @@ class EndPointConfig(object):
             else:
                 result['optional'].append(para_name)
             if para_set.multiple: result['multiple'].append(para_name)
-                
+
         return result
 
     # --------------------------------------------------------------------------------------------
@@ -303,28 +302,28 @@ class EndPointConfig(object):
             :return: A dictionary that contains required and optional parameters.
             :rtype: ``dict``
         """
-        
+
         result = {"required": [], "optional": []}
         result["required"].extend(self.path_parameters)
 
         qp = self.query_parameters
         result["required"].extend(qp['required'])
         result["optional"].extend(qp["optional"])
-        
-        return result
-    
-  
 
-        
+        return result
+
+
+
+
 #==================================================================================================
 class RESTConfig(object):
-    
+
     def __init__(self):
         self.endpoints = self.get_list_of_endpoints()
         self.apply_defaults()
         self.validate()
-    
-    
+
+
     def apply_defaults(self):
         '''
         rotate throught the endpoints and apply the fedault settings
@@ -332,7 +331,7 @@ class RESTConfig(object):
         if 'default' in dir(self):
             for endpoint in self.endpoints.values():
                 endpoint.apply_default(self.default)
-        
+
 
     def validate(self):
         """
@@ -349,10 +348,10 @@ class RESTConfig(object):
                 raise BCSRestConfigurationError("endpoint {resource} must be class EndPointConfig".format(
                     resource=resource_name
                 ))
-        
+
     def get_list_of_endpoints(self):
         endpoints_dict = {}
-        dirlist = [x for x in dir(self) if not x.startswith('_')] 
+        dirlist = [x for x in dir(self) if not x.startswith('_')]
         for item in dirlist:
             endpoint = getattr(self, item)
             if endpoint.__class__ == EndPointConfig:

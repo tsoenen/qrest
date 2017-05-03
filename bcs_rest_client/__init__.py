@@ -1,22 +1,26 @@
-__version__ = '0.9.20170407.1'
+__version__ = '0.9.20170502.1'
 
 import six
 import importlib
 import inspect
 
-#local imports
+from contracts import contract, new_contract
+
+# ================================================================================================
+# local imports
 from bcs_rest_client.resources import RestResource
-from bcs_rest_client.utils import InvalidResourceError, URLValidator
-from bcs_rest_client.utils import contract, new_contract, string_type, string_type_or_none
+from bcs_rest_client.utils import InvalidResourceError
+from bcs_rest_client.utils import string_type, string_type_or_none
 from bcs_rest_client.conf import RESTConfig
 from bcs_rest_client.exception import BCSRestConfigurationError
-from bcs_rest_client.validator import ValidationError
+from bcs_rest_client.validator import ValidationError, URLValidator
 
+# ================================================================================================
 class RestClient(object):
     '''
     This is the main point of contact for end users, that is why it is in __init__
     '''
-    
+
     #placeholder for subclassed resources
     config = {}
 
@@ -25,7 +29,7 @@ class RestClient(object):
         RestClient constructor
 
         """
-        
+
         # Only allow http or https schemes for the REST API base URL
         # Validate the REST API base URL
         url_validator = URLValidator(schemes=["http", "https"])
@@ -42,23 +46,25 @@ class RestClient(object):
             self.auth = (user, password)
         else:
             self.auth = None
-        
-        # -------------------------------------------------------    
+
+        # -------------------------------------------------------
         # allow empty config for testing
         if not config:
             return
-        
+
         # set the config
         if not inspect.isclass(config):
             raise BCSRestConfigurationError('configuration is not a class')
-        
-        # execute and init the config class
-        self.config = config()
-        if not isinstance(self.config, RESTConfig):
+        if not issubclass(config, RESTConfig):
             raise BCSRestConfigurationError('configuration is not a RESTConfig')
 
+        # execute and init the config class
+        self.config = config()
+        #if not isinstance(self.config, RESTConfig):
+        #    raise BCSRestConfigurationError('configuration is not a RESTConfig')
+
         for name, item_config in self.config.endpoints.items():
-            
+
             cls = item_config.return_class
             if cls:
                 try:
@@ -69,11 +75,11 @@ class RestClient(object):
                 return_class = getattr(somemodule, class_name)
             else:
                 return_class = RestResource
-                
+
             setattr(self,name,self._create_rest_resource(return_class, resource_name=name, config=item_config))
 
         self.verifySSL = verifySSL
-        
+
 
     # ---------------------------------------------------------------------------------------------
     @property
@@ -83,7 +89,7 @@ class RestClient(object):
             :return: A list of the available resources for this REST API
             :rtype: ``list(string_type)``
         """
-        
+
         resources = []
         fieldnames = dir(self)
         for fieldname in fieldnames:

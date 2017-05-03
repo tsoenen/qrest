@@ -4,13 +4,14 @@ This is copied from Django 1.9, but adding django as a dependency eats too much 
 
 import re
 import six
-from six.moves.urllib.parse import urlsplit, urlunsplit  
+from six.moves.urllib.parse import urlsplit, urlunsplit
 import datetime
 from decimal import Decimal
 
 NON_FIELD_ERRORS = '__all__'
 
 
+# ================================================================================================
 class ValidationError(Exception):
     """An error while validating data."""
     def __init__(self, message, code=None, params=None):
@@ -101,7 +102,7 @@ class ValidationError(Exception):
 
     def __repr__(self):
         return 'ValidationError(%s)' % self
-    
+
 
 
 

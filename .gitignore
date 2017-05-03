@@ -1,3 +1,4 @@
+htmlcov
 .venv*
 *.swp
 __pycache__
@@ -12,5 +13,3 @@ sdist
 *.sw[ponlm]
 *.idea
 *~
-
-htmlcov
