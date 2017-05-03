@@ -12,3 +12,5 @@ sdist
 *.sw[ponlm]
 *.idea
 *~
+
+htmlcov
