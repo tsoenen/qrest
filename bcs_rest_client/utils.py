@@ -1,10 +1,8 @@
 import six
-
-#centralized import from external libraries
-from .validator import URLValidator
-from contracts import contract, new_contract
+from contracts import new_contract
 
 
+# ================================================================================================
 # Define new Python 2 & 3 compatible string contracts
 string_type_or_none = new_contract(
     'string_type_or_none',
@@ -31,5 +29,5 @@ class InvalidResourceError(KeyError):
         """
         response = "'{resource}' is not a valid resource for '{name}'".format(resource=resource,name=name)
         super(InvalidResourceError, self).__init__(response)
-        
+
 

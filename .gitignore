@@ -1,3 +1,4 @@
+htmlcov
 .venv*
 *.swp
 __pycache__
