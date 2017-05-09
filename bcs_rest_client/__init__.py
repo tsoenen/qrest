@@ -1,4 +1,4 @@
-__version__ = '0.9.20170509.1'
+__version__ = '0.9.20170509.3'
 
 import six
 import importlib
