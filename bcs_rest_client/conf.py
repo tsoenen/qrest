@@ -31,6 +31,13 @@ class ParameterConfig(object):
         '''
         parameter configuration class to segregate validation and allow separation of python and REST
         names
+
+        Attributes:
+            name: the 'remote' nam,e of the parameter. this name is what the REST resource actually gets to interpret
+            required: if this parameter is ommitted in the qyery, throw an exception
+            multiple: if set to True, the value of the query parameter is a list
+            exclusion_group: parameters in the same exclusion group may not be used together
+            force_get: for POST functions, place this parameter in the GET section of the request
         '''
 
         self.name = name
