@@ -205,6 +205,20 @@ class RestResource():
                 ))
 
         #----------------------------------
+        # check choices
+        for parameter in kwargs.keys():
+            if not parameter in self.config.parameters:
+                continue
+            config = self.config.parameters[parameter]
+            if config.choices:
+                if not kwargs[parameter] in config.choices:
+                    raise BCSRestQueryError("value '{val}' for parameter '{parameter}' is not a valid choice: pick from {choices}".format(
+                        val = kwargs[parameter],
+                        parameter=parameter,
+                        choices=', '.join(config.choices))
+                    )
+
+        #----------------------------------
         # check query parameters
         intersection = set(rp.all_query_parameters).intersection(kwargs.keys())
         groups_used = {}
@@ -225,6 +239,14 @@ class RestResource():
                 raise BCSRestQueryError("parameter '{kwarg}' is not multiple".format(
                     kwarg=kwarg
                 ))
+
+
+        # apply defaults for missing optional parameters that do have default values
+        defaults = self.config.defaults
+        for item, value in defaults.items():
+            if not item in kwargs:
+                kwargs[item] = value
+
 
         self.cleaned_data = kwargs
 
@@ -275,9 +297,12 @@ class RestResource():
             else:
                 body_parameters[rest_name] = para_val
 
+        # collect and return
         qp = {'request': request_parameters,
               'body': body_parameters,
               }
+
+
 
         return qp
 
@@ -291,7 +316,7 @@ class RestResource():
 
         # url and parameters
         if not 'cleaned_data' in dir(self):
-            raise KeyError('request data is not cleaned. Run validate_request first')
+            raise KeyError('request data is not cleaned. Run validate_query first')
 
         query_parameters = self.query_parameters
 

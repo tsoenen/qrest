@@ -27,7 +27,10 @@ class ParameterConfig(object):
     contain and validate parameters for and endpoint
     '''
 
-    def __init__(self, name, required=False, multiple=False, exclusion_group=None, force_get=False):
+    def __init__(self, name, required=False, multiple=False,
+                 exclusion_group=None, force_get=False,
+                 default=None, choices=None
+                 ):
         '''
         parameter configuration class to segregate validation and allow separation of python and REST
         names
@@ -38,6 +41,8 @@ class ParameterConfig(object):
             multiple: if set to True, the value of the query parameter is a list
             exclusion_group: parameters in the same exclusion group may not be used together
             force_get: for POST functions, place this parameter in the GET section of the request
+            default: the default entry if this parameter is not supplied
+            choices: a list of possible values for this parameter
         '''
 
         self.name = name
@@ -45,6 +50,8 @@ class ParameterConfig(object):
         self.multiple = multiple
         self.exclusion_group = exclusion_group
         self.force_get = force_get
+        self.default = default
+        self.choices = choices
         self.validate()
 
     def validate(self):
@@ -59,6 +66,14 @@ class ParameterConfig(object):
                 raise BCSRestConfigurationError("group name must be a string")
             if not self.exclusion_group.strip():
                 raise BCSRestConfigurationError("group name must be a string")
+        if self.default and self.required:
+            raise BCSRestConfigurationError("you cannot combine required=True and a default setting")
+        if self.choices and not isinstance(self.choices, list):
+            raise BCSRestConfigurationError("choices must be a list")
+        if self.default and self.choices:
+            if not self.default in self.choices:
+                raise BCSRestConfigurationError("if there is a choices list, default must be in this list")
+
 
 
 # ================================================================================================
@@ -319,6 +334,18 @@ class EndPointConfig(object):
 
         return result
 
+
+    # ---------------------------------------------------------------------------------------------
+    @property
+    @contract
+    def defaults(self):
+        """
+        Returns a dict with all default parameters and their value
+        :return: A dictionary
+        :rtype: ``dict``
+        """
+        defaults = {x:y.default for x, y in self.parameters.items() if y.default}
+        return defaults
 
 
 
