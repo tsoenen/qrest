@@ -198,8 +198,8 @@ class RestResource():
         #----------------------------------
         # Check required parameters
         for parameter in rp.required_parameters:
-            if parameter not in kwargs.keys():
-                raise BCSRestQueryError("parameter '{parameter}' is missing for resource '{resource}'".format(
+            if not kwargs.get(parameter, None):
+                raise BCSRestQueryError("parameter '{parameter}' is missing or empty for resource '{resource}'".format(
                     parameter=parameter,
                     resource=self.name
                 ))
