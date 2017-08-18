@@ -18,6 +18,7 @@ else:
 ## local imports
 from bcs_rest_client.exception import BCSRestConfigurationError
 from bcs_rest_client.utils import string_type, string_type_or_none
+from bcs_rest_client.auth import BasicAuthentication
 
 
 
@@ -28,8 +29,7 @@ class ParameterConfig(object):
     '''
 
     def __init__(self, name, required=False, multiple=False,
-                 exclusion_group=None, force_get=False,
-                 default=None, choices=None
+                 exclusion_group=None,default=None, choices=None
                  ):
         '''
         parameter configuration class to segregate validation and allow separation of python and REST
@@ -40,7 +40,6 @@ class ParameterConfig(object):
             required: if this parameter is ommitted in the qyery, throw an exception
             multiple: if set to True, the value of the query parameter is a list
             exclusion_group: parameters in the same exclusion group may not be used together
-            force_get: for POST functions, place this parameter in the GET section of the request
             default: the default entry if this parameter is not supplied
             choices: a list of possible values for this parameter
         '''
@@ -49,18 +48,15 @@ class ParameterConfig(object):
         self.required = required
         self.multiple = multiple
         self.exclusion_group = exclusion_group
-        self.force_get = force_get
         self.default = default
         self.choices = choices
-        self.validate()
+        self.validate_configuration()
 
-    def validate(self):
+    def validate_configuration(self):
         if not isinstance(self.required, bool):
             raise BCSRestConfigurationError('parameter "required" must be boolean')
         if not isinstance(self.multiple, bool):
             raise BCSRestConfigurationError('parameter "multiple" must be boolean')
-        if not isinstance(self.force_get, bool):
-            raise BCSRestConfigurationError('parameter "force_get" must be boolean')
         if self.exclusion_group:
             if not isinstance(self.exclusion_group, six.string_types):
                 raise BCSRestConfigurationError("group name must be a string")
@@ -73,6 +69,22 @@ class ParameterConfig(object):
         if self.default and self.choices:
             if not self.default in self.choices:
                 raise BCSRestConfigurationError("if there is a choices list, default must be in this list")
+    
+# ================================================================================================
+class QueryParameter(ParameterConfig):
+    '''
+    Subclass to specify parameters to be placed in the query part of the REST request
+    '''
+    
+    call_location = 'query'
+
+# ================================================================================================
+class BodyParameter(ParameterConfig):
+    '''
+    Subclass to specify parameters to be placed in the query part of the REST request
+    '''
+    
+    call_location = 'body'
 
 
 
@@ -108,8 +120,10 @@ class EndPointConfig(object):
 
         # integration tests
         if self.method == 'GET':
-            if any([x.force_get for x in self.parameters.values()]):
-                raise BCSRestConfigurationError('force-get parameter not allowed in GET request')
+            for key in self.parameters:
+                if self.parameters[key].call_location != 'query':
+                    raise BCSRestConfigurationError('body parameter not allowed in GET request')
+            pass
 
 
     # ----------------------------------------------------
@@ -394,3 +408,23 @@ class RESTConfig(object):
             raise BCSRestConfigurationError('no endpoints defined for this resource at all!')
         return endpoints_dict
         #return []
+
+
+    # ===========================================================================
+    def get_authentication_module(self, rest_client):
+        '''
+        return activated auth module for authentication
+        '''
+        
+        from bcs_rest_client import RestClient
+        assert isinstance(rest_client, RestClient)
+        
+        try:
+            auth_config = self.authentication
+        except AttributeError:
+            auth_config = None
+            auth_module = BasicAuthentication
+            return BasicAuthentication(rest_client)
+        else:
+            auth_module = auth_config.authentication_module
+            return auth_module(rest_client, auth_config)

@@ -3,7 +3,7 @@ import bcs_rest_client as client
 import copy
 
 #from bcs_rest_client.resources import validate_resources_configuration as v
-from bcs_rest_client.conf import RESTConfig, EndPointConfig, ParameterConfig
+from bcs_rest_client.conf import RESTConfig, EndPointConfig, BodyParameter, QueryParameter,  ParameterConfig
 from bcs_rest_client.exception import BCSRestConfigurationError, BCSRestQueryError
 from bcs_rest_client import RestClient
 
@@ -20,14 +20,14 @@ class TestQuickMarkerRepository(unittest.TestCase):
         get_markers_by_criteria = EndPointConfig(
             path=["markers"],
             method="GET",
-            parameters={'markerUid': ParameterConfig(name="markerUid"),
-                        'taxonId': ParameterConfig(name="taxonId", multiple=True),
-                        'alias': ParameterConfig(name="alias"),
-                        'sourceCategory': ParameterConfig(name="sourceCategory"),
-                        'technology': ParameterConfig(name="technology"),
-                        'page': ParameterConfig(name="page"),
-                        'size': ParameterConfig(name="size"),
-                        'sort': ParameterConfig(name="sort", multiple=True)
+            parameters={'markerUid': QueryParameter(name="markerUid"),
+                        'taxonId': QueryParameter(name="taxonId", multiple=True),
+                        'alias': QueryParameter(name="alias"),
+                        'sourceCategory': QueryParameter(name="sourceCategory"),
+                        'technology': QueryParameter(name="technology"),
+                        'page': QueryParameter(name="page"),
+                        'size': QueryParameter(name="size"),
+                        'sort': QueryParameter(name="sort", multiple=True)
                         }, 
             json = {"root": ["_embedded"]}
         )
@@ -79,11 +79,6 @@ class TestParameterConfig(unittest.TestCase):
         if not self.run_param_set(**para):
             raise Exception('multiple allows non-boolean')
     
-    def test_force_get_bool(self):
-        para = {'name': 'name','force_get': 'yes',}
-        if not self.run_param_set(**para):
-            raise Exception('force_get allows non-boolean')
-
     def test_exclusion_group_string(self):
         para = {'name': 'name','exclusion_group': 42,}
         if not self.run_param_set(**para):
@@ -147,11 +142,6 @@ class TestEndPointConfig(unittest.TestCase):
     def test_query_parameters_multiple(self):
         self.endpointconf['parameters'] = {'name': "test",}
         r = "Parameter 'name' must be ParameterConfig instance"
-        self.parse_config_error(r)
-
-    def test_query_parameters_force_get(self):
-        self.endpointconf['parameters'] = {'para1': ParameterConfig('name', force_get=True),}
-        r = "force-get parameter not allowed in GET request"
         self.parse_config_error(r)
 
     def test_query_parameters_json_number(self):

@@ -18,7 +18,7 @@ else:
 # ================================================================================================
 # local imports
 from bcs_rest_client.validator import URLValidator
-from bcs_rest_client.exception import BCSRestQueryError
+from bcs_rest_client.exception import BCSRestQueryError, BCSRestConfigurationError
 from bcs_rest_client.exception import BCSRestResourceHTTPError, BCSRestResourceMissingContentError
 from bcs_rest_client.conf import EndPointConfig
 
@@ -57,7 +57,7 @@ class RestResponse(object):
             :rtype: ``bool``
         """
 
-        content_type = self.headers.get('content-type', None)
+        content_type = self.headers.get('content-type', 'unknown')
 
         if "json" in content_type:
             return 'json'
@@ -146,6 +146,7 @@ class RestResource():
         self.name = name
 
         assert isinstance(config, EndPointConfig)
+
         self.config = config
         self.path = self.config.path
         self.method = self.config.method
@@ -198,7 +199,7 @@ class RestResource():
         #----------------------------------
         # Check required parameters
         for parameter in rp.required_parameters:
-            if not kwargs.get(parameter, None):
+            if parameter not in kwargs:
                 raise BCSRestQueryError("parameter '{parameter}' is missing or empty for resource '{resource}'".format(
                     parameter=parameter,
                     resource=self.name
@@ -290,12 +291,12 @@ class RestResource():
             if para_name in self.config.path_parameters:
                 continue
             rest_name = config_parameters[para_name].name
-            if self.method == 'GET':
+            if config_parameters[para_name].call_location == 'query':
                 request_parameters[rest_name] = para_val
-            elif config_parameters[para_name].force_get:
-                request_parameters[rest_name] = para_val
-            else:
+            elif config_parameters[para_name].call_location == 'body':
                 body_parameters[rest_name] = para_val
+            else:
+                raise BCSRestConfigurationError('call location for %s is not understood' % para_name)
 
         # collect and return
         qp = {'request': request_parameters,

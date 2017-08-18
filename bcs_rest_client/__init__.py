@@ -24,9 +24,21 @@ class RestClient(object):
     #placeholder for subclassed resources
     config = {}
 
-    def __init__(self, url, config=None, user="", password="",  verifySSL=False):
+    def __init__(self, url, config=None, verifySSL=False):
         """
         RestClient constructor
+    
+        :param url: The base URL of the REST API
+        :type url: ``string_type``
+
+        :param auth: The authentication object, i.e. username/password tuple, for authenticating with the REST API
+        :type auth: *
+
+        :param resources: The configuration object of the REST API resources
+        :type resources: ``dict``
+
+        :param verifySSL: Whether the REST client should verify SSL certificates upon making a request
+        :type verifySSL: ``bool``
 
         """
 
@@ -39,13 +51,6 @@ class RestClient(object):
             raise BCSRestConfigurationError(e.message)
 
         self.url = url
-
-        if (user is not None) and (user.strip() != ""):
-            if password is None:
-                password = ''
-            self.auth = (user, password)
-        else:
-            self.auth = None
 
         # -------------------------------------------------------
         # allow empty config for testing
@@ -60,8 +65,6 @@ class RestClient(object):
 
         # execute and init the config class
         self.config = config()
-        #if not isinstance(self.config, RESTConfig):
-        #    raise BCSRestConfigurationError('configuration is not a RESTConfig')
 
         for name, item_config in self.config.endpoints.items():
 
@@ -80,7 +83,10 @@ class RestClient(object):
 
         self.verifySSL = verifySSL
 
+        # get the authentication module
+        self.auth = self.config.get_authentication_module(self)
 
+    
     # ---------------------------------------------------------------------------------------------
     @property
     def resources(self):

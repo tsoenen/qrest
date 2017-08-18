@@ -71,7 +71,7 @@ class TestRestClient(unittest.TestCase):
         self.assertEqual(rc.auth, None)
 
     def test_init_resources(self):
-        from bcs_rest_client.conf import RESTConfig, EndPointConfig, ParameterConfig
+        from bcs_rest_client.conf import RESTConfig, EndPointConfig, BodyParameter, QueryParameter
 
         rc = client.RestClient(url=self.url)
         self.assertEqual(rc.resources, [])
@@ -80,11 +80,11 @@ class TestRestClient(unittest.TestCase):
             some_function_name = EndPointConfig(path=["some", "collection", "{id}"],
                                                 method="GET",
                                                 parameters={
-                                                    'some_parameter': ParameterConfig("some_parameter"),
-                                                    'alias': ParameterConfig(name="alias", exclusion_group="likeSearch"),
-                                                    'markerUid': ParameterConfig(name="markerUid", exclusion_group="likeSearch"),
-                                                    'breedingContactEmployeeId': ParameterConfig(name="breedingContactEmployeeId", exclusion_group="exact", required=True),
-                                                    'researchContactEmployeeId': ParameterConfig(name="researchContactEmployeeId", exclusion_group="exact", required=True),
+                                                    'some_parameter': QueryParameter("some_parameter"),
+                                                    'alias': QueryParameter(name="alias", exclusion_group="likeSearch"),
+                                                    'markerUid': QueryParameter(name="markerUid", exclusion_group="likeSearch"),
+                                                    'breedingContactEmployeeId': QueryParameter(name="breedingContactEmployeeId", exclusion_group="exact", required=True),
+                                                    'researchContactEmployeeId': QueryParameter(name="researchContactEmployeeId", exclusion_group="exact", required=True),
                                                 }
                                                 )
         rc = client.RestClient(url=self.url, config=TestConfig)
