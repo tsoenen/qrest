@@ -1,5 +1,15 @@
 import unittest
 import bcs_rest_client as client
+from bcs_rest_client.conf import RESTConfig, EndPointConfig, BodyParameter, QueryParameter,  ParameterConfig
+from bcs_rest_client.auth import UserPassAuthConfig
+
+class MinimalConfig(RESTConfig):
+    endpoint1 = EndPointConfig(path=[], method='GET')
+
+class UserPassConfig(RESTConfig):
+    endpoint1 = EndPointConfig(path=[], method='GET')
+    authentication = UserPassAuthConfig(verify_ssl=False)
+
 
 class TestInvalidResourceError(unittest.TestCase):
     
@@ -45,36 +55,38 @@ class TestRestClient(unittest.TestCase):
         contract.check(None)
         contract.fail(123)
 
-    def test_init_user(self):
+    def test_login_user(self):
+        from bcs_rest_client.auth import BasicAuthentication
 
-        rc = client.RestClient(url=self.url)
-        self.assertEqual(rc.auth, None)
-        rc = client.RestClient(url=self.url, user="test")
-        self.assertEqual(rc.auth, ('test', ''))
-        rc = client.RestClient(url=self.url, user="test", password=None)
-        self.assertEqual(rc.auth, ('test', ''))
-        rc = client.RestClient(url=self.url, user="test", password="pass")
-        self.assertEqual(rc.auth, ('test', 'pass'))
-        rc = client.RestClient(url=self.url, user=None)
-        self.assertEqual(rc.auth, None)
+        rc = client.RestClient(url=self.url, config=UserPassConfig)
+        self.assertIsInstance(rc.auth, BasicAuthentication)
+        rc.auth.login(username="test")
+        self.assertEqual(rc.auth.login_tuple, ('test', None))
+        rc.auth.login(username="test", password=None)
+        self.assertEqual(rc.auth.login_tuple, ('test', None))
+        rc.auth.login(username="test", password='pass')
+        self.assertEqual(rc.auth.login_tuple, ('test', 'pass'))
+
+    def test_login_pass_no_user(self):
+        from bcs_rest_client.auth import BasicAuthentication
+        from bcs_rest_client.exception import BCSRestLoginError
+        rc = client.RestClient(url=self.url, config=UserPassConfig)
+        
+        try:
+            rc.auth.login(username=None, password='pass')
+        except BCSRestLoginError:
+            pass
 
     @unittest.expectedFailure
     def test_init_wrong_type(self):
 
         client.RestClient(url=self.url, user=123)
 
-    def test_init_password(self):
-
-        rc = client.RestClient(url=self.url)
-        self.assertEqual(rc.auth, None)
-        rc = client.RestClient(url=self.url, password="test")
-        self.assertEqual(rc.auth, None)
-
     def test_init_resources(self):
         from bcs_rest_client.conf import RESTConfig, EndPointConfig, BodyParameter, QueryParameter
 
-        rc = client.RestClient(url=self.url)
-        self.assertEqual(rc.resources, [])
+        rc = client.RestClient(url=self.url, config=MinimalConfig)
+        self.assertEqual(rc.resources, ['endpoint1'])
         
         class TestConfig(RESTConfig):
             some_function_name = EndPointConfig(path=["some", "collection", "{id}"],
@@ -106,68 +118,26 @@ class TestRestClient(unittest.TestCase):
         self.assertEqual(len(f.config.multiple_parameters), 0)
 
         
-    def test_init_resources_no_config(self):
-
-        rc = client.RestClient(url=self.url)
-        self.assertEqual(rc.resources, [])
-        resources = {}
-        rc = client.RestClient(url=self.url, config=resources)
-        with self.assertRaises(Exception):
-            rc._create_rest_resource('resource_name', config=resources)
-
-    #@unittest.expectedFailure
-    #def test_init_resources_wrong_syntax_path(self):
-
-        #rc = client.RestClient(url=self.url)
-        #self.assertEqual(rc.resources, [])
-        #resources = {
-            #"some_function_name": {
-                #"path": ["some", "collection", "{id}", "{data}"],
-                #"method": "GET",
-                #"query_parameters": [
-                    #{"name": "some_parameter"}
-                #]
-            #}
-        #}
-        #rc = client.RestClient(url=self.url, config=resources)
-
-    #@unittest.expectedFailure
-    #def test_init_resources_wrong_syntax_query(self):
-
-        #rc = client.RestClient(url=self.url)
-        #self.assertEqual(rc.resources, {})
-        #resources = {
-            #"some_function_name": {
-                #"path": ["some", "collection", "{id}"],
-                #"method": "GET",
-                #"query_parameters": [
-                    #{"name": "some_parameter"},
-                    #{"name": "data"}
-                #]
-            #}
-        #}
-        #rc = client.RestClient(url=self.url, config=resources)
-
     def test_init_url(self):
 
-        rc = client.RestClient(url=self.url)
+        rc = client.RestClient(url=self.url, config=MinimalConfig)
         self.assertEqual(rc.url, self.url)
 
     def test_init_url_ipv4(self):
 
-        rc = client.RestClient(url="https://192.168.1.1")
+        rc = client.RestClient(url="https://192.168.1.1", config=MinimalConfig)
         self.assertEqual(rc.url, 'https://192.168.1.1')
 
     def test_init_url_ipv6(self):
 
-        rc = client.RestClient(url="http://[2001:0db8:0a0b:12f0:0000:0000:0000:0001]")
+        rc = client.RestClient(url="http://[2001:0db8:0a0b:12f0:0000:0000:0000:0001]", config=MinimalConfig)
         self.assertEqual(rc.url, 'http://[2001:0db8:0a0b:12f0:0000:0000:0000:0001]')
-        rc = client.RestClient(url="http://[2001:db8:a0b:12f0::1]")
+        rc = client.RestClient(url="http://[2001:db8:a0b:12f0::1]", config=MinimalConfig)
         self.assertEqual(rc.url, 'http://[2001:db8:a0b:12f0::1]')
 
     def test_init_url_host(self):
 
-        rc = client.RestClient(url="http://localhost")
+        rc = client.RestClient(url="http://localhost", config=MinimalConfig)
         self.assertEqual(rc.url, 'http://localhost')
 
     @unittest.expectedFailure

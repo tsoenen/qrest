@@ -18,7 +18,7 @@ else:
 # ================================================================================================
 # local imports
 from bcs_rest_client.validator import URLValidator
-from bcs_rest_client.exception import BCSRestQueryError, BCSRestConfigurationError
+from bcs_rest_client.exception import BCSRestQueryError, BCSRestConfigurationError, BCSRestLoginError
 from bcs_rest_client.exception import BCSRestResourceHTTPError, BCSRestResourceMissingContentError
 from bcs_rest_client.conf import EndPointConfig
 
@@ -40,7 +40,6 @@ class RestResponse(object):
         """
         assert isinstance(response, requests.models.Response)
         self._response = response
-        #self._response.raise_for_status()
         self.headers = response.headers
         self.content = response.content
         self.options = options
@@ -48,6 +47,13 @@ class RestResponse(object):
         #prepare the content to a python object
         self.data = None
         self._to_python()
+
+    @property
+    def result_name(self):
+        return self.options.get("result_name", "result")
+
+    def fetch(self):
+        return getattr(self, self.result_name)
 
     @property
     def response_type(self):
@@ -75,8 +81,6 @@ class RestResponse(object):
         json = copy.deepcopy(self._response.json())
         json_source = copy.deepcopy(self._response.json())
 
-        result_name = self.options.get("result_name", "result")
-
         #subset the response dictionary
         if isinstance(json, dict):
             if ("root" in self.options) and (len(self.options["root"]) > 0):
@@ -89,7 +93,7 @@ class RestResponse(object):
         # look into the subset JSON: stick it into the self object
         if not isinstance(json, dict):
             json_dict = {}
-            json_dict[result_name] = json
+            json_dict[self.result_name] = json
         else:
             json_dict = json
 
@@ -103,11 +107,11 @@ class RestResponse(object):
                 json_dict["_source"] = json_source
 
         # replace content by decoded content
-        self.content = json_source
+        #self.content = json_source
 
         #create data objects
         self.data = json_dict
-        setattr(self, result_name, json)
+        setattr(self, self.result_name, json)
 
     def _parse_csv_response(self):
         '''
@@ -162,6 +166,11 @@ class RestResource():
         self.cleaned_data = {}
         self.validate_query(**kwargs)
         return self._get()
+
+
+    # ---------------------------------------------------------------------------------------------
+    def fetch(self, *args, **kwargs):
+        return self.__call__(*args, **kwargs).fetch()
 
     # ---------------------------------------------------------------------------------------------
     @property
@@ -314,6 +323,11 @@ class RestResource():
             The parameters are validated in a previous call to validate_query().
             It returns a dictionary of the response or throws an appropriate error, depending on the HTTP return code.
         """
+        
+        # check if user is logged in
+        if self.client.auth and not self.client.auth.is_logged_in:
+            raise BCSRestLoginError('user is not logged in')
+        
 
         # url and parameters
         if not 'cleaned_data' in dir(self):

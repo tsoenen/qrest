@@ -22,6 +22,7 @@ class BCSRestQueryError(BCSRestException):
 
 class InvalidTargetError(BCSRestException):
     """An error when specifying an invalid target for a given REST API."""
+    pass
 
     # def __init__(self, name, target):
         # """ InvalidTargetError constructor
@@ -46,6 +47,9 @@ class BCSRestResourceNotFoundError(BCSRestResourceError):
     pass
 
 class BCSRestAccessDeniedError(BCSRestResourceError):
+    pass
+
+class BCSRestLoginError(BCSRestResourceError):
     pass
 
 class BCSRestInternalServerError(BCSRestResourceError):

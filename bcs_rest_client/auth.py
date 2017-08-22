@@ -7,6 +7,8 @@ import logging
 from uritools import urisplit
 from requests.auth import _basic_auth_str
 
+from bcs_rest_client.exception import BCSRestLoginError
+
 # ==========================================================================================
 class AuthConfig(object):
 	'''
@@ -15,14 +17,19 @@ class AuthConfig(object):
 	pass
 
 
-class BasicAuthentication(requests.auth.AuthBase):
+# ==========================================================================================
+class BasicAuthentication(requests.auth.HTTPBasicAuth):
 	'''
 	Standard authentication methods and credentials
+	This basic authentication does not complain if user is not logging in
+	explicitely. This is the most silent form of authentication
 	'''
 
 	def __init__(self, rest_client):
 		"""
 		basic auth that uses user/pass or netrc
+		this is a subclass of HTTPBasicAuth, but differs in that it requires a specific call to
+		login() to allow netrc and embedding. 
 		
 		:param rest_client: A reference to the RESTclient object
 		:type rest_client: ``RESTclient``
@@ -33,11 +40,12 @@ class BasicAuthentication(requests.auth.AuthBase):
 		self.netrc_path = os.path.expanduser("~/.netrc")
 		self.username = None
 		self.password = None
-
-	def __call__(self, r):
-		r.headers['Authorization'] = _basic_auth_str(self.username, self.password)
-		return r
-
+		self.is_logged_in = True
+		
+	@property
+	def login_tuple(self):
+		return (self.username, self.password)
+		
 	def is_valid_credential(self, credential):
 		""" Determines whether the given credential is valid.
 		    The credential should not be None and should not be the empty string.
@@ -57,23 +65,24 @@ class BasicAuthentication(requests.auth.AuthBase):
 		    :param password: The password to check
 		    :type password: ``string_type_or_none``
 		"""
-		return self.is_valid_credential(username) and self.is_valid_credential(password)
+		
+		if self.is_valid_credential(username):
+			return True
+		else:
+			if self.is_valid_credential(password):
+				raise BCSRestLoginError('provided password but not a username')
+			else:
+				return False
 
 	# -------------------------------------------------------------------------------
-	def login(self, username=None, password=None):
-		""" Explicitly do a login with supplied username and password.
-		    If username and password are supplied, it will use those to login.
-		    If either or both username and/or password is missing, will try to retrieve the credentials from the netrc file.
+	def login(self):
+		raise NotImplementedError('Define login procedure in subclass')
 
-		    :param username: The user for authenticating with the CAS end-point
-		    :type username: ``string_type_or_none``
-
-		    :param password: The password for authenticating with the CAS end-point
-		    :type password: ``string_type_or_none``
-		"""
+	# -------------------------------------------------------------------------------
+	def _login(self, username=None, password=None):
 		if not self.are_valid_credentials(username, password):
 			if self.netrc_path is not None:
-				logging.debug("[CAS] Username and/or password were None. Retrieving using netrc.")
+				logging.debug("No username provided. Retrieving using netrc.")
 				nrc = netrc(file=self.netrc_path)
 				host = urisplit(self.rest_client.url).host
 				try:
@@ -90,6 +99,44 @@ class BasicAuthentication(requests.auth.AuthBase):
 		else:
 			self.username = username
 			self.password = password
+
+
+# ==========================================================================================	
+class UserPassAuth(BasicAuthentication):
+	'''
+	Authentication that enforces username / password
+	'''
+
+	# -------------------------------------------------------------------------------
+	def __init__(self, rest_client, config):
+		super(UserPassAuth, self).__init__(rest_client)
+		self.is_logged_in = False
+	
+	# -------------------------------------------------------------------------------
+	def login(self, username=None, password=None):
+		""" Explicitly do a login with supplied username and password.
+		    If username and password are supplied, it will use those to login.
+		    If either or both username and/or password is missing, will try to retrieve the credentials from the netrc file.
+
+		    :param username: The user for authenticating with the CAS end-point
+		    :type username: ``string_type_or_none``
+
+		    :param password: The password for authenticating with the CAS end-point
+		    :type password: ``string_type_or_none``
+		"""
+		self._login(username, password)
+		self.is_logged_in = True
+
+# ==========================================================================================	
+class UserPassAuthConfig(AuthConfig):
+	'''
+	CAS authentication specific for the CLS implementation below
+	'''
+
+	authentication_module = UserPassAuth
+
+	def __init__(self, verify_ssl=False):
+		self.verify_ssl = verify_ssl
 
 
 # ==========================================================================================	
@@ -142,9 +189,14 @@ class CASAuth(BasicAuthentication):
 		    :param password: The password for authenticating with the CAS end-point
 		    :type password: ``string_type_or_none``
 		"""
-		super(CASAuth, self).login(username=username, password=password)
-		self.server = server_url 
-		self.generate_tgt(overwrite=True)
+		try:
+			super(CASAuth, self)._login(username=username, password=password)
+			self.server = server_url 
+			self.generate_tgt(overwrite=True)
+		except BCSRestLoginError as e:
+			raise 
+		else:
+			self.is_logged_in = True
 
 	def get_service_ticket(self):
 		""" Retrieves the service ticket that will ultimately be used inside the request to the REST end-point.
@@ -166,7 +218,8 @@ class CASAuth(BasicAuthentication):
 		return(ro.text)
 
 	def get_tgt_and_write(self):
-		""" Retrieves the ticket getting ticket that will ultimately be used inside the request to the CAS end-point for retrieving a service ticket.
+		""" Retrieves the ticket getting ticket that will ultimately be used inside the request to the CAS
+		    end-point for retrieving a service ticket.
 		    If the "tgtPath" parameter isn't pointing to an existing location, that location will be created.
 		    If the file at "tgtPath" exists, it will be replaced by the newly retrieved TGT.
 		"""
@@ -177,10 +230,13 @@ class CASAuth(BasicAuthentication):
 		ticket_url = "{server}/{path}".format(server=self.server, path=self.ticket_path)
 		
 		ro = requests.post(url=ticket_url,
-		                   data={"username": self.username, "password": self.password},
-		                   verify=self.verify_ssl)
-		if ((ro.status_code < 200) or (ro.status_code >= 300)):
+	                   data={"username": self.username, "password": self.password},
+	                   verify=self.verify_ssl)
+		if ro.status_code == 401:
+			raise BCSRestLoginError('could not login using provided uername and password')
+		elif ((ro.status_code < 200) or (ro.status_code >= 300)):
 			raise RuntimeError("Cannot authenticate against CAS using provided 'username' and 'password'. HTTP status code: '{status}'".format(status=ro.status_code))
+		
 		tgt_location = ro.headers["location"]
 		logging.debug("[CAS] TGT URI is '{location}'".format(location=tgt_location))
 		tgt_dir = os.path.dirname(self.tgt_path)

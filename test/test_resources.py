@@ -35,7 +35,8 @@ class TestQuickMarkerRepository(unittest.TestCase):
     config = ConfigTest
     
     def setUp(self):
-        self.mrep = client.RestClient(url=self.url, user=self.user, password=self.password, config=self.config)
+        self.mrep = client.RestClient(url=self.url, config=self.config)
+        #self.mrep.auth.login(username=self.user, password=self.password)
     
     def test_get_nokeyword(self):
         with self.assertRaises(BCSRestQueryError) as e:
@@ -272,7 +273,7 @@ class TestRestConfig(unittest.TestCase):
 class TestRestClientConfig(unittest.TestCase):
 
     def setUp(self):
-        self.restconfig = {'url': 'http://www.example.com',}
+        self.restconfig = {'url': 'http://www.example.com', 'config':RESTConfig,}
         
     def parse_config_ok(self):
         '''
@@ -297,6 +298,11 @@ class TestRestClientConfig(unittest.TestCase):
         self.parse_config_error(r)
 
     def test_invalid_url_ok(self):
-        self.parse_config_ok()
-        
+        from bcs_rest_client.exception import BCSRestConfigurationError
+        try:
+            self.parse_config_ok()
+        except BCSRestConfigurationError as e:
+            self.assertEqual(e.args[0], 'no endpoints defined for this REST client at all!')
+        else:
+            raise Exception()
         

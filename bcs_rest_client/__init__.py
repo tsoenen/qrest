@@ -12,6 +12,7 @@ from bcs_rest_client.resources import RestResource
 from bcs_rest_client.utils import InvalidResourceError
 from bcs_rest_client.utils import string_type, string_type_or_none
 from bcs_rest_client.conf import RESTConfig
+from bcs_rest_client.auth import BasicAuthentication
 from bcs_rest_client.exception import BCSRestConfigurationError
 from bcs_rest_client.validator import ValidationError, URLValidator
 
@@ -23,8 +24,9 @@ class RestClient(object):
 
     #placeholder for subclassed resources
     config = {}
+    auth = None
 
-    def __init__(self, url, config=None, verifySSL=False):
+    def __init__(self, url, config, verifySSL=False):
         """
         RestClient constructor
     
@@ -51,11 +53,6 @@ class RestClient(object):
             raise BCSRestConfigurationError(e.message)
 
         self.url = url
-
-        # -------------------------------------------------------
-        # allow empty config for testing
-        if not config:
-            return
 
         # set the config
         if not inspect.isclass(config):

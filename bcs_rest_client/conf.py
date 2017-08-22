@@ -405,7 +405,7 @@ class RESTConfig(object):
             if endpoint.__class__ == EndPointConfig:
                 endpoints_dict[item] = endpoint
         if not endpoints_dict:
-            raise BCSRestConfigurationError('no endpoints defined for this resource at all!')
+            raise BCSRestConfigurationError('no endpoints defined for this REST client at all!')
         return endpoints_dict
         #return []
 
@@ -422,8 +422,7 @@ class RESTConfig(object):
         try:
             auth_config = self.authentication
         except AttributeError:
-            auth_config = None
-            auth_module = BasicAuthentication
+            # default to basic authentication
             return BasicAuthentication(rest_client)
         else:
             auth_module = auth_config.authentication_module
