@@ -56,10 +56,10 @@ class TestRestClient(unittest.TestCase):
         contract.fail(123)
 
     def test_login_user(self):
-        from bcs_rest_client.auth import BasicAuthentication
+        from bcs_rest_client.auth import RESTAuthentication
 
         rc = client.RestClient(url=self.url, config=UserPassConfig)
-        self.assertIsInstance(rc.auth, BasicAuthentication)
+        self.assertIsInstance(rc.auth, RESTAuthentication)
         rc.auth.login(username="test")
         self.assertEqual(rc.auth.login_tuple, ('test', None))
         rc.auth.login(username="test", password=None)
@@ -68,7 +68,7 @@ class TestRestClient(unittest.TestCase):
         self.assertEqual(rc.auth.login_tuple, ('test', 'pass'))
 
     def test_login_pass_no_user(self):
-        from bcs_rest_client.auth import BasicAuthentication
+        from bcs_rest_client.auth import RESTAuthentication
         from bcs_rest_client.exception import BCSRestLoginError
         rc = client.RestClient(url=self.url, config=UserPassConfig)
         

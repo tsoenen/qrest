@@ -12,7 +12,7 @@ from bcs_rest_client.resources import RestResource
 from bcs_rest_client.utils import InvalidResourceError
 from bcs_rest_client.utils import string_type, string_type_or_none
 from bcs_rest_client.conf import RESTConfig
-from bcs_rest_client.auth import BasicAuthentication
+from bcs_rest_client.auth import RESTAuthentication
 from bcs_rest_client.exception import BCSRestConfigurationError
 from bcs_rest_client.validator import ValidationError, URLValidator
 
@@ -82,6 +82,7 @@ class RestClient(object):
 
         # get the authentication module
         self.auth = self.config.get_authentication_module(self)
+        assert isinstance(self.auth, RESTAuthentication)
 
     
     # ---------------------------------------------------------------------------------------------

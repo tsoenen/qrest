@@ -9,23 +9,20 @@ from requests.auth import _basic_auth_str
 
 from bcs_rest_client.exception import BCSRestLoginError
 
-# ==========================================================================================
-class AuthConfig(object):
-	'''
-	Configuration and validation for custom authentication schemas
-	'''
-	pass
-
 
 # ==========================================================================================
-class BasicAuthentication(requests.auth.HTTPBasicAuth):
+class RESTAuthentication(requests.auth.HTTPBasicAuth):
 	'''
 	Standard authentication methods and credentials
 	This basic authentication does not complain if user is not logging in
 	explicitely. This is the most silent form of authentication
 	'''
+	
+	is_logged_in = False
+	username = None
+	password = None
 
-	def __init__(self, rest_client):
+	def __init__(self, rest_client, auth_config_object=None):
 		"""
 		basic auth that uses user/pass or netrc
 		this is a subclass of HTTPBasicAuth, but differs in that it requires a specific call to
@@ -37,11 +34,9 @@ class BasicAuthentication(requests.auth.HTTPBasicAuth):
 		"""
 
 		self.rest_client = rest_client
-		self.netrc_path = os.path.expanduser("~/.netrc")
-		self.username = None
-		self.password = None
-		self.is_logged_in = True
+		self.auth_config_object = auth_config_object
 		
+
 	@property
 	def login_tuple(self):
 		return (self.username, self.password)
@@ -78,39 +73,33 @@ class BasicAuthentication(requests.auth.HTTPBasicAuth):
 	def login(self):
 		raise NotImplementedError('Define login procedure in subclass')
 
-	# -------------------------------------------------------------------------------
-	def _login(self, username=None, password=None):
-		if not self.are_valid_credentials(username, password):
-			if self.netrc_path is not None:
-				logging.debug("No username provided. Retrieving using netrc.")
-				nrc = netrc(file=self.netrc_path)
-				host = urisplit(self.rest_client.url).host
-				try:
-					(netrc_login, _, netrc_password) = nrc.authenticators(host)
-				except TypeError:
-					raise ValueError("No credentials found for host '{host}' or 'default' in the netrc file at location '{location}'".format(host=host, location=self.netrc_path))
-				if self.are_valid_credentials(netrc_login, netrc_password):
-					self.username = netrc_login
-					self.password = netrc_password
-				else:
-					raise ValueError("No valid credentials found for host '{host}' or 'default' in the netrc file at location '{location}'".format(host=host, location=self.netrc_path))
-			else:
-				raise ValueError("No or empty username and/or password supplied while netrc path is None")
-		else:
-			self.username = username
-			self.password = password
+
 
 
 # ==========================================================================================	
-class UserPassAuth(BasicAuthentication):
+class NoAuth(RESTAuthentication):
+	'''
+	Access REST server without authentication
+	'''
+	
+	is_logged_in = True
+	
+	def login(self):
+		raise Exception('no login required for this service')
+	
+
+# ==========================================================================================	
+class UserPassAuth(RESTAuthentication):
 	'''
 	Authentication that enforces username / password
 	'''
 
+	is_logged_in = False
+
 	# -------------------------------------------------------------------------------
-	def __init__(self, rest_client, config):
-		super(UserPassAuth, self).__init__(rest_client)
-		self.is_logged_in = False
+	#def __init__(self, rest_client):
+	#	super(UserPassAuth, self).__init__(rest_client)
+
 	
 	# -------------------------------------------------------------------------------
 	def login(self, username=None, password=None):
@@ -124,40 +113,121 @@ class UserPassAuth(BasicAuthentication):
 		    :param password: The password for authenticating with the CAS end-point
 		    :type password: ``string_type_or_none``
 		"""
-		self._login(username, password)
+
+		if not self.are_valid_credentials(username, password):
+			raise ValueError("No or empty username and/or password supplied")
+		else:
+			self.username = username
+			self.password = password
+
 		self.is_logged_in = True
 
-# ==========================================================================================	
-class UserPassAuthConfig(AuthConfig):
-	'''
-	CAS authentication specific for the CLS implementation below
-	'''
-
-	authentication_module = UserPassAuth
-
-	def __init__(self, verify_ssl=False):
-		self.verify_ssl = verify_ssl
-
 
 # ==========================================================================================	
+class NetRCAuth(RESTAuthentication):
+	'''
+	Authentication that enforces username / password
+	'''
 
-class CASAuth(BasicAuthentication):
+	netrc_path = os.path.expanduser("~/.netrc")
+	is_logged_in = False
 
-	def __init__(self, rest_client, config):
+	# -------------------------------------------------------------------------------
+	#def __init__(self, rest_client, config):
+		#super(UserPassAuth, self).__init__(rest_client)
+
+
+	# -------------------------------------------------------------------------------
+	def login(self, netrc_path=os.path.expanduser("~/.netrc")):
+		""" Explicitly do a login with supplied username and password.
+		    If username and password are supplied, it will use those to login.
+		    If either or both username and/or password is missing, will try to retrieve the credentials from the netrc file.
+
+		    :param username: The user for authenticating with the CAS end-point
+		    :type username: ``string_type_or_none``
+
+		    :param password: The password for authenticating with the CAS end-point
+		    :type password: ``string_type_or_none``
+		"""
+		
+		self.netrc_path = netrc_path
+
+		if self.netrc_path is not None:
+			logging.debug("Retrieving using netrc.")
+			nrc = netrc(file=self.netrc_path)
+			host = urisplit(self.rest_client.url).host
+			try:
+				(netrc_login, _, netrc_password) = nrc.authenticators(host)
+			except TypeError:
+				raise ValueError("No credentials found for host '{host}' or 'default' in the netrc file at location '{location}'".format(host=host, location=self.netrc_path))
+			if self.are_valid_credentials(netrc_login, netrc_password):
+				self.username = netrc_login
+				self.password = netrc_password
+			else:
+				raise ValueError("No valid credentials found for host '{host}' or 'default' in the netrc file at location '{location}'".format(host=host, location=self.netrc_path))
+		else:
+			raise ValueError("No Netrc path supplied")
+
+
+
+# ==========================================================================================	
+class UserPassOrNetRCAuth(RESTAuthentication):
+	'''
+	wrapper to allow both netRC and User+Pass logins
+	'''
+	
+	def login(self, netrc_path=os.path.expanduser("~/.netrc"), username=None, password=None):
+		"""
+		Allow logins via either netRC or user/pass.
+		If netrc is true, try this. Else, try user/pass if supplied.
+		If neither is available, raise error
+
+		:param netrc_path: The path to Netrc 
+		:type netrc_path: ``string_type_or_none``
+
+		:param username: The user for authenticating with the CAS end-point
+		:type username: ``string_type_or_none``
+
+		:param password: The password for authenticating with the CAS end-point
+		:type password: ``string_type_or_none``
+		"""
+
+		if netrc_path:
+			parent_auth = NetRCAuth(rest_client=self.rest_client, auth_config_object=self.auth_config_object)
+			parent_auth.login(netrc_path=netrc_path)
+		elif username and password:
+			parent_auth = UserPassAuth(rest_client=self.rest_client)
+			parent_auth.login(username=username, password=password)
+		else:
+			raise BCSRestLoginError('not enough data is provided to login')
+		self.username = parent_auth.username
+		self.password = parent_auth.password
+
+		self.is_logged_in = True
+	
+
+
+
+# ==========================================================================================	
+
+class CASAuth(RESTAuthentication):
+
+	def __init__(self, rest_client, auth_config_object):
 		"""
 		CASAuth constructor
 
 		:param rest_client: A reference to the RESTclient object
 		:type rest_client: ``RESTclient``
 
-		:param credential: The configuration object
-		:type credential: ``BasicAuthConfig``
+		:param auth_config_object: The configuration object
+		:type auth_config_object: ``AuthConfig``
 
 		"""
 
 		super(CASAuth, self).__init__(rest_client)
 		
 		self.server = None
+		config =  auth_config_object
 		self.ticket_path = '/'.join(config.path)
 		self.service = config.service_name
 		self.tgt_path = config.granting_ticket_filepath
@@ -177,21 +247,37 @@ class CASAuth(BasicAuthentication):
 			self._thread_local.renew_ticket = False
 
 
-	def login(self, server_url, username=None, password=None):
-		""" Explicitly do a login with supplied username and password.
-		    If username and password are supplied, it will use those to login.
-		    If either or both username and/or password is missing, will try to retrieve the credentials from the netrc file.
-		    Finally, generates a TGT and writes it to disk.
-
-		    :param username: The user for authenticating with the CAS end-point
-		    :type username: ``string_type_or_none``
-
-		    :param password: The password for authenticating with the CAS end-point
-		    :type password: ``string_type_or_none``
+	def login(self, server_url, netrc_path=os.path.expanduser("~/.netrc"), username=None, password=None):
 		"""
+		CAS-auth requires a secondary auth, so it has two authentication levels...
+		Allow logins via either netRC or user/pass.
+		If netrc is true, try this. Else, try user/pass if supplied.
+		If neither is available, raise error
+
+		:param netrc_path: The path to Netrc 
+		:type netrc_path: ``string_type_or_none``
+
+		:param username: The user for authenticating with the CAS end-point
+		:type username: ``string_type_or_none``
+
+		:param password: The password for authenticating with the CAS end-point
+		:type password: ``string_type_or_none``
+		"""
+
+		self.server = server_url 
+
+		if netrc_path:
+			parent_auth = NetRCAuth(rest_client=self.rest_client)
+			parent_auth.login(netrc_path=netrc_path)
+		elif username and password:
+			parent_auth = UserPassAuth(rest_client=self.rest_client)
+			parent_auth.login(username=username, password=password)
+		else:
+			raise BCSRestLoginError('not enough data is provided to login')
+		self.username = parent_auth.username
+		self.password = parent_auth.password
+			
 		try:
-			super(CASAuth, self)._login(username=username, password=password)
-			self.server = server_url 
 			self.generate_tgt(overwrite=True)
 		except BCSRestLoginError as e:
 			raise 
@@ -209,7 +295,7 @@ class CASAuth(BasicAuthentication):
 		ro = requests.post(url=tgt_url,
 		                   data=body,
 		                   verify=self.verify_ssl)
-		if (ro.status_code != requests.codes.get("ok")):
+		if (ro.status_code != requests.codes.get("ok")):  # why not just ro.ok?
 			self.get_tgt_and_write()
 			tgt_url = self.read_tgt()
 			ro = requests.post(url=tgt_url, data=body)
@@ -296,13 +382,38 @@ class CASAuth(BasicAuthentication):
 		return r
 
 
+
+# ==========================================================================================
+# ==========================================================================================
+# ==========================================================================================
+class AuthConfig(object):
+	'''
+	Configuration and validation for custom authentication schemas
+	'''
+	pass
+
+
 # ==========================================================================================	
-class BasicAuthConfig(AuthConfig):
+class NoAuthConfig(AuthConfig):
 	'''
 	Configuration and validation for custom authentication schemas
 	'''
 
-	authentication_module = BasicAuthentication
+	authentication_modules = NoAuth
+
+
+
+# ==========================================================================================	
+class NetrcOrUserPassAuthConfig(AuthConfig):
+	'''
+	Allow authentication via NetRC or User/Password
+	'''
+
+	authentication_module = UserPassOrNetRCAuth
+
+	def __init__(self, verify_ssl=False):
+		self.verify_ssl = verify_ssl
+
 
 
 # ==========================================================================================	

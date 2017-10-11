@@ -5,6 +5,7 @@ import copy
 #from bcs_rest_client.resources import validate_resources_configuration as v
 from bcs_rest_client.conf import RESTConfig, EndPointConfig, BodyParameter, QueryParameter,  ParameterConfig
 from bcs_rest_client.exception import BCSRestConfigurationError, BCSRestQueryError
+from bcs_rest_client.auth import NetrcOrUserPassAuthConfig
 from bcs_rest_client import RestClient
 
 
@@ -15,6 +16,8 @@ class TestQuickMarkerRepository(unittest.TestCase):
     test_marker = 'mBRS00000001'
     
     class ConfigTest(RESTConfig):
+        authentication = NetrcOrUserPassAuthConfig()
+        
         get_a_marker_by_id = EndPointConfig(path=["markers", "{id}"],  # {} means it's a path parameter
                                             method="GET")
         get_markers_by_criteria = EndPointConfig(
@@ -36,7 +39,7 @@ class TestQuickMarkerRepository(unittest.TestCase):
     
     def setUp(self):
         self.mrep = client.RestClient(url=self.url, config=self.config)
-        #self.mrep.auth.login(username=self.user, password=self.password)
+        self.mrep.auth.login(username=self.user, password=self.password)
     
     def test_get_nokeyword(self):
         with self.assertRaises(BCSRestQueryError) as e:
@@ -257,7 +260,7 @@ class TestRestConfig(unittest.TestCase):
         class ConfigTest(RESTConfig):
             ep1 = dict()
         self.restconfig['config'] = ConfigTest
-        r = 'no endpoints defined for this resource at all!' 
+        r = 'no endpoints defined for this REST client at all!' 
         self.parse_config_error(r)
 
     def test_endpoints2(self):

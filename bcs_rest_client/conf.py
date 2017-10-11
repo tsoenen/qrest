@@ -18,7 +18,7 @@ else:
 ## local imports
 from bcs_rest_client.exception import BCSRestConfigurationError
 from bcs_rest_client.utils import string_type, string_type_or_none
-from bcs_rest_client.auth import BasicAuthentication
+from bcs_rest_client.auth import NoAuth
 
 
 
@@ -422,8 +422,8 @@ class RESTConfig(object):
         try:
             auth_config = self.authentication
         except AttributeError:
-            # default to basic authentication
-            return BasicAuthentication(rest_client)
+            # default to no authentication
+            return NoAuth(rest_client)
         else:
             auth_module = auth_config.authentication_module
             return auth_module(rest_client, auth_config)
