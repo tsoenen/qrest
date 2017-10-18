@@ -2,6 +2,10 @@ import requests
 import copy
 import six
 from contracts import contract
+from collections import OrderedDict
+
+import pprint
+pp = pprint.PrettyPrinter(indent=4).pprint
 
 from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -41,7 +45,7 @@ class RestResponse(object):
         assert isinstance(response, requests.models.Response)
         self._response = response
         self.headers = response.headers
-        self.content = response.content
+        self.raw = response.content
         self.options = options
 
         #prepare the content to a python object
@@ -50,13 +54,13 @@ class RestResponse(object):
 
     @property
     def result_name(self):
-        return self.options.get("result_name", "result")
+        return self.options.get("result_name", None)
 
     def fetch(self):
-        return getattr(self, self.result_name)
+        return self.data
 
     @property
-    def response_type(self):
+    def content_type(self):
         """ Checks whether the Requests Response object contains JSON or not
 
             :return: True when the Requests Response object contains JSON and False when it does not
@@ -78,10 +82,12 @@ class RestResponse(object):
             :return: A dictionary containing the Requests Response object, adapted to the JSON configuration
             :rtype: ``dict``
         """
-        json = copy.deepcopy(self._response.json())
-        json_source = copy.deepcopy(self._response.json())
+
+        # replace content by decoded content
+        self.raw = copy.deepcopy(self._response.json())
 
         #subset the response dictionary
+        json = copy.deepcopy(self._response.json())
         if isinstance(json, dict):
             if ("root" in self.options) and (len(self.options["root"]) > 0):
                 for element in self.options["root"]:
@@ -90,28 +96,12 @@ class RestResponse(object):
                     else:
                         raise BCSRestResourceMissingContentError("Element '%s' could not be found" % element)
 
-        # look into the subset JSON: stick it into the self object
-        if not isinstance(json, dict):
-            json_dict = {}
-            json_dict[self.result_name] = json
-        else:
-            json_dict = json
-
-        #
-        if ("root" in self.options) and (len(self.options["root"]) > 0):
-            if "source_name" in self.options:
-                json_dict[self.options["source_name"]] = json_source
-            elif "source" not in json_dict:
-                json_dict["source"] = json_source
-            else:
-                json_dict["_source"] = json_source
-
-        # replace content by decoded content
-        #self.content = json_source
-
         #create data objects
-        self.data = json_dict
-        setattr(self, self.result_name, json)
+        self.data = json
+        
+        # special shortcut for user friendliness
+        if "result_name" in self.options:
+            setattr(self, self.result_name, json)
 
     def _parse_csv_response(self):
         '''
@@ -120,8 +110,8 @@ class RestResponse(object):
         : return:  a list of lists
         '''
         data = self._response.content
-        self.content = data.decode('UTF-8')
-        data = self.content.strip().split('\n')
+        self.raw = data.decode('UTF-8')
+        data = self.raw.strip().split('\n')
         self.data = [x.split(",") for x in data]
 
     def _to_python(self):
@@ -131,9 +121,9 @@ class RestResponse(object):
 
             :return: A dictionary containing the response body JSON content, adapted to the JSON configuration or the raw response body content in bytes if it is not JSON
         """
-        if self.response_type == 'json':
+        if self.content_type == 'json':
             self._parse_json_response()
-        elif self.response_type == 'csv':
+        elif self.content_type == 'csv':
             self._parse_csv_response()
 
 
@@ -170,7 +160,8 @@ class RestResource():
 
     # ---------------------------------------------------------------------------------------------
     def fetch(self, *args, **kwargs):
-        return self.__call__(*args, **kwargs).fetch()
+        response = self.__call__(*args, **kwargs) 
+        return response.fetch()
 
     # ---------------------------------------------------------------------------------------------
     @property
@@ -184,6 +175,34 @@ class RestResource():
         '''
         return self.config.as_dict
 
+    #---------------------------------------------------------------------------------------------
+    @property
+    def description(self):
+        return self.help()
+    
+
+    def help(self, parameter_name=None):
+        '''
+        Print description of the endpoint and the parameters
+        '''
+        if not parameter_name:
+            return (self.config.description or 'No description given for this endpoint')
+        if not parameter_name in self.config.all_parameters:
+            if self.config.all_parameters:
+                return '%s is not a valid parameter: valid are: %s' % (parameter_name, ','.join(self.config.all_parameters))
+            else:
+                return 'this endpoint has no parameters'
+        if parameter_name in self.config.parameters:
+            help = self.config.parameters[parameter_name].description
+            choices = ', '.join(self.config.parameters[parameter_name].choices)
+            if choices:
+                help += '. Valid choices are: %s' % choices
+            return (help or 'no description given for this parameter')
+        if parameter_name in self.config.path_parameters:
+            help = self.config.path_description.get(parameter_name, 'no description given for this parameter') 
+            return help
+        return 'ERROR: not yet implemented'
+            
 
     #---------------------------------------------------------------------------------------------
     def validate_query(self, *args, **kwargs):

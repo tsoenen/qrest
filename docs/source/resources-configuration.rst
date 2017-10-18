@@ -2,21 +2,51 @@ Resources configuration
 ------------------------
 
 This document is part of the Python REST API client package and documents how to use the package to query arbitrary REST APIs.
-For a given REST API, the resources are described by means of a Python dictionary object which holds the configuration of every resource in the REST API.
+For a given REST API, the resources are described by means of a RESTConfig instance which holds the configuration of every resource in the REST API.
+The configuration class is then passed to a RestClient object to create an interface to a REST server
 
-Resource
+for example:
+class MyRESTConfig(RESTConfiguration):
+	...
+
+my_config = MyRESTConfig()
+rest_client = RestClient(url='http://some.server.com',config=my_config)
+
+
+
+RESTConfiguration
 ========
 
-A Python dictionary object which holds the configuration of a resource of a REST API.
+A Python class inspired by the Django Model objects. It contains the configuration of a a REST API.
 
 ::
 
-    resources = {
-    	"resource_name": {
+class MyRESTConfig(RESTConfiguration):
+	get_items_by_criteria = EndPointConfig(path=['api','rest', 'v1', 'dev',"items"],
+											 description='Search items from a REST endpoint', 
+											 method='POST',
+											 json={"root": ["_embedded", "items"],
+												   "result_name": "my_data"},
+											 headers={"extra-header": "search"},
+											 parameters={
+												 'condition': BodyParameter(name='markerCondition', 
+																			multiple=True, 
+																			choices=['validated', 'provisional','legacy', 'deleted'],
+																			description='one or more markerConditions'
+																			),
+												 'sort': QueryParameter(name="sort",
+																		default='markerUID,asc',
+																		choices=['markerUID,asc', 'updatedOn,asc', 'alias,asc', 'insertedOn,asc', 'taxonId,asc'],
+																		description='output sorted by this key, and asc/desc'
+																		),
+											 },
+											 )
+
     		...
     	}
     }
 
+Each endpoint is configured as an EndPointConfig instance, 
 The keys in the resources configuration dictionary are the names of the REST API resources.
 These keys have to be a string type.
 They are used to dynamically create functions in the REST API client object for every resource.

@@ -29,7 +29,8 @@ class ParameterConfig(object):
     '''
 
     def __init__(self, name, required=False, multiple=False,
-                 exclusion_group=None,default=None, choices=None
+                 exclusion_group=None,default=None, choices=None,
+                 description=None, regex=None
                  ):
         '''
         parameter configuration class to segregate validation and allow separation of python and REST
@@ -42,6 +43,8 @@ class ParameterConfig(object):
             exclusion_group: parameters in the same exclusion group may not be used together
             default: the default entry if this parameter is not supplied
             choices: a list of possible values for this parameter
+            description: any information about the parameter, such as data format
+            regex: a validation regular expression to test input for this parameter
         '''
 
         self.name = name
@@ -50,8 +53,16 @@ class ParameterConfig(object):
         self.exclusion_group = exclusion_group
         self.default = default
         self.choices = choices
+        self.regex = regex
+        self.description = description
         self.validate_configuration()
 
+    def as_dict(self):
+        '''
+        return the parameter set as a dictionary
+        '''
+        return self.__dict__
+        
     def validate_configuration(self):
         if not isinstance(self.required, bool):
             raise BCSRestConfigurationError('parameter "required" must be boolean')
@@ -94,11 +105,13 @@ class EndPointConfig(object):
     contain and validate details for a REST endpoint
     '''
 
-    def __init__(self, path, method, parameters=None, json=None, headers=None, return_class=None):
+    def __init__(self, path, method, parameters=None, json=None, headers=None, return_class=None, description=None, path_description=None):
         '''
         Enforce the presence of some parameters, help with definition, and validate
         '''
         self.path = path
+        self.description = description
+        self.path_description = path_description
         self.method = method
         self.parameters = parameters
         self.json_options = json
@@ -117,6 +130,7 @@ class EndPointConfig(object):
         self.validate_json()
         self.validate_parameters()
         self.validate_return_class()
+        self.validate_description()
 
         # integration tests
         if self.method == 'GET':
@@ -125,6 +139,14 @@ class EndPointConfig(object):
                     raise BCSRestConfigurationError('body parameter not allowed in GET request')
             pass
 
+
+    # ----------------------------------------------------
+    def validate_description(self):
+        if self.description and not isinstance(self.description, str):
+            raise BCSRestConfigurationError("description is not a string")
+
+        if self.path_description and not isinstance(self.path_description, dict):
+            raise BCSRestConfigurationError("path_description is not a dictionary")
 
     # ----------------------------------------------------
     def validate_path(self):
@@ -364,7 +386,7 @@ class EndPointConfig(object):
 
 
 #==================================================================================================
-class RESTConfig(object):
+class RESTConfiguration(object):
 
     def __init__(self):
         self.endpoints = self.get_list_of_endpoints()

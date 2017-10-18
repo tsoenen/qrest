@@ -295,10 +295,11 @@ class CASAuth(RESTAuthentication):
 		ro = requests.post(url=tgt_url,
 		                   data=body,
 		                   verify=self.verify_ssl)
-		if (ro.status_code != requests.codes.get("ok")):  # why not just ro.ok?
+		#if (ro.status_code != requests.codes.get("ok")):  # why not just ro.ok?
+		if ro.ok:
 			self.get_tgt_and_write()
 			tgt_url = self.read_tgt()
-			ro = requests.post(url=tgt_url, data=body)
+			ro = requests.post(url=tgt_url, data=body, verify=self.verify_ssl)
 			if (ro.status_code != requests.codes.get("ok")):
 				raise RuntimeError("Cannot authenticate against CAS using provided 'username' and 'password'. HTTP status code: '{status}'".format(status=ro.status_code))
 		return(ro.text)
@@ -401,6 +402,18 @@ class NoAuthConfig(AuthConfig):
 
 	authentication_modules = NoAuth
 
+
+
+# ==========================================================================================	
+class UserPassAuthConfig(AuthConfig):
+	'''
+	Allow authentication via NetRC or User/Password
+	'''
+
+	authentication_module = UserPassAuth
+
+	def __init__(self, verify_ssl=False):
+		self.verify_ssl = verify_ssl
 
 
 # ==========================================================================================	

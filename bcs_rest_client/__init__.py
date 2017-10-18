@@ -11,7 +11,7 @@ from contracts import contract, new_contract
 from bcs_rest_client.resources import RestResource
 from bcs_rest_client.utils import InvalidResourceError
 from bcs_rest_client.utils import string_type, string_type_or_none
-from bcs_rest_client.conf import RESTConfig
+from bcs_rest_client.conf import RESTConfiguration
 from bcs_rest_client.auth import RESTAuthentication
 from bcs_rest_client.exception import BCSRestConfigurationError
 from bcs_rest_client.validator import ValidationError, URLValidator
@@ -55,13 +55,9 @@ class RestClient(object):
         self.url = url
 
         # set the config
-        if not inspect.isclass(config):
-            raise BCSRestConfigurationError('configuration is not a class')
-        if not issubclass(config, RESTConfig):
-            raise BCSRestConfigurationError('configuration is not a RESTConfig')
-
-        # execute and init the config class
-        self.config = config()
+        if not isinstance(config, RESTConfiguration):
+            raise BCSRestConfigurationError('configuration is not a RESTConfig instance')
+        self.config = config
 
         for name, item_config in self.config.endpoints.items():
 

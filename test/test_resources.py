@@ -3,7 +3,7 @@ import bcs_rest_client as client
 import copy
 
 #from bcs_rest_client.resources import validate_resources_configuration as v
-from bcs_rest_client.conf import RESTConfig, EndPointConfig, BodyParameter, QueryParameter,  ParameterConfig
+from bcs_rest_client.conf import RESTConfiguration, EndPointConfig, BodyParameter, QueryParameter,  ParameterConfig
 from bcs_rest_client.exception import BCSRestConfigurationError, BCSRestQueryError
 from bcs_rest_client.auth import NetrcOrUserPassAuthConfig
 from bcs_rest_client import RestClient
@@ -15,7 +15,7 @@ class TestQuickMarkerRepository(unittest.TestCase):
     password = "fubauoka"
     test_marker = 'mBRS00000001'
     
-    class ConfigTest(RESTConfig):
+    class ConfigTest(RESTConfiguration):
         authentication = NetrcOrUserPassAuthConfig()
         
         get_a_marker_by_id = EndPointConfig(path=["markers", "{id}"],  # {} means it's a path parameter
@@ -35,7 +35,7 @@ class TestQuickMarkerRepository(unittest.TestCase):
             json = {"root": ["_embedded"]}
         )
         
-    config = ConfigTest
+    config = ConfigTest()
     
     def setUp(self):
         self.mrep = client.RestClient(url=self.url, config=self.config)
@@ -188,34 +188,33 @@ class TestRestConfig(unittest.TestCase):
         '''
         running this should not yield problems
         '''
+        config = self.restconfig['config']()
+        self.restconfig['config'] = config
         test = RestClient(**self.restconfig)
     
     def parse_config_error(self, expected_response):
         try:
+            config = self.restconfig['config']()
+            self.restconfig['config'] = config
             test = RestClient(**self.restconfig)
         except BCSRestConfigurationError as e:
             self.assertEqual(str(e), expected_response)
 
-    def test_badconfig1(self):
-        self.restconfig['config'] = 'noclass'
-        r = 'configuration is not a class'
-        self.parse_config_error(r)
-
-    def test_badconfig2(self):
+    def test_badconfig(self):
         self.restconfig['config'] = dict
-        r = 'configuration is not a RESTConfig'
+        r = 'configuration is not a RESTConfig instance'
         self.parse_config_error(r)
 
     def test_apply_default1(self):
-        class ConfigTest(RESTConfig):
-            default = 3
+        class ConfigTest(RESTConfiguration):
+            default = {}
             ep1 = EndPointConfig([], 'GET')
         self.restconfig['config'] = ConfigTest
         r = 'default must be a dictionary'
         self.parse_config_error(r)
 
     def test_apply_default2(self):
-        class ConfigTest(RESTConfig):
+        class ConfigTest(RESTConfiguration):
             default = {'a': 'b',}
             ep1 = EndPointConfig([], 'GET')
         self.restconfig['config'] = ConfigTest
@@ -223,7 +222,7 @@ class TestRestConfig(unittest.TestCase):
         self.parse_config_error(r)
 
     def test_apply_default_ok1(self):
-        class ConfigTest(RESTConfig):
+        class ConfigTest(RESTConfiguration):
             default = {'headers': {'key': 'val',},
                        'json': {'root': ['blah'],},
                        }
@@ -233,7 +232,7 @@ class TestRestConfig(unittest.TestCase):
         self.parse_config_error(r)
 
     def test_apply_default_ok2(self):
-        class ConfigTest(RESTConfig):
+        class ConfigTest(RESTConfiguration):
             default = {'headers': {'key': 'val',},
                        'json': {'root': ['blah'],},
                        }
@@ -243,7 +242,7 @@ class TestRestConfig(unittest.TestCase):
         self.parse_config_error(r)
 
     def test_return_class(self):
-        class ConfigTest(RESTConfig):
+        class ConfigTest(RESTConfiguration):
             ep1 = EndPointConfig([], 'GET', return_class='blah')
         
         self.restconfig['config'] = ConfigTest
@@ -251,20 +250,20 @@ class TestRestConfig(unittest.TestCase):
         self.parse_config_error(r)
 
     def test_return_class_ok(self):
-        class ConfigTest(RESTConfig):
+        class ConfigTest(RESTConfiguration):
             ep1 = EndPointConfig([], 'GET', return_class='bcs_rest_client.resources.RestResource')
         self.restconfig['config'] = ConfigTest
         self.parse_config_ok()
 
     def test_endpoints1(self):
-        class ConfigTest(RESTConfig):
+        class ConfigTest(RESTConfiguration):
             ep1 = dict()
         self.restconfig['config'] = ConfigTest
         r = 'no endpoints defined for this REST client at all!' 
         self.parse_config_error(r)
 
     def test_endpoints2(self):
-        class ConfigTest(RESTConfig):
+        class ConfigTest(RESTConfiguration):
             ep1 = EndPointConfig([], 'GET', return_class='bcs_rest_client.resources.RestResource')
             data = EndPointConfig([], 'GET', return_class='bcs_rest_client.resources.RestResource')
             
@@ -274,33 +273,38 @@ class TestRestConfig(unittest.TestCase):
 
         
 class TestRestClientConfig(unittest.TestCase):
-
+    
     def setUp(self):
-        self.restconfig = {'url': 'http://www.example.com', 'config':RESTConfig,}
-        
+        class MinimalConfig(RESTConfiguration):
+            ep1 = EndPointConfig([], 'GET')
+        self.minimal_config = MinimalConfig
+
     def parse_config_ok(self):
         '''
         running this should not yield problems
         '''
+        config = self.restconfig['config']()
+        self.restconfig['config'] = config
         test = RestClient(**self.restconfig)
     
     def parse_config_error(self, expected_response):
+        config = self.restconfig['config']()
+        self.restconfig['config'] = config
         try:
             test = RestClient(**self.restconfig)
         except BCSRestConfigurationError as e:
             self.assertEqual(str(e), expected_response)
-        except:
-            x = 1
-            raise
         else:
             raise Exception()
     
     def test_invalid_url(self):
+        self.restconfig = {'url': 'http://www.example.com', 'config':self.minimal_config,}
         self.restconfig['url'] = 'yes'
         r = 'Invalid URL specified.'
         self.parse_config_error(r)
 
-    def test_invalid_url_ok(self):
+    def test_no_endpoints_defined(self):
+        self.restconfig = {'url': 'http://www.example.com', 'config':RESTConfiguration,}
         from bcs_rest_client.exception import BCSRestConfigurationError
         try:
             self.parse_config_ok()
