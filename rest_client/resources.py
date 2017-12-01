@@ -1,17 +1,17 @@
-import requests
+'''
+This module contains the main Resource and Response objects.
+A Resource (or endpoint) is a single URL that may be requested. It returns a RestResponse object.
+'''
+
 import copy
-import six
 from contracts import contract
-from collections import OrderedDict
-
 import pprint
-pp = pprint.PrettyPrinter(indent=4).pprint
-
+import requests
 from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 disable_warnings(InsecureRequestWarning)
 
-
+import six
 if six.PY2:
     from urllib import quote
 elif six.PY3:
@@ -21,10 +21,11 @@ else:
 
 # ================================================================================================
 # local imports
-from bcs_rest_client.validator import URLValidator
-from bcs_rest_client.exception import BCSRestQueryError, BCSRestConfigurationError, BCSRestLoginError
-from bcs_rest_client.exception import BCSRestResourceHTTPError, BCSRestResourceMissingContentError
-from bcs_rest_client.conf import EndPointConfig
+from rest_client.validator import URLValidator
+from rest_client.exception import RestClientQueryError, RestClientConfigurationError, RestLoginError
+from rest_client.exception import RestResourceHTTPError, RestResourceMissingContentError
+from rest_client.conf import EndPointConfig
+
 
 # =================================================================================================
 class RestResponse(object):
@@ -54,9 +55,15 @@ class RestResponse(object):
 
     @property
     def result_name(self):
+        '''
+        shortcut function to find out where the results are stored inside the response object
+        '''
         return self.options.get("result_name", None)
 
     def fetch(self):
+        '''
+        systematic function to indicate that the required content is to be delivered
+        '''
         return self.data
 
     @property
@@ -94,11 +101,11 @@ class RestResponse(object):
                     if element in json:
                         json = json[element]
                     else:
-                        raise BCSRestResourceMissingContentError("Element '%s' could not be found" % element)
+                        raise RestResourceMissingContentError("Element '%s' could not be found" % element)
 
         #create data objects
         self.data = json
-        
+
         # special shortcut for user friendliness
         if "result_name" in self.options:
             setattr(self, self.result_name, json)
@@ -160,7 +167,10 @@ class RestResource():
 
     # ---------------------------------------------------------------------------------------------
     def fetch(self, *args, **kwargs):
-        response = self.__call__(*args, **kwargs) 
+        '''
+        shortcut function to immedaitely deliver the content of the response insetead of the response object itself
+        '''
+        response = self.__call__(*args, **kwargs)
         return response.fetch()
 
     # ---------------------------------------------------------------------------------------------
@@ -178,8 +188,11 @@ class RestResource():
     #---------------------------------------------------------------------------------------------
     @property
     def description(self):
+        '''
+        shortcut to provide a description of the endpoint
+        '''
         return self.help()
-    
+
 
     def help(self, parameter_name=None):
         '''
@@ -187,22 +200,22 @@ class RestResource():
         '''
         if not parameter_name:
             return (self.config.description or 'No description given for this endpoint')
-        if not parameter_name in self.config.all_parameters:
+        if parameter_name not in self.config.all_parameters:
             if self.config.all_parameters:
                 return '%s is not a valid parameter: valid are: %s' % (parameter_name, ','.join(self.config.all_parameters))
             else:
                 return 'this endpoint has no parameters'
         if parameter_name in self.config.parameters:
-            help = self.config.parameters[parameter_name].description
+            param_help = self.config.parameters[parameter_name].description
             choices = ', '.join(self.config.parameters[parameter_name].choices)
             if choices:
-                help += '. Valid choices are: %s' % choices
-            return (help or 'no description given for this parameter')
+                param_help += '. Valid choices are: %s' % choices
+            return (param_help or 'no description given for this parameter')
         if parameter_name in self.config.path_parameters:
-            help = self.config.path_description.get(parameter_name, 'no description given for this parameter') 
-            return help
+            param_help = self.config.path_description.get(parameter_name, 'no description given for this parameter')
+            return param_help
         return 'ERROR: not yet implemented'
-            
+
 
     #---------------------------------------------------------------------------------------------
     def validate_query(self, *args, **kwargs):
@@ -210,52 +223,52 @@ class RestResource():
         check the input request parameters before sending it to the remote service
         '''
 
-        rp = self.config
+        conf = self.config
 
         #----------------------------------
         # deny superfluous input
         if args:
-            raise BCSRestQueryError("all parameters must be keyword arguments")
+            raise RestClientQueryError("all parameters must be keyword arguments")
 
-        diff = set(kwargs.keys()).difference(rp.all_parameters)
-        if len(diff) > 0:
-            raise BCSRestQueryError("parameters {difference} are supplied but not usable for resource '{resource}'".format(
-                difference=list(diff),
+        diff = list(set(kwargs.keys()).difference(conf.all_parameters))
+        if diff:
+            raise RestClientQueryError("parameters {difference} are supplied but not usable for resource '{resource}'".format(
+                difference=diff,
                 resource=self.name
             ))
 
         #----------------------------------
         # Check required parameters
-        for parameter in rp.required_parameters:
+        for parameter in conf.required_parameters:
             if parameter not in kwargs:
-                raise BCSRestQueryError("parameter '{parameter}' is missing or empty for resource '{resource}'".format(
+                raise RestClientQueryError("parameter '{parameter}' is missing or empty for resource '{resource}'".format(
                     parameter=parameter,
                     resource=self.name
                 ))
 
         #----------------------------------
         # check choices
-        for parameter in kwargs.keys():
-            if not parameter in self.config.parameters:
+        for parameter in kwargs:
+            if parameter not in self.config.parameters:
                 continue
             config = self.config.parameters[parameter]
             if config.choices:
                 if not kwargs[parameter] in config.choices:
-                    raise BCSRestQueryError("value '{val}' for parameter '{parameter}' is not a valid choice: pick from {choices}".format(
+                    raise RestClientQueryError("value '{val}' for parameter '{parameter}' is not a valid choice: pick from {choices}".format(
                         val = kwargs[parameter],
                         parameter=parameter,
                         choices=', '.join(config.choices))
-                    )
+                                               )
 
         #----------------------------------
         # check query parameters
-        intersection = set(rp.all_query_parameters).intersection(kwargs.keys())
+        intersection = set(conf.all_query_parameters).intersection(kwargs.keys())
         groups_used = {}
         for kwarg in intersection:
-            for group in rp.query_parameter_groups:
-                if kwarg in rp.query_parameter_groups[group]:
+            for group in conf.query_parameter_groups:
+                if kwarg in conf.query_parameter_groups[group]:
                     if group in groups_used:
-                        raise BCSRestQueryError(
+                        raise RestClientQueryError(
                             "parameter '{kwarg1}' and '{kwarg2}' from group '{group}' can't be used together".format(
                                 kwarg1=kwarg,
                                 kwarg2=groups_used[group],
@@ -264,8 +277,8 @@ class RestResource():
                     else:
                         groups_used[group] = kwarg
                     break
-            if isinstance(kwargs[kwarg], list) and kwarg not in rp.multiple_parameters:
-                raise BCSRestQueryError("parameter '{kwarg}' is not multiple".format(
+            if isinstance(kwargs[kwarg], list) and kwarg not in conf.multiple_parameters:
+                raise RestClientQueryError("parameter '{kwarg}' is not multiple".format(
                     kwarg=kwarg
                 ))
 
@@ -273,7 +286,7 @@ class RestResource():
         # apply defaults for missing optional parameters that do have default values
         defaults = self.config.defaults
         for item, value in defaults.items():
-            if not item in kwargs:
+            if item not in kwargs:
                 kwargs[item] = value
 
 
@@ -282,16 +295,17 @@ class RestResource():
     #---------------------------------------------------------------------------------------------
     @property
     def query_url(self):
-        # construct the URL path
-        rp = self.config
+        '''
+        returns the URL that is actually queried
+        '''
 
         # url and parameters
-        if not 'cleaned_data' in dir(self):
+        if 'cleaned_data' not in dir(self):
             raise KeyError('request data is not cleaned. Run validate_request first')
 
 
         resolved_path = "/".join(self.path)
-        path_para = {parameter: quote(self.cleaned_data[parameter], safe='') for parameter in self.cleaned_data if parameter in rp.path_parameters}
+        path_para = {parameter: quote(self.cleaned_data[parameter], safe='') for parameter in self.cleaned_data if parameter in self.config.path_parameters}
         resolved_path = resolved_path.format(**path_para)
 
         # Construct URL using base URL and path
@@ -324,32 +338,32 @@ class RestResource():
             elif config_parameters[para_name].call_location == 'body':
                 body_parameters[rest_name] = para_val
             else:
-                raise BCSRestConfigurationError('call location for %s is not understood' % para_name)
+                raise RestClientConfigurationError('call location for %s is not understood' % para_name)
 
         # collect and return
-        qp = {'request': request_parameters,
-              'body': body_parameters,
-              }
+        return_structure = {'request': request_parameters,
+                            'body': body_parameters,
+                            }
 
 
 
-        return qp
+        return return_structure
 
 
     # ---------------------------------------------------------------------------------------------
     def _get(self, extra_request=None, extra_body=None):
         """ This function builds and sends a request for a specified REST API resource.
             The parameters are validated in a previous call to validate_query().
-            It returns a dictionary of the response or throws an appropriate error, depending on the HTTP return code.
+            It returns a dictionary of the response or throws an appropriate
+            error, depending on the HTTP return code.
         """
-        
+
         # check if user is logged in
         if self.client.auth and not self.client.auth.is_logged_in:
-            raise BCSRestLoginError('user is not logged in')
-        
+            raise RestLoginError('user is not logged in')
 
         # url and parameters
-        if not 'cleaned_data' in dir(self):
+        if 'cleaned_data' not in dir(self):
             raise KeyError('request data is not cleaned. Run validate_query first')
 
         query_parameters = self.query_parameters
@@ -359,10 +373,10 @@ class RestResource():
             if not data_dict:
                 continue
             if not isinstance(data_dict, dict):
-                raise BCSRestQueryError('extra_request and extra_body must be dict')
+                raise RestClientQueryError('extra_request and extra_body must be dict')
             for item in data_dict.keys():
                 if item in query_parameters[location]:
-                    raise BCSRestQueryError('trying to overload parameter ' + item )
+                    raise RestClientQueryError('trying to overload parameter ' + item)
             query_parameters[location].update(data_dict)
 
         # Do HTTP request to REST API
@@ -378,7 +392,7 @@ class RestResource():
             assert isinstance(response, requests.Response)
 
             if response.status_code > 399:  #Nicely catch exceptions
-                raise BCSRestResourceHTTPError(response_object=response)
+                raise RestResourceHTTPError(response_object=response)
             # for completeness sake: let requests check for valid output
             # code should not get here...
             response.raise_for_status()
@@ -392,5 +406,3 @@ class RestResource():
             raise http
         else:
             return RestResponse(response=response, options=self.config.json_options)
-
-

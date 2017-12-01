@@ -1,20 +1,23 @@
-__version__ = '1.0.20170621.2'
+__version__ = '1.0.20171201.1'
 
-import six
+'''
+Contains the main classes that interact with the end user
+'''
+
 import importlib
 import inspect
-
 from contracts import contract, new_contract
+import six
+
 
 # ================================================================================================
 # local imports
-from bcs_rest_client.resources import RestResource
-from bcs_rest_client.utils import InvalidResourceError
-from bcs_rest_client.utils import string_type, string_type_or_none
-from bcs_rest_client.conf import RESTConfiguration
-from bcs_rest_client.auth import RESTAuthentication
-from bcs_rest_client.exception import BCSRestConfigurationError
-from bcs_rest_client.validator import ValidationError, URLValidator
+from rest_client.resources import RestResource
+from rest_client.exception import InvalidResourceError, RestClientConfigurationError
+from rest_client.utils import string_type, string_type_or_none
+from rest_client.conf import RESTConfiguration
+from rest_client.auth import RESTAuthentication
+from rest_client.validator import ValidationError, URLValidator
 
 # ================================================================================================
 class RestClient(object):
@@ -29,7 +32,7 @@ class RestClient(object):
     def __init__(self, url, config, verifySSL=False):
         """
         RestClient constructor
-    
+
         :param url: The base URL of the REST API
         :type url: ``string_type``
 
@@ -50,13 +53,13 @@ class RestClient(object):
         try:
             url_validator.__call__(url)
         except ValidationError as e:
-            raise BCSRestConfigurationError(e.message)
+            raise RestClientConfigurationError(e.message)
 
         self.url = url
 
         # set the config
         if not isinstance(config, RESTConfiguration):
-            raise BCSRestConfigurationError('configuration is not a RESTConfig instance')
+            raise RestClientConfigurationError('configuration is not a RESTConfig instance')
         self.config = config
 
         for name, item_config in self.config.endpoints.items():
@@ -66,13 +69,13 @@ class RestClient(object):
                 try:
                     module_name, class_name = cls.rsplit(".", 1)
                 except ValueError as e:
-                    raise BCSRestConfigurationError('unable to parse %s into module and class name' % cls)
+                    raise RestClientConfigurationError('unable to parse %s into module and class name' % cls)
                 somemodule = importlib.import_module(module_name)
                 return_class = getattr(somemodule, class_name)
             else:
                 return_class = RestResource
 
-            setattr(self,name,self._create_rest_resource(return_class, resource_name=name, config=item_config))
+            setattr(self, name, self._create_rest_resource(return_class, resource_name=name, config=item_config))
 
         self.verifySSL = verifySSL
 
@@ -80,7 +83,7 @@ class RestClient(object):
         self.auth = self.config.get_authentication_module(self)
         assert isinstance(self.auth, RESTAuthentication)
 
-    
+
     # ---------------------------------------------------------------------------------------------
     @property
     def resources(self):
@@ -94,7 +97,8 @@ class RestClient(object):
         fieldnames = dir(self)
         for fieldname in fieldnames:
             # this exclusion is to prevent endless loops
-            if fieldname == 'resources': continue
+            if fieldname == 'resources':
+                continue
             field = getattr(self, fieldname)
             if isinstance(field, RestResource):
                 resources.append(field.name)
@@ -117,3 +121,21 @@ class RestClient(object):
 
         rest_resource = return_class(client=self, name=resource_name, config=config)
         return rest_resource
+
+
+class RestClientLauncher(object):
+    '''
+    This is a wrapper object to make life easier for end-users. It creates the actual resource
+    object instead of importing from multiple libs to join these together
+    '''
+    config = None
+    
+    def __new__(cls, url, verifySSL=False):
+        config = cls.config
+        if not isinstance(config, RESTConfiguration):
+            raise RestClientConfigurationError('config is not a RESTConfig instance')
+
+        return RestClient(config=config, url=url, verifySSL=verifySSL)
+    
+    def __init__(self):
+        pass

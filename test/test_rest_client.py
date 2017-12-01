@@ -1,7 +1,7 @@
 import unittest
-import bcs_rest_client as client
-from bcs_rest_client.conf import RESTConfiguration, EndPointConfig, BodyParameter, QueryParameter,  ParameterConfig
-from bcs_rest_client.auth import UserPassAuthConfig
+import rest_client as client
+from rest_client.conf import RESTConfiguration, EndPointConfig, BodyParameter, QueryParameter,  ParameterConfig
+from rest_client.auth import UserPassAuthConfig
 
 class MinimalConfig(RESTConfiguration):
     endpoint1 = EndPointConfig(path=[], method='GET')
@@ -14,7 +14,7 @@ class UserPassConfig(RESTConfiguration):
 class TestInvalidResourceError(unittest.TestCase):
     
     def test_raise(self):
-        from bcs_rest_client.utils import InvalidResourceError
+        from rest_client.exception import InvalidResourceError
         
         def broken_function():
             name = 'rest client name'
@@ -25,14 +25,14 @@ class TestInvalidResourceError(unittest.TestCase):
             broken_function()
 
     def test_try(self):
-        from bcs_rest_client.utils import InvalidResourceError
+        from rest_client.exception import InvalidResourceError
         
         try:
             name = 'rest client name'
             resource = 'resource_name'
             raise InvalidResourceError(name, resource)
         except InvalidResourceError as e:
-            expected = '"\'resource_name\' is not a valid resource for \'rest client name\'"'
+            expected = "'resource_name' is not a valid resource for 'rest client name'"
             received = str(e)
             self.assertEqual(expected, received)
             
@@ -60,7 +60,7 @@ class TestRestClient(unittest.TestCase):
         contract.fail(123)
 
     def test_login_user(self):
-        from bcs_rest_client.auth import RESTAuthentication
+        from rest_client.auth import RESTAuthentication
 
         rc = client.RestClient(url=self.url, config=self.user_pass_config)
         self.assertIsInstance(rc.auth, RESTAuthentication)
@@ -72,13 +72,13 @@ class TestRestClient(unittest.TestCase):
         self.assertEqual(rc.auth.login_tuple, ('test', 'pass'))
 
     def test_login_pass_no_user(self):
-        from bcs_rest_client.auth import RESTAuthentication
-        from bcs_rest_client.exception import BCSRestLoginError
+        from rest_client.auth import RESTAuthentication
+        from rest_client.exception import RestLoginError
         rc = client.RestClient(url=self.url, config=self.user_pass_config)
         
         try:
             rc.auth.login(username=None, password='pass')
-        except BCSRestLoginError:
+        except RestLoginError:
             pass
 
     @unittest.expectedFailure
@@ -87,7 +87,7 @@ class TestRestClient(unittest.TestCase):
         client.RestClient(url=self.url, user=123)
 
     def test_init_resources(self):
-        from bcs_rest_client.conf import RESTConfiguration, EndPointConfig, BodyParameter, QueryParameter
+        from rest_client.conf import RESTConfiguration, EndPointConfig, BodyParameter, QueryParameter
 
         rc = client.RestClient(url=self.url, config=self.minimal_config)
         self.assertEqual(rc.resources, ['endpoint1'])

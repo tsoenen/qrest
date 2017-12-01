@@ -1,25 +1,21 @@
-import six
+'''
+Contains all the configuration classes to create a Rest Configuration
+'''
 from contracts import contract
+from collections import defaultdict
 
 from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+import six
+
 disable_warnings(InsecureRequestWarning)
 
-from collections import defaultdict
-
-if six.PY2:
-    from urllib import quote
-elif six.PY3:
-    from urllib.parse import quote
-else:
-    raise Exception('gvd')
 
 # ================================================================================================
 ## local imports
-from bcs_rest_client.exception import BCSRestConfigurationError
-from bcs_rest_client.utils import string_type, string_type_or_none
-from bcs_rest_client.auth import NoAuth
-
+from rest_client.utils import string_type, string_type_or_none
+from rest_client.exception import RestClientConfigurationError
+from rest_client.auth import NoAuth
 
 
 # ================================================================================================
@@ -29,7 +25,7 @@ class ParameterConfig(object):
     '''
 
     def __init__(self, name, required=False, multiple=False,
-                 exclusion_group=None,default=None, choices=None,
+                 exclusion_group=None, default=None, choices=None,
                  description=None, regex=None
                  ):
         '''
@@ -62,41 +58,46 @@ class ParameterConfig(object):
         return the parameter set as a dictionary
         '''
         return self.__dict__
-        
+
+
     def validate_configuration(self):
+        '''
+        check a set of rules to validate if the ParameterConfig is configured correctly
+        '''
         if not isinstance(self.required, bool):
-            raise BCSRestConfigurationError('parameter "required" must be boolean')
+            raise RestClientConfigurationError('parameter "required" must be boolean')
         if not isinstance(self.multiple, bool):
-            raise BCSRestConfigurationError('parameter "multiple" must be boolean')
+            raise RestClientConfigurationError('parameter "multiple" must be boolean')
         if self.exclusion_group:
             if not isinstance(self.exclusion_group, six.string_types):
-                raise BCSRestConfigurationError("group name must be a string")
+                raise RestClientConfigurationError("group name must be a string")
             if not self.exclusion_group.strip():
-                raise BCSRestConfigurationError("group name must be a string")
+                raise RestClientConfigurationError("group name must be a string")
         if self.default and self.required:
-            raise BCSRestConfigurationError("you cannot combine required=True and a default setting")
+            raise RestClientConfigurationError("you cannot combine required=True and a default setting")
         if self.choices and not isinstance(self.choices, list):
-            raise BCSRestConfigurationError("choices must be a list")
+            raise RestClientConfigurationError("choices must be a list")
         if self.default and self.choices:
-            if not self.default in self.choices:
-                raise BCSRestConfigurationError("if there is a choices list, default must be in this list")
-    
+            if self.default not in self.choices:
+                raise RestClientConfigurationError("if there is a choices list, default must be in this list")
+
+
 # ================================================================================================
 class QueryParameter(ParameterConfig):
     '''
     Subclass to specify parameters to be placed in the query part of the REST request
     '''
-    
+
     call_location = 'query'
+
 
 # ================================================================================================
 class BodyParameter(ParameterConfig):
     '''
     Subclass to specify parameters to be placed in the query part of the REST request
     '''
-    
-    call_location = 'body'
 
+    call_location = 'body'
 
 
 # ================================================================================================
@@ -136,49 +137,54 @@ class EndPointConfig(object):
         if self.method == 'GET':
             for key in self.parameters:
                 if self.parameters[key].call_location != 'query':
-                    raise BCSRestConfigurationError('body parameter not allowed in GET request')
-            pass
-
+                    raise RestClientConfigurationError('body parameter not allowed in GET request')
 
     # ----------------------------------------------------
     def validate_description(self):
+        ''' parameter validation'''
         if self.description and not isinstance(self.description, str):
-            raise BCSRestConfigurationError("description is not a string")
+            raise RestClientConfigurationError("description is not a string")
 
         if self.path_description and not isinstance(self.path_description, dict):
-            raise BCSRestConfigurationError("path_description is not a dictionary")
+            raise RestClientConfigurationError("path_description is not a dictionary")
 
     # ----------------------------------------------------
     def validate_path(self):
+        ''' parameter validation'''
         if not isinstance(self.path, list):
-            raise BCSRestConfigurationError("path is not a list")
+            raise RestClientConfigurationError("path is not a list")
 
     # ----------------------------------------------------
     def validate_headers(self):
+        ''' parameter validation'''
         if self.headers:
             if not isinstance(self.headers, dict):
-                raise BCSRestConfigurationError("header is not a dict")
+                raise RestClientConfigurationError("header is not a dict")
         else:
             self.headers = {}
 
     # ----------------------------------------------------
     def validate_method(self):
+        ''' parameter validation'''
         if self.method not in ['GET', 'POST']:
-            raise BCSRestConfigurationError("method must be GET or POST")
+            raise RestClientConfigurationError("method must be GET or POST")
 
     # ----------------------------------------------------
     def validate_json(self):
+        '''
+        validate the configured json parameter
+        '''
         if self.json_options:
             if not isinstance(self.json_options, dict):
-                raise BCSRestConfigurationError("json option is not a dictionary")
+                raise RestClientConfigurationError("json option is not a dictionary")
 
             for key in ['source_name', 'result_name']:
                 if key in self.json_options:
                     if not isinstance(self.json_options[key], six.string_types):
-                        raise BCSRestConfigurationError("json.%s option is not a string" % key)
+                        raise RestClientConfigurationError("json.%s option is not a string" % key)
             if "root" in self.json_options:
                 if not isinstance(self.json_options["root"], list):
-                    raise BCSRestConfigurationError("json.root option is not a list")
+                    raise RestClientConfigurationError("json.root option is not a list")
         else:
             self.json_options = {}
 
@@ -190,10 +196,10 @@ class EndPointConfig(object):
 
         if self.parameters:
             if not isinstance(self.parameters, dict):
-                raise BCSRestConfigurationError("parameters must be dictionary")
+                raise RestClientConfigurationError("parameters must be dictionary")
             for key, val in self.parameters.items():
                 if not isinstance(val, ParameterConfig):
-                    raise BCSRestConfigurationError("Parameter '%s' must be ParameterConfig instance" % str(key))
+                    raise RestClientConfigurationError("Parameter '%s' must be ParameterConfig instance" % str(key))
         else:
             self.parameters = {}
 
@@ -221,10 +227,10 @@ class EndPointConfig(object):
         # check
         allowed_default = ['headers', 'json']
         if not isinstance(default, dict):
-            raise BCSRestConfigurationError('default must be a dictionary')
+            raise RestClientConfigurationError('default must be a dictionary')
 
         if set(default.keys()) - set(allowed_default):
-            raise BCSRestConfigurationError('default config may only contain %s' % ', '.join(allowed_default))
+            raise RestClientConfigurationError('default config may only contain %s' % ', '.join(allowed_default))
 
         # apply defaults
         if 'headers' in default:
@@ -298,7 +304,9 @@ class EndPointConfig(object):
                 result['required'].append(para_name)
             else:
                 result['optional'].append(para_name)
-            if para_set.multiple: result['multiple'].append(para_name)
+
+            if para_set.multiple:
+                result['multiple'].append(para_name)
 
         return result
 
@@ -312,7 +320,7 @@ class EndPointConfig(object):
             :return: A list of parameters
             :rtype: ``list``
         """
-        params =  self.query_parameters
+        params = self.query_parameters
         return params["optional"] + params["required"]
 
     # --------------------------------------------------------------------------------------------
@@ -384,9 +392,11 @@ class EndPointConfig(object):
         return defaults
 
 
-
 #==================================================================================================
 class RESTConfiguration(object):
+    '''
+    Class to configure and validate endpoints
+    '''
 
     def __init__(self):
         self.endpoints = self.get_list_of_endpoints()
@@ -409,17 +419,20 @@ class RESTConfiguration(object):
         """
         for resource_name, resource_config in self.endpoints.items():
             if not isinstance(resource_name, six.string_types):
-                raise BCSRestConfigurationError("resource name '{resource}' is not a string".format(
+                raise RestClientConfigurationError("resource name '{resource}' is not a string".format(
                     resource=resource_name
                 ))
             if resource_name == 'data':
-                raise BCSRestConfigurationError("resource name may not be named 'data'")
+                raise RestClientConfigurationError("resource name may not be named 'data'")
             if not isinstance(resource_config, EndPointConfig):
-                raise BCSRestConfigurationError("endpoint {resource} must be class EndPointConfig".format(
+                raise RestClientConfigurationError("endpoint {resource} must be class EndPointConfig".format(
                     resource=resource_name
                 ))
 
     def get_list_of_endpoints(self):
+        '''
+        returns a dictionary of all the defined endpoints
+        '''
         endpoints_dict = {}
         dirlist = [x for x in dir(self) if not x.startswith('_')]
         for item in dirlist:
@@ -427,7 +440,7 @@ class RESTConfiguration(object):
             if endpoint.__class__ == EndPointConfig:
                 endpoints_dict[item] = endpoint
         if not endpoints_dict:
-            raise BCSRestConfigurationError('no endpoints defined for this REST client at all!')
+            raise RestClientConfigurationError('no endpoints defined for this REST client at all!')
         return endpoints_dict
         #return []
 
@@ -438,7 +451,7 @@ class RESTConfiguration(object):
         return activated auth module for authentication
         '''
         
-        from bcs_rest_client import RestClient
+        from rest_client import RestClient
         assert isinstance(rest_client, RestClient)
         
         try:
