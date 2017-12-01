@@ -3,10 +3,10 @@ This is copied from Django 1.9, but adding django as a dependency eats too much 
 '''
 
 import re
+from decimal import Decimal
+import datetime
 import six
 from six.moves.urllib.parse import urlsplit, urlunsplit
-import datetime
-from decimal import Decimal
 
 NON_FIELD_ERRORS = '__all__'
 

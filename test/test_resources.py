@@ -1,11 +1,12 @@
 import unittest
-import bcs_rest_client as client
+import rest_client as client
 import copy
 
-#from bcs_rest_client.resources import validate_resources_configuration as v
-from bcs_rest_client.conf import RESTConfig, EndPointConfig, ParameterConfig
-from bcs_rest_client.exception import BCSRestConfigurationError, BCSRestQueryError
-from bcs_rest_client import RestClient
+#from rest_client.resources import validate_resources_configuration as v
+from rest_client.conf import RESTConfiguration, EndPointConfig, BodyParameter, QueryParameter,  ParameterConfig
+from rest_client.exception import RestClientConfigurationError, RestClientQueryError
+from rest_client.auth import NetrcOrUserPassAuthConfig
+from rest_client import RestClient
 
 
 class TestQuickMarkerRepository(unittest.TestCase):
@@ -14,35 +15,38 @@ class TestQuickMarkerRepository(unittest.TestCase):
     password = "fubauoka"
     test_marker = 'mBRS00000001'
     
-    class ConfigTest(RESTConfig):
+    class ConfigTest(RESTConfiguration):
+        authentication = NetrcOrUserPassAuthConfig()
+        
         get_a_marker_by_id = EndPointConfig(path=["markers", "{id}"],  # {} means it's a path parameter
                                             method="GET")
         get_markers_by_criteria = EndPointConfig(
             path=["markers"],
             method="GET",
-            parameters={'markerUid': ParameterConfig(name="markerUid"),
-                        'taxonId': ParameterConfig(name="taxonId", multiple=True),
-                        'alias': ParameterConfig(name="alias"),
-                        'sourceCategory': ParameterConfig(name="sourceCategory"),
-                        'technology': ParameterConfig(name="technology"),
-                        'page': ParameterConfig(name="page"),
-                        'size': ParameterConfig(name="size"),
-                        'sort': ParameterConfig(name="sort", multiple=True)
+            parameters={'markerUid': QueryParameter(name="markerUid"),
+                        'taxonId': QueryParameter(name="taxonId", multiple=True),
+                        'alias': QueryParameter(name="alias"),
+                        'sourceCategory': QueryParameter(name="sourceCategory"),
+                        'technology': QueryParameter(name="technology"),
+                        'page': QueryParameter(name="page"),
+                        'size': QueryParameter(name="size"),
+                        'sort': QueryParameter(name="sort", multiple=True)
                         }, 
             json = {"root": ["_embedded"]}
         )
         
-    config = ConfigTest
+    config = ConfigTest()
     
     def setUp(self):
-        self.mrep = client.RestClient(url=self.url, user=self.user, password=self.password, config=self.config)
+        self.mrep = client.RestClient(url=self.url, config=self.config)
+        self.mrep.auth.login(username=self.user, password=self.password)
     
     def test_get_nokeyword(self):
-        with self.assertRaises(BCSRestQueryError) as e:
+        with self.assertRaises(RestClientQueryError) as e:
             response = self.mrep.get_a_marker_by_id(self.test_marker)
 
     def test_get_empty(self):
-        with self.assertRaises(BCSRestQueryError) as e:
+        with self.assertRaises(RestClientQueryError) as e:
             response = self.mrep.get_a_marker_by_id()
 
     def test_get_mTO100(self):
@@ -51,7 +55,7 @@ class TestQuickMarkerRepository(unittest.TestCase):
 
     def test_get_badparameter(self):
         expected = "parameters ['id'] are supplied but not usable for resource 'get_markers_by_criteria'"
-        with self.assertRaises(BCSRestQueryError) as e:
+        with self.assertRaises(RestClientQueryError) as e:
             response = self.mrep.get_markers_by_criteria(id=self.test_marker)
             x = 1
 
@@ -64,7 +68,7 @@ class TestParameterConfig(unittest.TestCase):
     def run_param_set(self, **params):
         try:
             x =  ParameterConfig(**params)
-        except BCSRestConfigurationError:
+        except RestClientConfigurationError:
             return True
         else:
             return False
@@ -79,11 +83,6 @@ class TestParameterConfig(unittest.TestCase):
         if not self.run_param_set(**para):
             raise Exception('multiple allows non-boolean')
     
-    def test_force_get_bool(self):
-        para = {'name': 'name','force_get': 'yes',}
-        if not self.run_param_set(**para):
-            raise Exception('force_get allows non-boolean')
-
     def test_exclusion_group_string(self):
         para = {'name': 'name','exclusion_group': 42,}
         if not self.run_param_set(**para):
@@ -110,7 +109,7 @@ class TestEndPointConfig(unittest.TestCase):
     def parse_config_error(self, expected_response):
         try:
             test = EndPointConfig(**self.endpointconf)
-        except BCSRestConfigurationError as e:
+        except RestClientConfigurationError as e:
             self.assertEqual(str(e), expected_response)
         else:
             raise Exception('No Exception was raised')
@@ -147,11 +146,6 @@ class TestEndPointConfig(unittest.TestCase):
     def test_query_parameters_multiple(self):
         self.endpointconf['parameters'] = {'name': "test",}
         r = "Parameter 'name' must be ParameterConfig instance"
-        self.parse_config_error(r)
-
-    def test_query_parameters_force_get(self):
-        self.endpointconf['parameters'] = {'para1': ParameterConfig('name', force_get=True),}
-        r = "force-get parameter not allowed in GET request"
         self.parse_config_error(r)
 
     def test_query_parameters_json_number(self):
@@ -194,34 +188,33 @@ class TestRestConfig(unittest.TestCase):
         '''
         running this should not yield problems
         '''
+        config = self.restconfig['config']()
+        self.restconfig['config'] = config
         test = RestClient(**self.restconfig)
     
     def parse_config_error(self, expected_response):
         try:
+            config = self.restconfig['config']()
+            self.restconfig['config'] = config
             test = RestClient(**self.restconfig)
-        except BCSRestConfigurationError as e:
+        except RestClientConfigurationError as e:
             self.assertEqual(str(e), expected_response)
 
-    def test_badconfig1(self):
-        self.restconfig['config'] = 'noclass'
-        r = 'configuration is not a class'
-        self.parse_config_error(r)
-
-    def test_badconfig2(self):
+    def test_badconfig(self):
         self.restconfig['config'] = dict
-        r = 'configuration is not a RESTConfig'
+        r = 'configuration is not a RESTConfig instance'
         self.parse_config_error(r)
 
     def test_apply_default1(self):
-        class ConfigTest(RESTConfig):
-            default = 3
+        class ConfigTest(RESTConfiguration):
+            default = {}
             ep1 = EndPointConfig([], 'GET')
         self.restconfig['config'] = ConfigTest
         r = 'default must be a dictionary'
         self.parse_config_error(r)
 
     def test_apply_default2(self):
-        class ConfigTest(RESTConfig):
+        class ConfigTest(RESTConfiguration):
             default = {'a': 'b',}
             ep1 = EndPointConfig([], 'GET')
         self.restconfig['config'] = ConfigTest
@@ -229,7 +222,7 @@ class TestRestConfig(unittest.TestCase):
         self.parse_config_error(r)
 
     def test_apply_default_ok1(self):
-        class ConfigTest(RESTConfig):
+        class ConfigTest(RESTConfiguration):
             default = {'headers': {'key': 'val',},
                        'json': {'root': ['blah'],},
                        }
@@ -239,7 +232,7 @@ class TestRestConfig(unittest.TestCase):
         self.parse_config_error(r)
 
     def test_apply_default_ok2(self):
-        class ConfigTest(RESTConfig):
+        class ConfigTest(RESTConfiguration):
             default = {'headers': {'key': 'val',},
                        'json': {'root': ['blah'],},
                        }
@@ -249,7 +242,7 @@ class TestRestConfig(unittest.TestCase):
         self.parse_config_error(r)
 
     def test_return_class(self):
-        class ConfigTest(RESTConfig):
+        class ConfigTest(RESTConfiguration):
             ep1 = EndPointConfig([], 'GET', return_class='blah')
         
         self.restconfig['config'] = ConfigTest
@@ -257,22 +250,22 @@ class TestRestConfig(unittest.TestCase):
         self.parse_config_error(r)
 
     def test_return_class_ok(self):
-        class ConfigTest(RESTConfig):
-            ep1 = EndPointConfig([], 'GET', return_class='bcs_rest_client.resources.RestResource')
+        class ConfigTest(RESTConfiguration):
+            ep1 = EndPointConfig([], 'GET', return_class='rest_client.resources.RestResource')
         self.restconfig['config'] = ConfigTest
         self.parse_config_ok()
 
     def test_endpoints1(self):
-        class ConfigTest(RESTConfig):
+        class ConfigTest(RESTConfiguration):
             ep1 = dict()
         self.restconfig['config'] = ConfigTest
-        r = 'no endpoints defined for this resource at all!' 
+        r = 'no endpoints defined for this REST client at all!' 
         self.parse_config_error(r)
 
     def test_endpoints2(self):
-        class ConfigTest(RESTConfig):
-            ep1 = EndPointConfig([], 'GET', return_class='bcs_rest_client.resources.RestResource')
-            data = EndPointConfig([], 'GET', return_class='bcs_rest_client.resources.RestResource')
+        class ConfigTest(RESTConfiguration):
+            ep1 = EndPointConfig([], 'GET', return_class='rest_client.resources.RestResource')
+            data = EndPointConfig([], 'GET', return_class='rest_client.resources.RestResource')
             
         self.restconfig['config'] = ConfigTest
         r = "resource name may not be named 'data'"
@@ -280,33 +273,43 @@ class TestRestConfig(unittest.TestCase):
 
         
 class TestRestClientConfig(unittest.TestCase):
-
+    
     def setUp(self):
-        self.restconfig = {'url': 'http://www.example.com',}
-        
+        class MinimalConfig(RESTConfiguration):
+            ep1 = EndPointConfig([], 'GET')
+        self.minimal_config = MinimalConfig
+
     def parse_config_ok(self):
         '''
         running this should not yield problems
         '''
+        config = self.restconfig['config']()
+        self.restconfig['config'] = config
         test = RestClient(**self.restconfig)
     
     def parse_config_error(self, expected_response):
+        config = self.restconfig['config']()
+        self.restconfig['config'] = config
         try:
             test = RestClient(**self.restconfig)
-        except BCSRestConfigurationError as e:
+        except RestClientConfigurationError as e:
             self.assertEqual(str(e), expected_response)
-        except:
-            x = 1
-            raise
         else:
             raise Exception()
     
     def test_invalid_url(self):
+        self.restconfig = {'url': 'http://www.example.com', 'config':self.minimal_config,}
         self.restconfig['url'] = 'yes'
         r = 'Invalid URL specified.'
         self.parse_config_error(r)
 
-    def test_invalid_url_ok(self):
-        self.parse_config_ok()
-        
+    def test_no_endpoints_defined(self):
+        self.restconfig = {'url': 'http://www.example.com', 'config':RESTConfiguration,}
+        from rest_client.exception import RestClientConfigurationError
+        try:
+            self.parse_config_ok()
+        except RestClientConfigurationError as e:
+            self.assertEqual(e.args[0], 'no endpoints defined for this REST client at all!')
+        else:
+            raise Exception()
         

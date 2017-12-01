@@ -16,7 +16,7 @@ from os import path
 here = path.abspath(path.dirname(__file__))
 
 # get version from init
-for line in open('bcs_rest_client/__init__.py'):
+for line in open('rest_client/__init__.py'):
     if (line.startswith('__version__')):
         exec(line.strip())
         break
@@ -83,7 +83,7 @@ setup(
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
-    #py_modules=["bcs_rest_client"],
+    #py_modules=["rest_client"],
 
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's
