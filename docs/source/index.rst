@@ -19,10 +19,10 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-bcs_rest_client
+rest_client
 ===============
 
-.. automodule:: bcs_rest_client
+.. automodule:: rest_client
 
 .. autoclass:: RestClient
    :members:
@@ -30,10 +30,10 @@ bcs_rest_client
    :special-members: __init__
 
 
-bcs_rest_client.resources
-=========================
+Resources
+=========
 
-.. automodule:: bcs_rest_client.resources
+.. automodule:: rest_client.resources
 
 .. autoclass:: RestResource
    :members:
@@ -45,10 +45,81 @@ bcs_rest_client.resources
    :private-members:
    :special-members: __init__
 
-.. autoclass:: ResourceParameters
+
+Configuration
+=============
+
+.. automodule:: rest_client.conf
+.. autoclass:: RESTConfiguration
+.. autoclass:: EndPointConfig
+
+.. autoclass:: ParameterConfig
+.. autoclass:: QueryParameter
+.. autoclass:: BodyParameter
+
+
+Authentication
+==============
+
+.. automodule:: rest_client.auth
+
+Authentication classes 
+----------------------
+.. autoclass:: RESTAuthentication
    :members:
-   :private-members: 
-   :exclude-members: _path_parameters, _query_parameters, _query_parameter_groups 
+   :private-members:
+   :special-members: __init__
+
+.. autoclass:: NoAuth
+   :members:
+   :private-members:
+   :special-members: __init__
+
+.. autoclass:: UserPassAuth
+   :members:
+   :private-members:
+   :special-members: __init__
+
+.. autoclass:: NetRCAuth
+   :members:
+   :private-members:
+   :special-members: __init__
+
+.. autoclass:: UserPassOrNetRCAuth
+   :members:
+   :private-members:
+   :special-members: __init__
+
+Configuration
+-------------
+
+.. autoclass:: NoAuthConfig
+   :members:
+   :private-members:
+   :special-members: __init__
+
+.. autoclass:: UserPassAuthConfig
+   :members:
+   :private-members:
+   :special-members: __init__
+
+.. autoclass:: NetrcOrUserPassAuthConfig
+   :members:
+   :private-members:
+   :special-members: __init__
+
+CAS Authentication
+------------------
+
+.. autoclass:: CASAuth
+   :members:
+   :private-members:
+   :special-members: __init__
+
+
+.. autoclass:: CasAuthConfig
+   :members:
+   :private-members:
    :special-members: __init__
 
 
