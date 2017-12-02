@@ -1,4 +1,4 @@
-__version__ = '1.1.20171201.2'
+__version__ = '2.0.0'
 
 '''
 Contains the main classes that interact with the end user

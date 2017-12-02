@@ -8,7 +8,7 @@ class MinimalConfig(RESTConfiguration):
 
 class UserPassConfig(RESTConfiguration):
     endpoint1 = EndPointConfig(path=[], method='GET')
-    authentication = UserPassAuthConfig(verify_ssl=False)
+    authentication = UserPassAuthConfig()
 
 
 class TestInvalidResourceError(unittest.TestCase):
