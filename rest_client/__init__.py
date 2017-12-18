@@ -1,13 +1,16 @@
-__version__ = '2.0.0'
+__version__ = '2.0.1'
 
 '''
 Contains the main classes that interact with the end user
 '''
 
+import logging
 import importlib
 import inspect
 from contracts import contract, new_contract
 import six
+
+logger = logging.getLogger('rest_client')
 
 
 # ================================================================================================

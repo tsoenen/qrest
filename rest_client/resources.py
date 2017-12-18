@@ -21,11 +21,11 @@ else:
 
 # ================================================================================================
 # local imports
+from rest_client import logger
 from rest_client.validator import URLValidator
 from rest_client.exception import RestClientQueryError, RestClientConfigurationError, RestLoginError
 from rest_client.exception import RestResourceHTTPError, RestResourceMissingContentError
 from rest_client.conf import EndPointConfig
-
 
 # =================================================================================================
 class RestResponse(object):
@@ -380,6 +380,7 @@ class RestResource():
             query_parameters[location].update(data_dict)
 
         # Do HTTP request to REST API
+        logger.debug('[RESTCLIENT]: running %s' % self.query_url)
         try:
             response = requests.request(method=self.method,
                                         auth=self.client.auth,

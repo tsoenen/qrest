@@ -3,7 +3,6 @@ This module handle authentication against a variety of REST services
 '''
 
 
-import logging
 import os
 import threading
 from netrc import netrc
@@ -11,7 +10,8 @@ from uritools import urisplit
 import requests
 
 from rest_client.exception import RestLoginError, RestClientConfigurationError
-
+from rest_client.validator import URLValidator, ValidationError
+from rest_client import logger
 
 # ==========================================================================================
 class RESTAuthentication(requests.auth.HTTPBasicAuth):
@@ -155,7 +155,7 @@ class NetRCAuth(RESTAuthentication):
         self.netrc_path = os.path.expanduser(netrc_path)
 
         if self.netrc_path is not None:
-            logging.debug("Retrieving using netrc.")
+            logger.debug("Retrieving using netrc.")
             nrc = netrc(file=self.netrc_path)
             host = urisplit(self.rest_client.url).host
             try:
@@ -296,41 +296,55 @@ class CASAuth(RESTAuthentication):
         self.tgt_volatile_storage = tgt_volatile_storage
         if tgt_volatile_storage:
             if not ticket_granting_ticket:
-                raise RestClientConfigurationError('ticket_granting_ticket must be set if volatile_storage is True')
-            self.__ticket_granting_ticket = ticket_granting_ticket
+                raise RestLoginError('ticket_granting_ticket must be provided if volatile_storage is True')
+            try:
+                self.ticket_granting_ticket = ticket_granting_ticket
+            except ValueError:
+                # the TGT was not a valid URL: reset local to None to clear out
+                self.__ticket_granting_ticket = None
         else:
             if not granting_ticket_filepath:
                 raise RestClientConfigurationError('TGT path must be set if volatile_storage is False')
             self.tgt_path = os.path.expanduser(granting_ticket_filepath)
             
-            
-        parent_auth = UserPassOrNetRCAuth(rest_client=self.rest_client)
-        parent_auth.login(netrc_path=netrc_path, username=username, password=password)
-        self.username = parent_auth.username
-        self.password = parent_auth.password
-
         try:
-            # be aware that if the olf TGT is valid, the validity of the username/pass is not tested until this expires!
-            test_ticket = self.get_service_ticket()
+            # be aware that if the old TGT is valid, the validity of the username/pass is not tested until this expires!
+            test_ticket = self.request_new_service_ticket()
         except RestLoginError as e:
-            raise
-        else:
-            self.is_logged_in = True
+            # could not login directly, try username+pass
+            parent_auth = UserPassOrNetRCAuth(rest_client=self.rest_client)
+            parent_auth.login(netrc_path=netrc_path, username=username, password=password)
+            self.username = parent_auth.username
+            self.password = parent_auth.password
+            try:
+                test_ticket = self.request_new_service_ticket()
+            except RestLoginError as e:
+                raise 
+
+        self.is_logged_in = True
 
     # -------------------------------------------------------------------------------------    
-    def get_service_ticket(self):
+    def request_new_service_ticket(self):
         """ Retrieves the service ticket that will ultimately be used inside the request to the REST end-point.
 
             :return: The text or token to be used inside the Authorization header of the RESTful request
             :rtype: ``string_type``
         """
+        logger.debug("[CAS] Requesting new service ticket")
         body = {"service": self.service}
-        response = requests.post(url=self.ticket_granting_ticket, data=body, verify=self.verify_ssl)
-        if not response.ok:
+        if not self.ticket_granting_ticket:
+            logger.debug("[CAS] No granting ticket available: requesting new")
             self.ticket_granting_ticket = self.request_new_tgt()
             response = requests.post(url=self.ticket_granting_ticket, data=body, verify=self.verify_ssl)
+        else:
+            response = requests.post(url=self.ticket_granting_ticket, data=body, verify=self.verify_ssl)
             if not response.ok:
-                raise RuntimeError("Cannot authenticate against CAS using provided 'username' and 'password'. HTTP status code: '{status}'".format(status=response.status_code))
+                logger.debug("[CAS] Request failed: get new TGT")
+                self.ticket_granting_ticket = self.request_new_tgt()
+                response = requests.post(url=self.ticket_granting_ticket, data=body, verify=self.verify_ssl)
+
+        if not response.ok:
+            raise RuntimeError("Cannot authenticate against CAS using provided 'username' and 'password'. HTTP status code: '{status}'".format(status=response.status_code))
         return response.text
 
 
@@ -347,16 +361,20 @@ class CASAuth(RESTAuthentication):
         """
         if self.tgt_volatile_storage:
             if not self.__ticket_granting_ticket:
-                self.__ticket_granting_ticket = self.request_new_tgt()
+                return None
             return self.__ticket_granting_ticket
         else:
             if not os.path.isfile(self.tgt_path):
+                logger.warning("[CAS] File '%s' does not exist.", self.tgt_path)
                 self._thread_local.renew_ticket = False
-                raise RuntimeError("[CAS] File '{tgt_path}' does not exist.".format(tgt_path=self.tgt_path))
+                dirname =  os.path.dirname(self.tgt_path)
+                if not os.path.isdir(dirname):
+                    os.mkdir(dirname, 0o700)
+                    return ''
             else:
                 with open(self.tgt_path, 'r') as tgt_file:
                     tgt = tgt_file.read().strip()
-                logging.debug("[CAS] TGT contents are '%s'", tgt)  # printing credentials here!
+                logger.debug("[CAS] TGT contents are '%s'", tgt)  # printing credentials here!
                 if tgt == "":
                     os.remove(self.tgt_path)
                     raise ValueError("[CAS] TGT file at '%s' was empty and has been removed."% self.tgt_path)
@@ -370,10 +388,19 @@ class CASAuth(RESTAuthentication):
         depending on method, store TGT in file or within class instance
         '''
         
+        # Only allow http or https schemes for the REST API base URL
+        # Validate the REST API base URL
+        url_validator = URLValidator(schemes=["http", "https"])
+        try:
+            url_validator.__call__(tgt)
+        except ValidationError as e:
+            raise ValueError(e.message)
+
+        
         if self.tgt_volatile_storage:
             self.__ticket_granting_ticket = tgt
         else:
-            logging.debug("[CAS] TGT URI is '%'", tgt)
+            logger.debug("[CAS] TGT URI is '%'", tgt)
             tgt_dir = os.path.dirname(self.tgt_path)
             if not os.path.isdir(tgt_dir):
                 os.makedirs(tgt_dir)
@@ -391,6 +418,8 @@ class CASAuth(RESTAuthentication):
             If the file at "tgtPath" exists, it will be replaced by the newly retrieved TGT.
         """
         
+        logger.debug("[CAS] Renewing granting ticket")
+        
         ticket_url = "{server}/{path}".format(server=self.server, path=self.ticket_path)
 
         response = requests.post(url=ticket_url,
@@ -399,7 +428,7 @@ class CASAuth(RESTAuthentication):
         if response.status_code == 401:
             raise RestLoginError('could not login using provided uername and password')
         elif (response.status_code < 200) or (response.status_code >= 300):
-            raise RuntimeError("Cannot authenticate against CAS using provided 'username' and 'password'. HTTP status code: '{status}'".format(status=response.status_code))
+            raise RestLoginError("Cannot authenticate against CAS using provided 'username' and 'password'. HTTP status code: '{status}'".format(status=response.status_code))
 
         tgt = response.headers["location"]
         return tgt
@@ -414,8 +443,8 @@ class CASAuth(RESTAuthentication):
         # Initialize per-thread state, if needed
         self.init_per_thread_state()
         renew_ticket = self._thread_local.renew_ticket
-        logging.debug("[CAS] Renewing service ticket")
-        service_ticket = self.get_service_ticket()
+        logger.debug("[CAS] executing service ticket")
+        service_ticket = self.request_new_service_ticket()
         r.headers['Authorization'] = "CAS {service_ticket}".format(service_ticket=service_ticket)
         return r
 

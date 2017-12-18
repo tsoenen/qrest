@@ -42,8 +42,8 @@ setup(
     url='https://stash.be.bayercropscience/projects/PYA/repos/rest_client/',
 
     # Author details
-    author='Jonas Van Malder (Open Analytics)',
-    author_email='jonas.vanmalder@openanalytics.eu',
+    author='Joris Benschop (BCS-VS)',
+    author_email='joris.benschop@bayer.com',
     maintainer='Joris Benschop (BCS-VS)', 
     maintainer_email='joris.benschop@bayer.com', 
 
@@ -89,7 +89,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['requests', 'six', 'pycontracts'],
+    install_requires=['requests', 'six', 'pycontracts', 'uritools'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
