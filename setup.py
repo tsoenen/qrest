@@ -39,7 +39,7 @@ setup(
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://stash.be.bayercropscience/projects/PYA/repos/rest_client/',
+    url='https://bitbucket.emea.agrogroup.net/projects/PYA/repos/rest_client/browse',
 
     # Author details
     author='Joris Benschop (BCS-VS)',
