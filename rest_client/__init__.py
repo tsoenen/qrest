@@ -1,4 +1,4 @@
-__version__ = '2.0.1'
+__version__ = '2.1.0'
 
 '''
 Contains the main classes that interact with the end user
@@ -132,13 +132,13 @@ class RestClientLauncher(object):
     object instead of importing from multiple libs to join these together
     '''
     config = None
-    
+
     def __new__(cls, url, verifySSL=False):
         config = cls.config
         if not isinstance(config, RESTConfiguration):
             raise RestClientConfigurationError('config is not a RESTConfig instance')
 
         return RestClient(config=config, url=url, verifySSL=verifySSL)
-    
+
     def __init__(self):
         pass
