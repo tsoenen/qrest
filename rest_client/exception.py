@@ -82,6 +82,15 @@ class RestLoginError(RestClientResourceError):
     ''' wrapper exception '''
     pass
 
+class CASLoginError(RestLoginError):
+    pass
+
+class CASGrantingTicketError(CASLoginError):
+    pass
+
+class CASServiceTicketError(CASLoginError):
+    pass
+
 
 class RestInternalServerError(RestClientResourceError):
     ''' wrapper exception '''
