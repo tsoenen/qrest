@@ -486,8 +486,8 @@ class CASAuth(RESTAuthentication):
         Will retrieve a new service ticket or token if necessary.
         Adds the Authorization header and supplies the correct service ticket or token to it.
         """
-        logger.debug("[CAS] requesting new service ticket to add to request header")
         service_ticket = self.request_new_service_ticket()
+        logger.debug("[CAS] add service ticket to request header")
         r.headers['Authorization'] = "CAS {service_ticket}".format(service_ticket=service_ticket)
         return r
 
