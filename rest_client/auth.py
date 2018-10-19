@@ -313,7 +313,7 @@ class CASAuth(RESTAuthentication):
         # if username/pass are provided, then always request a new TGT
         if self.are_valid_credentials(username, password):
             self.ticket_granting_ticket = self.request_new_tgt(username, password)
-        else:
+        elif netrc_path:
             # try to get creds from parent, in case we may need it later
             # if this request fails, its ok for now
             try:
