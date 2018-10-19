@@ -1,5 +1,5 @@
 '''
-This is copied from Django 1.9, but adding django as a dependency eats too much space
+This is duplicated from the Django 1.9 project, but adding django as a dependency eats too much space.
 '''
 
 import re
@@ -364,6 +364,8 @@ class RegexValidator(object):
 
 ipv4_re = lazy_re_compile(r'^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])(\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9]?[0-9])){3}\Z')
 validate_ipv4_address = RegexValidator(ipv4_re, 'Invalid IPv4 address specified.', 'invalid')
+
+
 class URLValidator(RegexValidator):
     ul = '\u00a1-\uffff'  # unicode letters range (must be a unicode string, not a raw string)
 
