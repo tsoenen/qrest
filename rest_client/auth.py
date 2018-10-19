@@ -232,27 +232,18 @@ class CASAuth(RESTAuthentication):
 
         super(CASAuth, self).__init__(rest_client)
 
-        self.server = None
-        self.verify_ssl = False
         config = auth_config_object
+        self.verify_ssl = False
+
+        # the remote URL for the CAS server
+        self.server = None
         self.service = config.service_name
+        self.ticket_path = '/'.join(config.path)  # the URL path
 
         self.tgt_volatile_storage = False
         self.tgt_file_name = None
-        self.ticket_path = '/'.join(config.path)  # the URL path
         self.__ticket_granting_ticket = None  # content of the TGT
 
-        ## Keep state in per-thread local storage
-        #self._thread_local = threading.local()
-
-    ## -------------------------------------------------------------------------------------
-    #def init_per_thread_state(self):
-        #""" Initializes a state per thread used.
-        #"""
-        ## Ensure state is initialized just once per-thread
-        #if not hasattr(self._thread_local, 'init'):
-            #self._thread_local.init = True
-            #self._thread_local.renew_ticket = False
 
     # -------------------------------------------------------------------------------------
     def login(self, server_url, service_name=None, verify_ssl=False,
