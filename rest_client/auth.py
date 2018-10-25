@@ -154,10 +154,12 @@ class NetRCAuth(RESTAuthentication):
             :type password: ``string_type_or_none``
         """
 
-        self.netrc_path = os.path.expanduser(netrc_path)
-
-        if self.netrc_path is not None:
+        if netrc_path:
             logger.debug("Retrieving using netrc.")
+            try:
+                self.netrc_path = os.path.expanduser(netrc_path)
+            except AttributeError as e:
+                raise ValueError('could not expand netrc-path. error is "%s"' % str(e))
             nrc = netrc(file=self.netrc_path)
             host = urisplit(self.rest_client.url).host
             try:
