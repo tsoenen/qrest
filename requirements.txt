@@ -1,4 +1,4 @@
 requests
 six
-pycontracts
-django
+PyContracts
+uritools
