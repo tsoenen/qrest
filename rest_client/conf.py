@@ -15,7 +15,6 @@ disable_warnings(InsecureRequestWarning)
 ## local imports
 from rest_client.utils import string_type, string_type_or_none
 from rest_client.exception import RestClientConfigurationError
-from rest_client.auth import NoAuth, AuthConfig
 
 
 # ================================================================================================
@@ -450,16 +449,18 @@ class RESTConfiguration(object):
         '''
         return activated auth module for authentication
         '''
-        
+
         from rest_client import RestClient
         assert isinstance(rest_client, RestClient)
-        
+
         try:
             auth_config = self.authentication
         except AttributeError:
             # default to no authentication
-            return NoAuth(rest_client)
+            return None
         else:
+            if auth_config is None:
+                return None
             if not isinstance(auth_config, AuthConfig):
                 raise RestClientConfigurationError('authentication attribute is not an instance of AuthConfig')
             auth_module = auth_config.authentication_module

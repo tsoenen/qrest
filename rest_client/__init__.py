@@ -1,4 +1,4 @@
-__version__ = '2.3.5'
+__version__ = '2.4.0'
 
 '''
 Contains the main classes that interact with the end user
@@ -84,7 +84,6 @@ class RestClient(object):
 
         # get the authentication module
         self.auth = self.config.get_authentication_module(self)
-        assert isinstance(self.auth, RESTAuthentication)
 
 
     # ---------------------------------------------------------------------------------------------
