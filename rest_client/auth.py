@@ -86,18 +86,6 @@ class RESTAuthentication(requests.auth.HTTPBasicAuth):
 
 
 # ==========================================================================================
-class NoAuth(RESTAuthentication):
-    '''
-    Access REST server without authentication
-    '''
-
-    is_logged_in = True
-
-    def login(self):
-        raise Exception('no login required for this service')
-
-
-# ==========================================================================================
 class UserPassAuth(RESTAuthentication):
     '''
     Authentication that enforces username / password
@@ -493,15 +481,6 @@ class AuthConfig(object):
     Configuration and validation for custom authentication schemas
     '''
     pass
-
-
-# ==========================================================================================
-class NoAuthConfig(AuthConfig):
-    '''
-    Configuration and validation for custom authentication schemas
-    '''
-
-    authentication_module = NoAuth
 
 
 # ==========================================================================================
