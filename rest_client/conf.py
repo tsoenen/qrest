@@ -7,6 +7,7 @@ from collections import defaultdict
 from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import six
+from rest_client.auth import AuthConfig
 
 disable_warnings(InsecureRequestWarning)
 
