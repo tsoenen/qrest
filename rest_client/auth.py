@@ -425,7 +425,7 @@ class CASAuth(RESTAuthentication):
             self.__ticket_granting_ticket = tgt
         else:
             # tgt is on file on disk
-            logger.debug("[CAS] TGT URI is '%'", tgt)
+            logger.debug("[CAS] TGT URI is '%s'", tgt)
             tgt_dir = os.path.dirname(self.tgt_file_name)
             if not os.path.isdir(tgt_dir):
                 os.makedirs(tgt_dir)
