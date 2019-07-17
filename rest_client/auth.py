@@ -223,7 +223,6 @@ class CASAuth(RESTAuthentication):
         super(CASAuth, self).__init__(rest_client)
 
         config = auth_config_object
-        self.verify_ssl = False
 
         # the remote URL for the CAS server
         self.server = None
@@ -258,7 +257,7 @@ class CASAuth(RESTAuthentication):
 
 
         :param verify_ssl: Whether the CAS client should verify SSL certificates upon making requests
-        :type verify_ssl: ``bool``
+        :type verify_ssl: ``bool``  or `` string_type`` 
 
         :param netrc_path: The path to Netrc
         :type netrc_path: ``string_type_or_none``

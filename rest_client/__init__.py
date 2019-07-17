@@ -1,4 +1,4 @@
-__version__ = '2.4.2'
+__version__ = '2.4.3'
 
 '''
 Contains the main classes that interact with the end user
@@ -46,7 +46,7 @@ class RestClient(object):
         :type resources: ``dict``
 
         :param verifySSL: Whether the REST client should verify SSL certificates upon making a request
-        :type verifySSL: ``bool``
+        :type verifySSL: ``bool`` or `` string_type`` 
 
         """
 

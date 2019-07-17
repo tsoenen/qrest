@@ -96,6 +96,9 @@ class RestInternalServerError(RestClientResourceError):
     ''' wrapper exception '''
     pass
 
+class RestBadRequestError(RestClientResourceError):
+    ''' wrapper excpetion '''
+    pass
 
 class RestResourceHTTPError(HTTPError):
     """An error when specifying an invalid target for a given REST API."""
@@ -108,8 +111,10 @@ class RestResourceHTTPError(HTTPError):
         self.response = response_object
         self.code = self.response.status_code
         self.reason = self.response.reason
-
-        if self.code == 404:
+        
+        if self.code == 400:
+            raise RestBadRequestError('Bad request for resource %s' % (self.response.url,))
+        elif self.code == 404:
             raise RestResourceNotFoundError('Object could not be found in database')
         elif self.code in (401, 402, 403):
             raise RestAccessDeniedError('error %d: Access is denied to resource %s' % (self.code, self.response.url))
