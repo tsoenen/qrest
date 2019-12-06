@@ -1,19 +1,37 @@
+''' Contains a set of related and unrelated functions and classes used elsewhere in this module
 '''
-Contains a set of utilities used by other modules
-'''
 
-import six
-from contracts import new_contract
+import logging
+from urllib.parse import urlparse
+from .exception import RestClientConfigurationError
 
+logger = logging.getLogger(__name__)
 
-# ================================================================================================
-# Define new Python 2 & 3 compatible string contracts
-string_type_or_none = new_contract(
-    'string_type_or_none',
-    lambda s: s is None or isinstance(s, six.string_types))
-"""A Python 2 & 3 compatible string type contract that allows None as well. """
+# ###############################################################
+class URLValidator:
+	"""
+	lightweight URL validation checker. This is a minimal implementation compared to e.g. the Django validation
+	checker, as the configs are mostly supposed to be fixed in advance of usage.
+	"""
 
-string_type = new_contract(
-    'string_type',
-    lambda s: isinstance(s, six.string_types))
-"""A Python 2 & 3 compatible string type contract. """
+	def __init__(self):
+		"""
+		set the restrictions imposed on the URL to be checked
+		"""
+		pass
+
+	# ------------------------------------------------------------------
+	def check(self, url, require_path=True):
+		"""
+		check if the presented URL is valid
+		"""
+
+		final_url = urlparse(url)
+		is_correct = (all([final_url.scheme, final_url.netloc]) and len(final_url.netloc.split(".")) > 1)
+		if not is_correct:
+			raise RestClientConfigurationError(f'the URL {url} is not valid')
+		if require_path and not final_url.path:
+			raise RestClientConfigurationError(f'the URL {url} has no valid path')
+    
+	
+	

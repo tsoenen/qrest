@@ -1,137 +1,23 @@
 '''
-This module contains the main Resource and Response objects.
-A Resource (or endpoint) is a single URL that may be requested. It returns a RestResponse object.
+This module contains the main Resource .
+A Resource (or endpoint) .
 '''
 
-import copy
-from contracts import contract
-import pprint
 import requests
+import logging
+from urllib.parse import quote
+
 from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-disable_warnings(InsecureRequestWarning)
-
-import six
-if six.PY2:
-    from urllib import quote
-elif six.PY3:
-    from urllib.parse import quote
-else:
-    raise Exception('gvd')
 
 # ================================================================================================
 # local imports
-from rest_client import logger
-from rest_client.validator import URLValidator
-from rest_client.exception import RestClientQueryError, RestClientConfigurationError, RestLoginError
-from rest_client.exception import RestResourceHTTPError, RestResourceMissingContentError
-from rest_client.conf import EndPointConfig
+from .utils import URLValidator
+from .exception import RestClientQueryError, RestClientConfigurationError, RestLoginError
+from .exception import RestResourceHTTPError
 
-# =================================================================================================
-class RestResponse(object):
-    '''
-    Wrapper around the REST response. This is meant to process the response coming from the requests
-    call into a python object
-    '''
-
-    def __init__(self, response, options={}):
-        """ RestResponse constructor
-
-            :param response: The Requests Response object
-
-            :param options: The options object specifying the JSON options for returning results
-            :type options: ``dict``
-
-        """
-        assert isinstance(response, requests.models.Response)
-        self._response = response
-        self.headers = response.headers
-        self.raw = response.content
-        self.options = options
-
-        #prepare the content to a python object
-        self.data = None
-        self._to_python()
-
-    @property
-    def result_name(self):
-        '''
-        shortcut function to find out where the results are stored inside the response object
-        '''
-        return self.options.get("result_name", None)
-
-    def fetch(self):
-        '''
-        systematic function to indicate that the required content is to be delivered
-        '''
-        return self.data
-
-    @property
-    def content_type(self):
-        """ Checks whether the Requests Response object contains JSON or not
-
-            :return: True when the Requests Response object contains JSON and False when it does not
-            :rtype: ``bool``
-        """
-
-        content_type = self.headers.get('content-type', 'unknown')
-
-        if "json" in content_type:
-            return 'json'
-        elif 'text/csv' in content_type:
-            return 'csv'
-        else:
-            return 'unknown'
-
-    def _parse_json_response(self):
-        """ Returns the JSON contained in the Requests Response object, following the options specified in the JSON configuration
-
-            :return: A dictionary containing the Requests Response object, adapted to the JSON configuration
-            :rtype: ``dict``
-        """
-
-        # replace content by decoded content
-        self.raw = copy.deepcopy(self._response.json())
-
-        #subset the response dictionary
-        json = copy.deepcopy(self._response.json())
-        if isinstance(json, dict):
-            if ("root" in self.options) and (len(self.options["root"]) > 0):
-                for element in self.options["root"]:
-                    if element in json:
-                        json = json[element]
-                    else:
-                        raise RestResourceMissingContentError("Element '%s' could not be found" % element)
-
-        #create data objects
-        self.data = json
-
-        # special shortcut for user friendliness
-        if "result_name" in self.options:
-            setattr(self, self.result_name, json)
-
-    def _parse_csv_response(self):
-        '''
-        processes a raw CSV into lines. For very large content this may be better served by a generator
-
-        : return:  a list of lists
-        '''
-        data = self._response.content
-        self.raw = data.decode('UTF-8')
-        data = self.raw.strip().split('\n')
-        self.data = [x.split(",") for x in data]
-
-    def _to_python(self):
-        """ Returns the response body content contained in the Requests Response object.
-            If the content is JSON, then the JSON content is returned adapted to the JSON configuration.
-            If the content is not JSON, then the raw response body content is returned (in bytes).
-
-            :return: A dictionary containing the response body JSON content, adapted to the JSON configuration or the raw response body content in bytes if it is not JSON
-        """
-        if self.content_type == 'json':
-            self._parse_json_response()
-        elif self.content_type == 'csv':
-            self._parse_csv_response()
+disable_warnings(InsecureRequestWarning)
+logger = logging.getLogger(__name__)
 
 
 # ===================================================================================================
@@ -142,16 +28,16 @@ class RestResource():
     configuration string
     '''
 
+
     def __init__(self, client, name, config):
         self.client = client
         self.name = name
-
-        assert isinstance(config, EndPointConfig)
 
         self.config = config
         self.path = self.config.path
         self.method = self.config.method
         self.cleaned_data = {}
+        self.request_parameters = None
 
     # ---------------------------------------------------------------------------------------------
     def __call__(self, *args, **kwargs):
@@ -161,7 +47,7 @@ class RestResource():
         '''
 
         self.cleaned_data = {}
-        self.validate_query(**kwargs)
+        self.check(**kwargs)
         return self._get()
 
 
@@ -175,19 +61,17 @@ class RestResource():
 
     # ---------------------------------------------------------------------------------------------
     @property
-    @contract
-    def parameters(self):
+    def parameters(self) -> dict:
         '''
         return the configuration parameters for this rest resource
         :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters (value, a list)
-        :rtype: ``dict``
 
         '''
         return self.config.as_dict
 
     #---------------------------------------------------------------------------------------------
     @property
-    def description(self):
+    def description(self) -> str:
         '''
         shortcut to provide a description of the endpoint
         '''
@@ -218,7 +102,7 @@ class RestResource():
 
 
     #---------------------------------------------------------------------------------------------
-    def validate_query(self, *args, **kwargs):
+    def check(self, **kwargs):
         '''
         check the input request parameters before sending it to the remote service
         '''
@@ -227,9 +111,6 @@ class RestResource():
 
         #----------------------------------
         # deny superfluous input
-        if args:
-            raise RestClientQueryError("all parameters must be keyword arguments")
-
         diff = list(set(kwargs.keys()).difference(conf.all_parameters))
         if diff:
             raise RestClientQueryError("parameters {difference} are supplied but not usable for resource '{resource}'".format(
@@ -397,7 +278,7 @@ class RestResource():
             # for completeness sake: let requests check for valid output
             # code should not get here...
             response.raise_for_status()
-        except ValueError as e:
+        except ValueError:
             # Weird response errors: just give back the raw data. This has the risk of dismissing
             # valid errors!
             return response.content

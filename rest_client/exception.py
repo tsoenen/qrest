@@ -49,18 +49,15 @@ class InvalidTargetError(RestClientException):
 
 class InvalidResourceError(RestClientException):
     """An error when specifying an invalid resource for a given REST API."""
-    def __init__(self, name, resource):
+    def __init__(self, name: str, resource: str):
         """ InvalidResourceError constructor
 
             :param name: The name of the REST API client
-            :type name: ``string``
-
             :param resource: The REST API resource name
-            :type resource: ``string``
 
         """
-        response = "'{resource}' is not a valid resource for '{name}'".format(resource=resource, name=name)
-        super(InvalidResourceError, self).__init__(response)
+        response = f"'{resource}' is not a valid resource for '{name}'"
+        super().__init__(response)
 
 
 class RestResourceMissingContentError(RestClientResourceError):
@@ -81,16 +78,6 @@ class RestAccessDeniedError(RestClientResourceError):
 class RestLoginError(RestClientResourceError):
     ''' wrapper exception '''
     pass
-
-class CASLoginError(RestLoginError):
-    pass
-
-class CASGrantingTicketError(CASLoginError):
-    pass
-
-class CASServiceTicketError(CASLoginError):
-    pass
-
 
 class RestInternalServerError(RestClientResourceError):
     ''' wrapper exception '''

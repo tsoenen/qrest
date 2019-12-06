@@ -1,46 +1,49 @@
 '''
-Contains all the configuration classes to create a Rest Configuration
+Contains all the configuration classes to create a RestClient Configuration
 '''
-from contracts import contract
 from collections import defaultdict
+from typing import Optional, Type
+import logging
 
 from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-import six
-from rest_client.auth import AuthConfig
-
-disable_warnings(InsecureRequestWarning)
-
 
 # ================================================================================================
-## local imports
-from rest_client.utils import string_type, string_type_or_none
-from rest_client.exception import RestClientConfigurationError
+# local imports
+from .auth import AuthConfig
+from .resources import RestResource
+from .exception import RestClientConfigurationError
 
+disable_warnings(InsecureRequestWarning)
+logger = logging.getLogger(__name__)
 
 # ================================================================================================
 class ParameterConfig(object):
     '''
-    contain and validate parameters for and endpoint
+    Contain and validate parameters for a REST endpoint. As this is a configuration container only, the main
+    purpose is to store the config and check if the input aligns with the intended use. There is no
+    validation beyond this point
     '''
 
-    def __init__(self, name, required=False, multiple=False,
-                 exclusion_group=None, default=None, choices=None,
-                 description=None, regex=None
+    def __init__(self, name: str,
+                 required: bool = False,
+                 multiple: bool = False,
+                 exclusion_group: Optional[str] = None,
+                 default: Optional[str] = None,
+                 choices: Optional[list] = None,
+                 description: Optional[str] = None
                  ):
         '''
-        parameter configuration class to segregate validation and allow separation of python and REST
-        names
+        Parameter configuration. Details the name and limitations on the REST parameter and how it
+        interacts with other parameters within the same endpoint. 
 
-        Attributes:
-            name: the 'remote' nam,e of the parameter. this name is what the REST resource actually gets to interpret
-            required: if this parameter is ommitted in the qyery, throw an exception
-            multiple: if set to True, the value of the query parameter is a list
-            exclusion_group: parameters in the same exclusion group may not be used together
-            default: the default entry if this parameter is not supplied
-            choices: a list of possible values for this parameter
-            description: any information about the parameter, such as data format
-            regex: a validation regular expression to test input for this parameter
+        :param name: the 'remote' name of the parameter. this name is what the REST resource actually gets to interpret
+        :param required: if this parameter is ommitted in the qyery, throw an exception
+        :param multiple: if set to True, the value of the query parameter is a list
+        :param exclusion_group: parameters in the same exclusion group may not be used together
+        :param default: the default entry if this parameter is not supplied
+        :param choices: a list of possible values for this parameter
+        :param description: any information about the parameter, such as data format
         '''
 
         self.name = name
@@ -49,9 +52,8 @@ class ParameterConfig(object):
         self.exclusion_group = exclusion_group
         self.default = default
         self.choices = choices
-        self.regex = regex
         self.description = description
-        self.validate_configuration()
+        self._validate()
 
     def as_dict(self):
         '''
@@ -60,16 +62,16 @@ class ParameterConfig(object):
         return self.__dict__
 
 
-    def validate_configuration(self):
+    def _validate(self):
         '''
-        check a set of rules to validate if the ParameterConfig is configured correctly
+        internal routine to check a set of rules to validate if the ParameterConfig is configured correctly
         '''
         if not isinstance(self.required, bool):
             raise RestClientConfigurationError('parameter "required" must be boolean')
         if not isinstance(self.multiple, bool):
             raise RestClientConfigurationError('parameter "multiple" must be boolean')
         if self.exclusion_group:
-            if not isinstance(self.exclusion_group, six.string_types):
+            if not isinstance(self.exclusion_group, str):
                 raise RestClientConfigurationError("group name must be a string")
             if not self.exclusion_group.strip():
                 raise RestClientConfigurationError("group name must be a string")
@@ -103,12 +105,40 @@ class BodyParameter(ParameterConfig):
 # ================================================================================================
 class EndPointConfig(object):
     '''
-    contain and validate details for a REST endpoint
+    contain and validate details for a REST endpoint. Effectively this creates an ORM wrapper around a
+    REST endpoint, pretending it is a python object
+    
     '''
 
-    def __init__(self, path, method, parameters=None, json=None, headers=None, return_class=None, description=None, path_description=None):
+    def __init__(self,
+                 path: list,
+                 method: str,
+                 parameters: Optional[dict] = None,
+                 json: Optional[dict] = None,
+                 headers: Optional[dict] = None,
+                 return_class: Optional[Type[RestResource]] = None,
+                 description: Optional[str] = None,
+                 path_description: Optional[dict] = None
+                 ):
         '''
-        Enforce the presence of some parameters, help with definition, and validate
+        Constructor, stores externally supplied parameters and validate the quality of it
+        
+        :param path: a list separation of the path components, e.g. ['api','v2','user','{name},'stats'] where
+                     names in brackets are converted to path parameters. 
+        :param method: one of GET,PUT,etc
+        :param parameters: a dictionary of ParameterConfig instances that each describe one parameter. This is
+                    relevant for body and query parameters only, path parameters are specified in the path itself
+                    and subsequent annotation of those parameters is done in path_description.
+        :param json: This indicates how a returned JSON object is supposed to be processed. THe dict should contain
+                    two keys: "root", which should be a list of items to traverse the resulting json tree, and
+                    "results_name" which is the property that will be generated to contain the subsection of the
+                    json tree
+        :param headers: a dictionary of headers that will be provided to the endpoint. Typical use is the response_type
+        :param return_class: a subclass of rest_client.RestResource that handles specific use cases
+        :param description: A general description of the endpoint that can be obtained by the user through the description
+                    property of the endpointconfig instance
+        :param path_description: a dictionary that provides a description for each path parameter.
+       
         '''
         self.path = path
         self.description = description
@@ -123,77 +153,62 @@ class EndPointConfig(object):
     # ----------------------------------------------------
     def validate(self):
         '''
-        broker service for all validators
+        Check quality of each parameter and its type.
+        
+        :raises RestClientConfigurationError: No response is provided if there is no problem
+        
         '''
-        self.validate_path()
-        self.validate_headers()
-        self.validate_method()
-        self.validate_json()
         self.validate_parameters()
-        self.validate_return_class()
-        self.validate_description()
 
         # integration tests
         if self.method == 'GET':
             for key in self.parameters:
-                if self.parameters[key].call_location != 'query':
+                if self.parameters[key].call_location == 'body':
                     raise RestClientConfigurationError('body parameter not allowed in GET request')
 
     # ----------------------------------------------------
-    def validate_description(self):
-        ''' parameter validation'''
+    def validate_parameters(self):
+        ''' parameter validation. Each parameter is checked for type, and if a specific substructure is required
+        then this is also introspected. Currently Method is limited to GET or POST for no reason other then
+        no tests were conducted with PUT, HEAD etc etc
+        '''
+
+        # description --------------------
         if self.description and not isinstance(self.description, str):
             raise RestClientConfigurationError("description is not a string")
 
         if self.path_description and not isinstance(self.path_description, dict):
             raise RestClientConfigurationError("path_description is not a dictionary")
 
-    # ----------------------------------------------------
-    def validate_path(self):
-        ''' parameter validation'''
+        # path --------------------
         if not isinstance(self.path, list):
             raise RestClientConfigurationError("path is not a list")
 
-    # ----------------------------------------------------
-    def validate_headers(self):
-        ''' parameter validation'''
+        # headers  --------------------
         if self.headers:
             if not isinstance(self.headers, dict):
                 raise RestClientConfigurationError("header is not a dict")
         else:
             self.headers = {}
 
-    # ----------------------------------------------------
-    def validate_method(self):
-        ''' parameter validation'''
+        # method  --------------------
         if self.method not in ['GET', 'POST']:
             raise RestClientConfigurationError("method must be GET or POST")
 
-    # ----------------------------------------------------
-    def validate_json(self):
-        '''
-        validate the configured json parameter
-        '''
+        # json -------------------------
         if self.json_options:
             if not isinstance(self.json_options, dict):
                 raise RestClientConfigurationError("json option is not a dictionary")
-
-            for key in ['source_name', 'result_name']:
-                if key in self.json_options:
-                    if not isinstance(self.json_options[key], six.string_types):
-                        raise RestClientConfigurationError("json.%s option is not a string" % key)
+            if 'result_name' in self.json_options:
+                if not isinstance(self.json_options['result_name'], str):
+                    raise RestClientConfigurationError("json.result_name option is not a string")
             if "root" in self.json_options:
                 if not isinstance(self.json_options["root"], list):
                     raise RestClientConfigurationError("json.root option is not a list")
         else:
             self.json_options = {}
 
-    # ----------------------------------------------------
-    def validate_parameters(self):
-        '''
-        validation of the GET and POST parameters
-        '''
-
+        #  parameters -------------------------------
         if self.parameters:
             if not isinstance(self.parameters, dict):
                 raise RestClientConfigurationError("parameters must be dictionary")
@@ -203,28 +218,23 @@ class EndPointConfig(object):
         else:
             self.parameters = {}
 
-    # ----------------------------------------------------
-    def validate_return_class(self):
-        '''
-        This validation generates circular import and all kinds of interesting behaviour
-        This routine is here to indicate that this validation is deliberatley ignored, and
-        passed on to the restresource config itself
-
-        '''
-
-        pass
+        #  resource class ----------------------------------
+        if not isinstance(self.return_class, RestResource):
+            raise RestClientConfigurationError("return_class must be subclass of RestResource")
+        
 
     # --------------------------------------------------------------------------------------------
     def apply_default(self, default):
         '''
-        create a combined object that includes default configurations. For internal use.
+        For internal use. Update endpoint parameters from a shared default. This allows the user to set
+        e.g. headers that are applicable to multiple endpoints in a single activity.
+        
         Note that this default only provides functionality for
-        * method
         * headers
         * json
         '''
 
-        # check
+        # check types
         allowed_default = ['headers', 'json']
         if not isinstance(default, dict):
             raise RestClientConfigurationError('default must be a dictionary')
@@ -249,15 +259,12 @@ class EndPointConfig(object):
 
     # ---------------------------------------------------------------------------------------------
     @property
-    @contract
-    def path_parameters(self):
-        """ Lists the (always required) path parameters for the specified REST API resource
+    def path_parameters(self) -> list:
+        """ Lists the (always required) path parameters for the specified REST API resource. THis list is obtained
+        by checking the path list (['api','v2','{para}','details']) for items that are within curly brackets {}.
+        These parameters are stripped and the remainder is added to the path parameter list
 
-            #:param resource: A string that represents the REST API resource
-            #:type resource: ``string_type``
-
-            :return: A list of the (always required) path parameters for the specified REST API resource
-            :rtype: ``list(string_type)``
+        :return: A list of the path parameters for the specified REST API resource
         """
 
         path_parameters = []
@@ -269,15 +276,13 @@ class EndPointConfig(object):
 
     # ---------------------------------------------------------------------------------------------
     @property
-    @contract
-    def query_parameter_groups(self):
+    def query_parameter_groups(self) -> dict:
         """ Lists the different groups of query parameters for the specified
             REST API resource. When query parameters are in a group, only one of
             them can be used in a query at a time, unless the 'multiple' property
             has been used for every query parameter of that group.
 
-            :return: A dictionary of the different groups (key) of query parameters (value, is list) for the specified REST API resource
-            :rtype: ``dict``
+        :return: A dictionary of the different groups (key) of query parameters (value, is list) for the specified REST API resource
         """
 
         result = defaultdict(list)
@@ -290,13 +295,12 @@ class EndPointConfig(object):
 
     # ---------------------------------------------------------------------------------------------
     @property
-    @contract
-    def query_parameters(self):
+    def query_parameters(self) -> dict:
         """ Lists the required and optional query parameters for the specified REST API resource.
             Also summarises the query parameters that can be multiple.
 
-            :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters (value, a list) for the specified REST API resource
-            :rtype: ``dict``
+            :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters
+                    (value, a list) for the specified REST API resource. 
         """
         result = {"required": [], "optional": [], "multiple": []}
         for para_name, para_set in self.parameters.items():
@@ -312,7 +316,6 @@ class EndPointConfig(object):
 
     # --------------------------------------------------------------------------------------------
     @property
-    @contract
     def all_query_parameters(self):
         """ Lists the required and optional query parameters for the specified REST API resource.
             Also summarises the query parameters that can be multiple.
@@ -325,7 +328,6 @@ class EndPointConfig(object):
 
     # --------------------------------------------------------------------------------------------
     @property
-    @contract
     def required_parameters(self):
         """ Lists the required parameters for the specified REST API resource.
             Also summarises the query parameters that can be multiple.
@@ -337,7 +339,6 @@ class EndPointConfig(object):
 
     # --------------------------------------------------------------------------------------------
     @property
-    @contract
     def multiple_parameters(self):
         """ Returns all parameters that can be used simultaneously
 
@@ -349,7 +350,6 @@ class EndPointConfig(object):
 
     # --------------------------------------------------------------------------------------------
     @property
-    @contract
     def all_parameters(self):
         """ Aggregates all parameters into a single structure
 
@@ -361,7 +361,6 @@ class EndPointConfig(object):
 
     # ---------------------------------------------------------------------------------------------
     @property
-    @contract
     def as_dict(self):
         """ show all parameters in path or query
 
@@ -381,7 +380,6 @@ class EndPointConfig(object):
 
     # ---------------------------------------------------------------------------------------------
     @property
-    @contract
     def defaults(self):
         """
         Returns a dict with all default parameters and their value
@@ -418,7 +416,7 @@ class RESTConfiguration(object):
         Validates a resources configuration and raises appropriate exceptions
         """
         for resource_name, resource_config in self.endpoints.items():
-            if not isinstance(resource_name, six.string_types):
+            if not isinstance(resource_name, str):
                 raise RestClientConfigurationError("resource name '{resource}' is not a string".format(
                     resource=resource_name
                 ))

@@ -9,8 +9,10 @@ Python REST API client documentation
 .. toctree::
    :titlesonly:
    :caption: Extra documentation:
+   :maxdepth: 2
 
    resources-configuration
+   rest-client
 
 Indices and tables
 ==================
@@ -18,16 +20,6 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
-rest_client
-===============
-
-.. automodule:: rest_client
-
-.. autoclass:: RestClient
-   :members:
-   :private-members: 
-   :special-members: __init__
 
 
 Resources
@@ -50,12 +42,32 @@ Configuration
 =============
 
 .. automodule:: rest_client.conf
+
 .. autoclass:: RESTConfiguration
+   :members:
+   :private-members:
+   :special-members: __init__
+
 .. autoclass:: EndPointConfig
+   :members:
+   :private-members:
+   :special-members: __init__
 
 .. autoclass:: ParameterConfig
+   :members:
+   :private-members:
+   :special-members: __init__
+
 .. autoclass:: QueryParameter
+   :members:
+   :private-members:
+   :special-members: __init__
+
 .. autoclass:: BodyParameter
+   :members:
+   :private-members:
+   :special-members: __init__
+
 
 
 Authentication
@@ -66,11 +78,6 @@ Authentication
 Authentication classes 
 ----------------------
 .. autoclass:: RESTAuthentication
-   :members:
-   :private-members:
-   :special-members: __init__
-
-.. autoclass:: NoAuth
    :members:
    :private-members:
    :special-members: __init__
@@ -92,11 +99,6 @@ Authentication classes
 
 Configuration
 -------------
-
-.. autoclass:: NoAuthConfig
-   :members:
-   :private-members:
-   :special-members: __init__
 
 .. autoclass:: UserPassAuthConfig
    :members:
