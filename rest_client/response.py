@@ -103,6 +103,7 @@ class JSONRestResponse(RestResponse):
 class CSVRestResponse(RestResponse):
 
 	def _check_content(self):
+		content_type = self.headers.get('content-type', 'unknown')
 		if not 'text/csv' in content_type:
 			raise TypeError(f'the REST response did not give a CSV but a {content_type}')
 

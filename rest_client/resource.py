@@ -15,6 +15,7 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from .utils import URLValidator
 from .exception import RestClientQueryError, RestClientConfigurationError, RestLoginError
 from .exception import RestResourceHTTPError
+from .response import RestResponse
 
 disable_warnings(InsecureRequestWarning)
 logger = logging.getLogger(__name__)

@@ -1,13 +1,13 @@
 import unittest
 import rest_client as client
-from rest_client.conf import RESTConfiguration, EndPointConfig, BodyParameter, QueryParameter,  ParameterConfig
+from rest_client.conf import RESTConfiguration, EndPoint, BodyParameter, QueryParameter,  ParameterConfig
 from rest_client.auth import UserPassAuthConfig
 
 class MinimalConfig(RESTConfiguration):
-    endpoint1 = EndPointConfig(path=[], method='GET')
+    endpoint1 = EndPoint(path=[], method='GET')
 
 class UserPassConfig(RESTConfiguration):
-    endpoint1 = EndPointConfig(path=[], method='GET')
+    endpoint1 = EndPoint(path=[], method='GET')
     authentication = UserPassAuthConfig()
 
 
@@ -87,13 +87,13 @@ class TestRestClient(unittest.TestCase):
         client.RestClient(url=self.url, user=123)
 
     def test_init_resources(self):
-        from rest_client.conf import RESTConfiguration, EndPointConfig, BodyParameter, QueryParameter
+        from rest_client.conf import RESTConfiguration, EndPoint, BodyParameter, QueryParameter
 
         rc = client.RestClient(url=self.url, config=self.minimal_config)
         self.assertEqual(rc.resources, ['endpoint1'])
         
         class TestConfig(RESTConfiguration):
-            some_function_name = EndPointConfig(path=["some", "collection", "{id}"],
+            some_function_name = EndPoint(path=["some", "collection", "{id}"],
                                                 method="GET",
                                                 parameters={
                                                     'some_parameter': QueryParameter("some_parameter"),

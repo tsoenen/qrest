@@ -11,7 +11,7 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 # ================================================================================================
 # local imports
 from .auth import AuthConfig
-from .resources import RestResource
+from .resource import RestResource
 from .exception import RestClientConfigurationError
 
 disable_warnings(InsecureRequestWarning)
@@ -25,6 +25,7 @@ class ParameterConfig(object):
     validation beyond this point
     '''
 
+    # -----------------------------------------------------------------------------------------------------
     def __init__(self, name: str,
                  required: bool = False,
                  multiple: bool = False,
@@ -52,16 +53,10 @@ class ParameterConfig(object):
         self.exclusion_group = exclusion_group
         self.default = default
         self.choices = choices
-        self.description = description
+        self.description = description or ""
         self._validate()
 
-    def as_dict(self):
-        '''
-        return the parameter set as a dictionary
-        '''
-        return self.__dict__
-
-
+    # -----------------------------------------------------------------------------------------------------
     def _validate(self):
         '''
         internal routine to check a set of rules to validate if the ParameterConfig is configured correctly
@@ -70,6 +65,8 @@ class ParameterConfig(object):
             raise RestClientConfigurationError('parameter "required" must be boolean')
         if not isinstance(self.multiple, bool):
             raise RestClientConfigurationError('parameter "multiple" must be boolean')
+        if not isinstance(self.description, str):
+            raise RestClientConfigurationError('parameter "description" must be string')
         if self.exclusion_group:
             if not isinstance(self.exclusion_group, str):
                 raise RestClientConfigurationError("group name must be a string")
@@ -103,13 +100,14 @@ class BodyParameter(ParameterConfig):
 
 
 # ================================================================================================
-class EndPointConfig(object):
+class EndPoint(object):
     '''
     contain and validate details for a REST endpoint. Effectively this creates an ORM wrapper around a
     REST endpoint, pretending it is a python object
     
     '''
 
+    # -----------------------------------------------------------------------------------------------------
     def __init__(self,
                  path: list,
                  method: str,
@@ -144,7 +142,7 @@ class EndPointConfig(object):
         self.description = description
         self.path_description = path_description
         self.method = method
-        self.parameters = parameters
+        self.parameters = parameters or {}
         self.json_options = json
         self.headers = headers
         self.return_class = return_class
@@ -152,25 +150,13 @@ class EndPointConfig(object):
 
     # ----------------------------------------------------
     def validate(self):
-        '''
-        Check quality of each parameter and its type.
+        ''' Check quality of each parameter and its type.
+        Each parameter is checked for type, and if a specific substructure is required
+        then this is also introspected. Currently Method is limited to GET or POST for no reason other then
+        no tests were conducted with PUT, HEAD etc etc
         
         :raises RestClientConfigurationError: No response is provided if there is no problem
         
-        '''
-        self.validate_parameters()
-
-        # integration tests
-        if self.method == 'GET':
-            for key in self.parameters:
-                if self.parameters[key].call_location == 'body':
-                    raise RestClientConfigurationError('body parameter not allowed in GET request')
-
-    # ----------------------------------------------------
-    def validate_parameters(self):
-        ''' parameter validation. Each parameter is checked for type, and if a specific substructure is required
-        then this is also introspected. Currently Method is limited to GET or POST for no reason other then
-        no tests were conducted with PUT, HEAD etc etc
         '''
 
         # description --------------------
@@ -209,50 +195,41 @@ class EndPointConfig(object):
             self.json_options = {}
 
         #  parameters -------------------------------
-        if self.parameters:
-            if not isinstance(self.parameters, dict):
-                raise RestClientConfigurationError("parameters must be dictionary")
-            for key, val in self.parameters.items():
-                if not isinstance(val, ParameterConfig):
-                    raise RestClientConfigurationError("Parameter '%s' must be ParameterConfig instance" % str(key))
-        else:
-            self.parameters = {}
+        if not isinstance(self.parameters, dict):
+            raise RestClientConfigurationError("parameters must be dictionary")
+        for key, val in self.parameters.items():
+            if not isinstance(val, ParameterConfig):
+                raise RestClientConfigurationError("Parameter '%s' must be ParameterConfig instance" % str(key))
 
         #  resource class ----------------------------------
-        if not isinstance(self.return_class, RestResource):
-            raise RestClientConfigurationError("return_class must be subclass of RestResource")
-        
+        if self.return_class:
+            if not isinstance(self.return_class, RestResource):
+                raise RestClientConfigurationError("return_class must be subclass of RestResource")
+
+        # integration tests ---------------------------------------------------
+        if self.method == 'GET':
+            for key in self.parameters:
+                if self.parameters[key].call_location == 'body':
+                    raise RestClientConfigurationError('body parameter not allowed in GET request')
 
     # --------------------------------------------------------------------------------------------
-    def apply_default(self, default):
+    def apply_default_headers(self, default):
         '''
         For internal use. Update endpoint parameters from a shared default. This allows the user to set
         e.g. headers that are applicable to multiple endpoints in a single activity.
         
-        Note that this default only provides functionality for
-        * headers
-        * json
+        Note that this default only provides functionality for headers
         '''
 
         # check types
-        allowed_default = ['headers', 'json']
         if not isinstance(default, dict):
             raise RestClientConfigurationError('default must be a dictionary')
 
-        if set(default.keys()) - set(allowed_default):
-            raise RestClientConfigurationError('default config may only contain %s' % ', '.join(allowed_default))
-
         # apply defaults
-        if 'headers' in default:
-            def_head = default['headers'].copy()
-            if self.headers:
-                def_head.update(self.headers)
-            self.headers = def_head
-        if 'json' in default:
-            def_json = default['json'].copy()
-            if self.json_options:
-                def_json.update(self.json_options)
-            self.json_options = def_json
+        def_head = default.copy()
+        if self.headers:
+            def_head.update(self.headers)
+        self.headers = def_head
 
         # re-validate to be sure current data is OK
         self.validate()
@@ -361,11 +338,10 @@ class EndPointConfig(object):
 
     # ---------------------------------------------------------------------------------------------
     @property
-    def as_dict(self):
+    def as_dict(self) -> dict:
         """ show all parameters in path or query
 
             :return: A dictionary that contains required and optional parameters.
-            :rtype: ``dict``
         """
 
         result = {"required": [], "optional": []}
@@ -406,9 +382,9 @@ class RESTConfiguration(object):
         '''
         rotate throught the endpoints and apply the fedault settings
         '''
-        if 'default' in dir(self):
+        if 'default_headers' in dir(self):
             for endpoint in self.endpoints.values():
-                endpoint.apply_default(self.default)
+                endpoint.apply_default_headers(self.default_headers)
 
 
     def validate(self):
@@ -416,16 +392,8 @@ class RESTConfiguration(object):
         Validates a resources configuration and raises appropriate exceptions
         """
         for resource_name, resource_config in self.endpoints.items():
-            if not isinstance(resource_name, str):
-                raise RestClientConfigurationError("resource name '{resource}' is not a string".format(
-                    resource=resource_name
-                ))
             if resource_name == 'data':
                 raise RestClientConfigurationError("resource name may not be named 'data'")
-            if not isinstance(resource_config, EndPointConfig):
-                raise RestClientConfigurationError("endpoint {resource} must be class EndPointConfig".format(
-                    resource=resource_name
-                ))
 
     def get_list_of_endpoints(self):
         '''
@@ -435,7 +403,7 @@ class RESTConfiguration(object):
         dirlist = [x for x in dir(self) if not x.startswith('_')]
         for item in dirlist:
             endpoint = getattr(self, item)
-            if endpoint.__class__ == EndPointConfig:
+            if endpoint.__class__ == EndPoint:
                 endpoints_dict[item] = endpoint
         if not endpoints_dict:
             raise RestClientConfigurationError('no endpoints defined for this REST client at all!')
@@ -448,9 +416,6 @@ class RESTConfiguration(object):
         '''
         return activated auth module for authentication
         '''
-
-        from rest_client import RestClient
-        assert isinstance(rest_client, RestClient)
 
         try:
             auth_config = self.authentication

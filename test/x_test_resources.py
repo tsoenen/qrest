@@ -3,7 +3,7 @@ import rest_client as client
 import copy
 
 #from rest_client.resources import validate_resources_configuration as v
-from rest_client.conf import RESTConfiguration, EndPointConfig, BodyParameter, QueryParameter,  ParameterConfig
+from rest_client.conf import RESTConfiguration, EndPoint, BodyParameter, QueryParameter,  ParameterConfig
 from rest_client.exception import RestClientConfigurationError, RestClientQueryError
 from rest_client.auth import NetrcOrUserPassAuthConfig
 from rest_client import RestClient
@@ -18,9 +18,9 @@ class TestQuickMarkerRepository(unittest.TestCase):
     class ConfigTest(RESTConfiguration):
         authentication = NetrcOrUserPassAuthConfig()
         
-        get_a_marker_by_id = EndPointConfig(path=["markers", "{id}"],  # {} means it's a path parameter
+        get_a_marker_by_id = EndPoint(path=["markers", "{id}"],  # {} means it's a path parameter
                                             method="GET")
-        get_markers_by_criteria = EndPointConfig(
+        get_markers_by_criteria = EndPoint(
             path=["markers"],
             method="GET",
             parameters={'markerUid': QueryParameter(name="markerUid"),
@@ -104,11 +104,11 @@ class TestEndPointConfig(unittest.TestCase):
         '''
         running this should not yield problems
         '''
-        test = EndPointConfig(**self.endpointconf)
+        test = EndPoint(**self.endpointconf)
         
     def parse_config_error(self, expected_response):
         try:
-            test = EndPointConfig(**self.endpointconf)
+            test = EndPoint(**self.endpointconf)
         except RestClientConfigurationError as e:
             self.assertEqual(str(e), expected_response)
         else:
@@ -208,7 +208,7 @@ class TestRestConfig(unittest.TestCase):
     def test_apply_default1(self):
         class ConfigTest(RESTConfiguration):
             default = {}
-            ep1 = EndPointConfig([], 'GET')
+            ep1 = EndPoint([], 'GET')
         self.restconfig['config'] = ConfigTest
         r = 'default must be a dictionary'
         self.parse_config_error(r)
@@ -216,7 +216,7 @@ class TestRestConfig(unittest.TestCase):
     def test_apply_default2(self):
         class ConfigTest(RESTConfiguration):
             default = {'a': 'b',}
-            ep1 = EndPointConfig([], 'GET')
+            ep1 = EndPoint([], 'GET')
         self.restconfig['config'] = ConfigTest
         r = 'default config may only contain headers, json'
         self.parse_config_error(r)
@@ -226,7 +226,7 @@ class TestRestConfig(unittest.TestCase):
             default = {'headers': {'key': 'val',},
                        'json': {'root': ['blah'],},
                        }
-            ep1 = EndPointConfig([], 'GET')
+            ep1 = EndPoint([], 'GET')
         self.restconfig['config'] = ConfigTest
         r = 'default config may only contain headers, json'
         self.parse_config_error(r)
@@ -236,14 +236,14 @@ class TestRestConfig(unittest.TestCase):
             default = {'headers': {'key': 'val',},
                        'json': {'root': ['blah'],},
                        }
-            ep1 = EndPointConfig([], 'GET', headers={'k': 'v',}, json={'k': 'v',})
+            ep1 = EndPoint([], 'GET', headers={'k': 'v',}, json={'k': 'v',})
         self.restconfig['config'] = ConfigTest
         r = 'default config may only contain headers, json'
         self.parse_config_error(r)
 
     def test_return_class(self):
         class ConfigTest(RESTConfiguration):
-            ep1 = EndPointConfig([], 'GET', return_class='blah')
+            ep1 = EndPoint([], 'GET', return_class='blah')
         
         self.restconfig['config'] = ConfigTest
         r = 'unable to parse blah into module and class name' 
@@ -251,7 +251,7 @@ class TestRestConfig(unittest.TestCase):
 
     def test_return_class_ok(self):
         class ConfigTest(RESTConfiguration):
-            ep1 = EndPointConfig([], 'GET', return_class='rest_client.resources.RestResource')
+            ep1 = EndPoint([], 'GET', return_class='rest_client.resources.RestResource')
         self.restconfig['config'] = ConfigTest
         self.parse_config_ok()
 
@@ -264,8 +264,8 @@ class TestRestConfig(unittest.TestCase):
 
     def test_endpoints2(self):
         class ConfigTest(RESTConfiguration):
-            ep1 = EndPointConfig([], 'GET', return_class='rest_client.resources.RestResource')
-            data = EndPointConfig([], 'GET', return_class='rest_client.resources.RestResource')
+            ep1 = EndPoint([], 'GET', return_class='rest_client.resources.RestResource')
+            data = EndPoint([], 'GET', return_class='rest_client.resources.RestResource')
             
         self.restconfig['config'] = ConfigTest
         r = "resource name may not be named 'data'"
@@ -276,7 +276,7 @@ class TestRestClientConfig(unittest.TestCase):
     
     def setUp(self):
         class MinimalConfig(RESTConfiguration):
-            ep1 = EndPointConfig([], 'GET')
+            ep1 = EndPoint([], 'GET')
         self.minimal_config = MinimalConfig
 
     def parse_config_ok(self):

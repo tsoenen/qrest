@@ -5,7 +5,7 @@ This module handle authentication against a variety of REST services
 
 import os
 import logging
-from typing import Optional, Type
+from typing import Optional
 from netrc import netrc
 from urllib.parse import urlparse
 import requests
@@ -13,8 +13,7 @@ import requests
 
 # ================================================================================================
 # local imports
-from .utils import URLValidator
-from .exception import RestLoginError, RestClientConfigurationError
+from ..exception import RestLoginError
 
 logger = logging.getLogger(__name__)
 
