@@ -6,6 +6,8 @@ Contains the main classes that interact with the end user
 import logging
 import importlib
 
+from abc import ABC, abstractproperty, abstractmethod
+
 logger = logging.getLogger(__name__)
 
 
@@ -13,11 +15,11 @@ logger = logging.getLogger(__name__)
 # local imports
 from rest_client.resources import RestResource
 from rest_client.exception import InvalidResourceError, RestClientConfigurationError
-from rest_client.conf import RESTConfiguration
+from rest_client.conf import APIConfig
 from rest_client.utils import URLValidator
 
 # ================================================================================================
-class RestClient(object):
+class API(object):
 	'''
 	This is the main point of contact for end users
 	'''
@@ -51,7 +53,7 @@ class RestClient(object):
 		self.url = url
 
 		# set the config
-		if not isinstance(config, RESTConfiguration):
+		if not isinstance(config, APIConfig):
 			raise RestClientConfigurationError('configuration is not a RESTConfig instance')
 		self.config = config
 
@@ -66,7 +68,7 @@ class RestClient(object):
 				somemodule = importlib.import_module(module_name)
 				return_class = getattr(somemodule, class_name)
 			else:
-				return_class = RestResource
+				return_class = Resource
 
 			setattr(self, name, self._create_rest_resource(return_class, resource_name=name, config=item_config))
 
@@ -92,7 +94,7 @@ class RestClient(object):
 			if fieldname == 'resources':
 				continue
 			field = getattr(self, fieldname)
-			if isinstance(field, RestResource):
+			if isinstance(field, Resource):
 				resources.append(field.name)
 		return resources
 
@@ -124,10 +126,10 @@ class RestClientLauncher(object):
 
 	def __new__(cls, url, verifySSL=False):
 		config = cls.config
-		if not isinstance(config, RESTConfiguration):
+		if not isinstance(config, APIConfig):
 			raise RestClientConfigurationError('config is not a RESTConfig instance')
 
-		return RestClient(config=config, url=url, verifySSL=verifySSL)
+		return API(config=config, url=url, verifySSL=verifySSL)
 
 	def __init__(self):
 		pass

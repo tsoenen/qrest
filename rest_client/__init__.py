@@ -1,6 +1,6 @@
 __version__ = '2.5.0'
 
-from .resource import RestResource
-from .response import RestResponse
-from .conf import RESTConfiguration, EndPoint, BodyParameter, QueryParameter
+from .resource import Resource
+from .response import Response
+from .conf import APIConfig, ResourceConfig, BodyParameter, QueryParameter
 from .exception import  RestClientConfigurationError

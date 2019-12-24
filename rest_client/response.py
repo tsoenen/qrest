@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 # =================================================================================================
 
-class RestResponse(ABC):
+class Response(ABC):
 
 	'''
 	Abstract Base class wrapper around the REST response. This is meant to process the returned data
@@ -68,7 +68,7 @@ class RestResponse(ABC):
 
 
 #  =========================================================================================================
-class JSONRestResponse(RestResponse):
+class JSONRestResponse(Response):
 
 	def _check_content(self):
 		content_type = self.headers.get('content-type', 'unknown')
@@ -100,7 +100,7 @@ class JSONRestResponse(RestResponse):
 
 
 #  =========================================================================================================
-class CSVRestResponse(RestResponse):
+class CSVRestResponse(Response):
 
 	def _check_content(self):
 		content_type = self.headers.get('content-type', 'unknown')

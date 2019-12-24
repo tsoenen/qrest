@@ -11,14 +11,15 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 # ================================================================================================
 # local imports
 from .auth import AuthConfig
-from .resource import RestResource
+from .resource import Resource
 from .exception import RestClientConfigurationError
+from .utils import URLValidator
 
 disable_warnings(InsecureRequestWarning)
 logger = logging.getLogger(__name__)
 
 # ================================================================================================
-class ParameterConfig(object):
+class ParameterConfig:
     '''
     Contain and validate parameters for a REST endpoint. As this is a configuration container only, the main
     purpose is to store the config and check if the input aligns with the intended use. There is no
@@ -100,7 +101,7 @@ class BodyParameter(ParameterConfig):
 
 
 # ================================================================================================
-class EndPoint(object):
+class ResourceConfig:
     '''
     contain and validate details for a REST endpoint. Effectively this creates an ORM wrapper around a
     REST endpoint, pretending it is a python object
@@ -114,7 +115,7 @@ class EndPoint(object):
                  parameters: Optional[dict] = None,
                  json: Optional[dict] = None,
                  headers: Optional[dict] = None,
-                 return_class: Optional[Type[RestResource]] = None,
+                 return_class: Optional[Type[Resource]] = None,
                  description: Optional[str] = None,
                  path_description: Optional[dict] = None
                  ):
@@ -182,6 +183,8 @@ class EndPoint(object):
             raise RestClientConfigurationError("method must be GET or POST")
 
         # json -------------------------
+        
+        '''
         if self.json_options:
             if not isinstance(self.json_options, dict):
                 raise RestClientConfigurationError("json option is not a dictionary")
@@ -193,7 +196,8 @@ class EndPoint(object):
                     raise RestClientConfigurationError("json.root option is not a list")
         else:
             self.json_options = {}
-
+        '''
+        
         #  parameters -------------------------------
         if not isinstance(self.parameters, dict):
             raise RestClientConfigurationError("parameters must be dictionary")
@@ -203,7 +207,7 @@ class EndPoint(object):
 
         #  resource class ----------------------------------
         if self.return_class:
-            if not isinstance(self.return_class, RestResource):
+            if not isinstance(self.return_class, Resource):
                 raise RestClientConfigurationError("return_class must be subclass of RestResource")
 
         # integration tests ---------------------------------------------------
@@ -367,10 +371,13 @@ class EndPoint(object):
 
 
 #==================================================================================================
-class RESTConfiguration(object):
+class APIConfig:
     '''
     Class to configure and validate endpoints
     '''
+
+    authentication = None
+    url = None
 
     def __init__(self):
         self.endpoints = self.get_list_of_endpoints()
@@ -395,6 +402,15 @@ class RESTConfiguration(object):
             if resource_name == 'data':
                 raise RestClientConfigurationError("resource name may not be named 'data'")
 
+        # check url definition
+        if not self.url:
+            raise RestClientConfigurationError('url is not set')
+
+        # optional auth module
+        if self.authentication and not isinstance(self.authentication, AuthConfig):
+            raise RestClientConfigurationError('authentication attribute is not an initiated instance of AuthConfig')
+
+
     def get_list_of_endpoints(self):
         '''
         returns a dictionary of all the defined endpoints
@@ -403,7 +419,7 @@ class RESTConfiguration(object):
         dirlist = [x for x in dir(self) if not x.startswith('_')]
         for item in dirlist:
             endpoint = getattr(self, item)
-            if endpoint.__class__ == EndPoint:
+            if endpoint.__class__ == ResourceConfig:
                 endpoints_dict[item] = endpoint
         if not endpoints_dict:
             raise RestClientConfigurationError('no endpoints defined for this REST client at all!')
@@ -411,21 +427,3 @@ class RESTConfiguration(object):
         #return []
 
 
-    # ===========================================================================
-    def get_authentication_module(self, rest_client):
-        '''
-        return activated auth module for authentication
-        '''
-
-        try:
-            auth_config = self.authentication
-        except AttributeError:
-            # default to no authentication
-            return None
-        else:
-            if auth_config is None:
-                return None
-            if not isinstance(auth_config, AuthConfig):
-                raise RestClientConfigurationError('authentication attribute is not an instance of AuthConfig')
-            auth_module = auth_config.authentication_module
-            return auth_module(rest_client, auth_config)

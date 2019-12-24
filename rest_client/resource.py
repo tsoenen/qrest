@@ -15,14 +15,14 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from .utils import URLValidator
 from .exception import RestClientQueryError, RestClientConfigurationError, RestLoginError
 from .exception import RestResourceHTTPError
-from .response import RestResponse
+from .response import Response
 
 disable_warnings(InsecureRequestWarning)
 logger = logging.getLogger(__name__)
 
 
 # ===================================================================================================
-class RestResource():
+class Resource():
     '''
     A resource is defined as a single REST endpoint.
     This class wraps functionality of creating and querying this resources, starting with a
@@ -288,4 +288,4 @@ class RestResource():
             # not get here
             raise http
         else:
-            return RestResponse(response=response, options=self.config.json_options)
+            return Response(response=response, options=self.config.json_options)
