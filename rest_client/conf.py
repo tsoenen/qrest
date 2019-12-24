@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 # ================================================================================================
 # local imports
 from .auth import AuthConfig
-from .resource import Resource
+from .resource import Resource, JsonResource
 from .exception import RestClientConfigurationError
 from .utils import URLValidator
 
@@ -130,7 +130,8 @@ class ResourceConfig:
                     relevant for body and query parameters only, path parameters are specified in the path itself
                     and subsequent annotation of those parameters is done in path_description.
         :param headers: a dictionary of headers that will be provided to the endpoint. Typical use is the response_type
-        :param resource_class: a subclass of rest_client.RestResource that handles specific use cases
+        :param resource_class: a subclass of rest_client.RestResource that handles specific use cases.
+                    This now defaults to JSONResource as this is the most common use type
         :param description: A general description of the endpoint that can be obtained by the user through the description
                     property of the endpointconfig instance
         :param path_description: a dictionary that provides a description for each path parameter.
@@ -142,7 +143,7 @@ class ResourceConfig:
         self.method = method
         self.parameters = parameters or {}
         self.headers = headers
-        self.resource_class = resource_class
+        self.resource_class = resource_class or JsonResource()  # undocumented default JSONresource, may be confusing
         self.validate()
 
     # ----------------------------------------------------
