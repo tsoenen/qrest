@@ -3,10 +3,9 @@ Contains all the configuration classes to create a RestClient Configuration
 '''
 from collections import defaultdict
 from typing import Optional, Type
-import logging
 
-from requests.packages.urllib3 import disable_warnings
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
+import logging
+logger = logging.getLogger(__name__)
 
 # ================================================================================================
 # local imports
@@ -15,8 +14,11 @@ from .resource import Resource
 from .exception import RestClientConfigurationError
 from .utils import URLValidator
 
+# ================================================================================================
+#  Interface tweak
+from requests.packages.urllib3 import disable_warnings
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 disable_warnings(InsecureRequestWarning)
-logger = logging.getLogger(__name__)
 
 # ================================================================================================
 class ParameterConfig:
@@ -113,9 +115,8 @@ class ResourceConfig:
                  path: list,
                  method: str,
                  parameters: Optional[dict] = None,
-                 json: Optional[dict] = None,
                  headers: Optional[dict] = None,
-                 return_class: Optional[Type[Resource]] = None,
+                 resource_class: Optional[Type[Resource]] = None,
                  description: Optional[str] = None,
                  path_description: Optional[dict] = None
                  ):
@@ -128,12 +129,8 @@ class ResourceConfig:
         :param parameters: a dictionary of ParameterConfig instances that each describe one parameter. This is
                     relevant for body and query parameters only, path parameters are specified in the path itself
                     and subsequent annotation of those parameters is done in path_description.
-        :param json: This indicates how a returned JSON object is supposed to be processed. THe dict should contain
-                    two keys: "root", which should be a list of items to traverse the resulting json tree, and
-                    "results_name" which is the property that will be generated to contain the subsection of the
-                    json tree
         :param headers: a dictionary of headers that will be provided to the endpoint. Typical use is the response_type
-        :param return_class: a subclass of rest_client.RestResource that handles specific use cases
+        :param resource_class: a subclass of rest_client.RestResource that handles specific use cases
         :param description: A general description of the endpoint that can be obtained by the user through the description
                     property of the endpointconfig instance
         :param path_description: a dictionary that provides a description for each path parameter.
@@ -144,9 +141,8 @@ class ResourceConfig:
         self.path_description = path_description
         self.method = method
         self.parameters = parameters or {}
-        self.json_options = json
         self.headers = headers
-        self.return_class = return_class
+        self.resource_class = resource_class
         self.validate()
 
     # ----------------------------------------------------
@@ -182,22 +178,6 @@ class ResourceConfig:
         if self.method not in ['GET', 'POST']:
             raise RestClientConfigurationError("method must be GET or POST")
 
-        # json -------------------------
-        
-        '''
-        if self.json_options:
-            if not isinstance(self.json_options, dict):
-                raise RestClientConfigurationError("json option is not a dictionary")
-            if 'result_name' in self.json_options:
-                if not isinstance(self.json_options['result_name'], str):
-                    raise RestClientConfigurationError("json.result_name option is not a string")
-            if "root" in self.json_options:
-                if not isinstance(self.json_options["root"], list):
-                    raise RestClientConfigurationError("json.root option is not a list")
-        else:
-            self.json_options = {}
-        '''
-        
         #  parameters -------------------------------
         if not isinstance(self.parameters, dict):
             raise RestClientConfigurationError("parameters must be dictionary")
@@ -206,9 +186,9 @@ class ResourceConfig:
                 raise RestClientConfigurationError("Parameter '%s' must be ParameterConfig instance" % str(key))
 
         #  resource class ----------------------------------
-        if self.return_class:
-            if not isinstance(self.return_class, Resource):
-                raise RestClientConfigurationError("return_class must be subclass of RestResource")
+        if self.resource_class:
+            if not isinstance(self.resource_class, Resource):
+                raise RestClientConfigurationError("resource_class must be subclass of RestResource")
 
         # integration tests ---------------------------------------------------
         if self.method == 'GET':
@@ -378,6 +358,7 @@ class APIConfig:
 
     authentication = None
     url = None
+    verify_ssl = False
 
     def __init__(self):
         self.endpoints = self.get_list_of_endpoints()
@@ -405,7 +386,11 @@ class APIConfig:
         # check url definition
         if not self.url:
             raise RestClientConfigurationError('url is not set')
+        URLValidator().check(self.url, require_path=False)
 
+        if not isinstance(self.verify_ssl, bool):
+            raise RestClientConfigurationError('verify_ssl is not True or False')
+        
         # optional auth module
         if self.authentication and not isinstance(self.authentication, AuthConfig):
             raise RestClientConfigurationError('authentication attribute is not an initiated instance of AuthConfig')

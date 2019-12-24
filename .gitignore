@@ -13,3 +13,5 @@ sdist
 *.sw[ponlm]
 *.idea
 *~
+
+klooi.py

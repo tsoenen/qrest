@@ -27,9 +27,10 @@ class URLValidator:
 		"""
 
 		final_url = urlparse(url)
-		is_correct = (all([final_url.scheme, final_url.netloc]) and len(final_url.netloc.split(".")) > 1)
-		if not is_correct:
+		if not all([final_url.scheme, final_url.netloc]):
 			raise RestClientConfigurationError(f'the URL {url} is not valid')
+		if len(final_url.netloc.split(".")) == 1 and final_url.netloc != 'localhost':
+			raise RestClientConfigurationError(f'the URL {url} is has no domain indication')
 		if require_path and not final_url.path:
 			raise RestClientConfigurationError(f'the URL {url} has no valid path')
     

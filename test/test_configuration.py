@@ -3,6 +3,7 @@ import unittest
 import rest_client
 from rest_client import APIConfig, RestClientConfigurationError
 from rest_client import QueryParameter, BodyParameter, ResourceConfig
+from rest_client import JsonResource
 from rest_client.auth import UserPassAuthConfig
 
 class TestMinimal(unittest.TestCase):
@@ -241,13 +242,6 @@ class TestEndpoint(unittest.TestCase):
 							  parameters={'x': 'y', }
                   )
 
-		# --------------------------------------------------------------
-		with self.assertRaises(RestClientConfigurationError):
-			class Config(self.UrlApiConfig):
-				ep = ResourceConfig(path=[''], method='GET',
-							  return_class='error'
-                  )
-
 	def test_bad_endpoints(self):
 		# --------------------------------------------------------------
 		with self.assertRaises(RestClientConfigurationError):
@@ -416,3 +410,99 @@ class TestAuthentication(unittest.TestCase):
 		class Config(self.UrlApiConfig):
 			authentication = UserPassAuthConfig()
 		Config()
+
+class TestMainConfiguration(unittest.TestCase):
+
+	UrlApiConfig = None
+
+	def setUp(self):
+		class UrlApiConfig(APIConfig):
+			ep = ResourceConfig(path=[''], method='GET')
+		self.UrlApiConfig = UrlApiConfig
+
+	def tearDown(self):
+		pass
+
+	# --------------------------------------------------------------
+	def test_bad_verify_ssl(self):
+		with self.assertRaises(RestClientConfigurationError):
+			class Config(self.UrlApiConfig):
+				url = 'http://localhost'
+				verify_ssl = 3
+			Config()
+
+	# --------------------------------------------------------------
+	def test_good_verify_ssl(self):
+		class Config(self.UrlApiConfig):
+			url = 'http://localhost'
+			verify_ssl = True
+		Config()
+
+	# --------------------------------------------------------------
+	def test_bad_server(self):
+		with self.assertRaises(RestClientConfigurationError):
+			class Config(self.UrlApiConfig):
+				url = 'http://badserver'
+			Config()
+
+	# --------------------------------------------------------------
+	def test_good_server(self):
+		class Config(self.UrlApiConfig):
+			url = 'http://localhost'
+		Config()
+
+		class Config(self.UrlApiConfig):
+			url = 'http://server.tld'
+		Config()
+
+		class Config(self.UrlApiConfig):
+			url = 'http://server.tld:8080'
+		Config()
+
+
+class TestResourceClass(unittest.TestCase):
+
+	UrlApiConfig = None
+
+	def setUp(self):
+		class UrlApiConfig(APIConfig):
+			url = 'http://localhost'
+		self.UrlApiConfig = UrlApiConfig
+
+	def tearDown(self):
+		pass
+
+	# --------------------------------------------------------------
+	def test_good_resource_class(self):
+		class Config(self.UrlApiConfig):
+			ep = ResourceConfig(path=[''], method='GET',
+						  resource_class=JsonResource()
+                       )
+		Config()
+
+		class Config(self.UrlApiConfig):
+			ep = ResourceConfig(path=[''], method='GET',
+						  resource_class=JsonResource(['a', 'b', 'c'], 'sink')
+                       )
+		Config()
+
+	# --------------------------------------------------------------
+	def test_bad_resource_class(self):
+		with self.assertRaises(RestClientConfigurationError):
+			class Config(self.UrlApiConfig):
+				ep = ResourceConfig(path=[''], method='GET',
+							  resource_class='error'
+                        )
+
+		with self.assertRaises(RestClientConfigurationError):
+			class Config(self.UrlApiConfig):
+				ep = ResourceConfig(path=[''], method='GET',
+							  resource_class=JsonResource
+						   )
+
+		with self.assertRaises(RestClientConfigurationError):
+			class Config(self.UrlApiConfig):
+				ep = ResourceConfig(path=[''], method='GET',
+							  resource_class=JsonResource('error')
+                        )
+

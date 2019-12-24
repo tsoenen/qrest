@@ -5,7 +5,9 @@ A Resource (or endpoint) .
 
 import requests
 import logging
-from urllib.parse import quote
+from urllib.parse import quote, urljoin
+from abc import ABC, abstractmethod
+from typing import Optional, Type, TYPE_CHECKING
 
 from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -13,32 +15,67 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 # ================================================================================================
 # local imports
 from .utils import URLValidator
-from .exception import RestClientQueryError, RestClientConfigurationError, RestLoginError
-from .exception import RestResourceHTTPError
-from .response import Response
+from .exception import RestClientQueryError, RestClientConfigurationError, RestLoginError, RestResourceHTTPError
+from .response import JSONResponse
 
 disable_warnings(InsecureRequestWarning)
 logger = logging.getLogger(__name__)
 
 
 # ===================================================================================================
-class Resource():
+class Resource(ABC):
     '''
     A resource is defined as a single REST endpoint.
     This class wraps functionality of creating and querying this resources, starting with a
     configuration string
     '''
 
+    is_configured = False
+    config = None
 
-    def __init__(self, client, name, config):
-        self.client = client
+    server_url = None
+    request_parameters = None
+    verify_ssl = False
+    auth = None
+    cleaned_data = None
+    
+    response_class = None
+
+    @abstractmethod
+    def __init__(self):
+        ''' ABC to set response parameters during configuration
+        '''
+
+    # ---------------------------------------------------------------------------------------------
+    def configure(self, name: str,
+                  server_url: str,
+                  verify_ssl: bool,
+                  auth,
+                  config
+                  ):
+        ''' Configure the resource. This is a required procedure to set all parameters.
+        Setting these parameters is not possible by using __init__, because this class is initialized
+        within the config, to enable setting custom parameters instead
+        
+        :param name: the pythonic name of this resource (i.e. my own name). Used to generate error messages
+        :param server_url: the base server URL (e.g. http://localhost:8080)
+        :param verify_ssl: boolean to set verify_ssl in the request on or off
+        :param auth: Which Authentication module to use
+        :type auth: subclass of AuthConfig 
+        :param config: which ResourceConfiguration to use
+        :type config: subclass of ResourceConfig 
+        '''
+        
         self.name = name
-
+        self.server_url = server_url
         self.config = config
-        self.path = self.config.path
-        self.method = self.config.method
+        self.auth = auth
+        self.verify_ssl = verify_ssl
+        
         self.cleaned_data = {}
         self.request_parameters = None
+        self.is_configured = True
+        
 
     # ---------------------------------------------------------------------------------------------
     def __call__(self, *args, **kwargs):
@@ -79,9 +116,10 @@ class Resource():
         return self.help()
 
 
-    def help(self, parameter_name=None):
+    def help(self, parameter_name: Optional[str]=None):
         '''
         Print description of the endpoint and the parameters
+        :param parameter_name: Optional parameter name to request the help text of
         '''
         if not parameter_name:
             return (self.config.description or 'No description given for this endpoint')
@@ -186,12 +224,12 @@ class Resource():
             raise KeyError('request data is not cleaned. Run validate_request first')
 
 
-        resolved_path = "/".join(self.path)
+        resolved_path = "/".join(self.config.path)
         path_para = {parameter: quote(self.cleaned_data[parameter], safe='') for parameter in self.cleaned_data if parameter in self.config.path_parameters}
         resolved_path = resolved_path.format(**path_para)
 
         # Construct URL using base URL and path
-        url = "{url}/{path}".format(url=self.client.url, path=resolved_path)
+        url = urljoin(url=self.server_url, path=resolved_path)
 
         # Check if valid URL
         # Only allow http or https schemes for the REST API base URL
@@ -227,10 +265,7 @@ class Resource():
                             'body': body_parameters,
                             }
 
-
-
         return return_structure
-
 
     # ---------------------------------------------------------------------------------------------
     def _get(self, extra_request=None, extra_body=None):
@@ -241,7 +276,7 @@ class Resource():
         """
 
         # check if user is logged in
-        if self.client.auth and not self.client.auth.is_logged_in:
+        if self.auth and not self.auth.is_logged_in:
             raise RestLoginError('user is not logged in')
 
         # url and parameters
@@ -264,9 +299,9 @@ class Resource():
         # Do HTTP request to REST API
         logger.debug('[RESTCLIENT]: running %s' % self.query_url)
         try:
-            response = requests.request(method=self.method,
-                                        auth=self.client.auth,
-                                        verify=self.client.verifySSL,
+            response = requests.request(method=self.config.method,
+                                        auth=self.auth,
+                                        verify=self.verify_ssl,
                                         url=self.query_url,
                                         params=query_parameters['request'],
                                         json=query_parameters['body'],
@@ -288,4 +323,23 @@ class Resource():
             # not get here
             raise http
         else:
-            return Response(response=response, options=self.config.json_options)
+            return self.response_class(response)
+
+
+# ###############################################################
+class JsonResource(Resource):
+    """ A REST Resource that expects a JSON return
+    
+    """
+
+    def __init__(self, extract_section: Optional[list] = None, create_attribute: Optional[str] = 'results'):
+        '''
+        :param extract_section: This indicates which part of the obtained JSON response contains the main
+            payload that should be extracted. The tree is provided as a list of items to traverse
+        :param create_attribute: The "results_name" which is the property that will be generated to contain
+            the previously obtained subsection of the json tree
+        '''
+
+        self.response_class = JSONResponse(extract_section, create_attribute)
+
+

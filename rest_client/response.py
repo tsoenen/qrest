@@ -15,7 +15,7 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 # ================================================================================================
 # local imports
-from .exception import RestResourceMissingContentError
+from .exception import RestResourceMissingContentError, RestClientConfigurationError
 
 disable_warnings(InsecureRequestWarning)
 logger = logging.getLogger(__name__)
@@ -29,23 +29,34 @@ class Response(ABC):
 	obtained from the REST request into a python object
 	'''
 
-	def __init__(self, response: Type[requests.models.Response], options: Optional[dict] = None):
+	_response = None
+	headers = None
+	raw = None
+	options = None
+
+	@abstractmethod
+	def __init__(self):
 		""" RestResponse constructor
-
-		    :param response: The Requests Response object
-		    :param options: The options object specifying the JSON options for returning results
-
+		This should be overridden by subclasses so that required parameters are visible through introspection
 		"""
+
+
+	def __call__(self, response: Type[requests.models.Response]):
+		""" RestResponse wrapper call
+		    :param response: The Requests Response object
+		"""
+		if not self.options:
+			raise RestClientConfigurationError('configuration is not set for API Response')
+		
 		if not isinstance(response, requests.models.Response):
 			raise TypeError('RestResponse expects a requests.models.Response as input')
 
 		self._response = response
 		self.headers = response.headers
 		self.raw = response.content
-		self.options = options
 
 		#prepare the content to a python object
-		self.data = self._parse()
+		self._parse()
 
 	def fetch(self):
 		'''
@@ -65,10 +76,21 @@ class Response(ABC):
 
 
 
-
-
 #  =========================================================================================================
-class JSONRestResponse(Response):
+class JSONResponse(Response):
+
+	def __init__(self, extract_section: Optional[list] = None, create_attribute: Optional[str] = 'results'):
+		'''
+        :param extract_section: This indicates which part of the obtained JSON response contains the main
+		    payload that should be extracted. The tree is provided as a list of items to traverse
+		:param create_attribute: The "results_name" which is the property that will be generated to contain
+		    the previously obtained subsection of the json tree
+		'''
+
+		if extract_section and not isinstance(extract_section, list):
+			raise RestClientConfigurationError("extract_section option is not a list")
+		self.extract_section = extract_section
+		self.create_attribute = create_attribute
 
 	def _check_content(self):
 		content_type = self.headers.get('content-type', 'unknown')
@@ -85,18 +107,16 @@ class JSONRestResponse(Response):
 		# replace content by decoded content
 		self.raw = copy.deepcopy(self._response.json())
 
-		#subset the response dictionary
+		# subset the response dictionary
 		json = copy.deepcopy(self._response.json())
-		if isinstance(json, dict):
-			if ("root" in self.options) and (len(self.options["root"]) > 0):
-				for element in self.options["root"]:
-					if element in json:
-						json = json[element]
-					else:
-						raise RestResourceMissingContentError(f"Element {element} could not be found")
-
-		# create data objects
-		return json
+		if isinstance(json, dict) and self.extract_section:
+			for element in self.extract_section:
+				if element in json:
+					json = json[element]
+				else:
+					raise RestResourceMissingContentError(f"Element {element} could not be found")
+			setattr(self, self.create_attribute, json)
+			self.data = json
 
 
 #  =========================================================================================================
