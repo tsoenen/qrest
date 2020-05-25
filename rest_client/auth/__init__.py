@@ -10,6 +10,7 @@ from netrc import netrc
 from urllib.parse import urlparse
 import requests
 
+from abc import ABC, abstractmethod
 
 # ================================================================================================
 # local imports
@@ -18,7 +19,7 @@ from ..exception import RestLoginError
 logger = logging.getLogger(__name__)
 
 # ==========================================================================================
-class RESTAuthentication(requests.auth.HTTPBasicAuth):
+class RESTAuthentication(ABC, requests.auth.HTTPBasicAuth):
     '''
     Standard authentication methods and credentials
     This basic authentication does not complain if user is not logging in
@@ -80,6 +81,7 @@ class RESTAuthentication(requests.auth.HTTPBasicAuth):
                 return False
 
     # -------------------------------------------------------------------------------
+    @abstractmethod
     def login(self):
         '''
         placeholder to enforce subclasses to customize the login method
