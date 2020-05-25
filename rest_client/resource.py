@@ -38,6 +38,11 @@ class API:
         RestClient constructor
         :param config: The configuration object of the REST API resources
         :type config: Subclass of APIConfig
+        
+        THe complex bit here is that we allow customization of the "resource class", which is basically
+        a wrapper around the response object: default is JSON, so we pre-made a JSON resource class.
+        Optionally this resource class handles non-standard responses such as pagination or a
+        specific response format from which the payload needs to be derived
         """
 
         # check
@@ -51,16 +56,17 @@ class API:
 
         #  process the endpoints
         for name, item_config in self.config.endpoints.items():
-            cls = item_config.resource_class
+            cls = item_config.resource_class.__class__
             if cls:
                 try:
-                    module_name, class_name = cls.rsplit(".", 1)
+                    module_name = cls.__module__
+                    class_name = cls.__name__
                 except ValueError:
                     raise RestClientConfigurationError('unable to parse %s into module and class name' % cls)
                 somemodule = importlib.import_module(module_name)
                 resource_class = getattr(somemodule, class_name)
             else:
-                resource_class = Resource
+                resource_class = JsonResource
             setattr(self, name, self._create_rest_resource(resource_class, resource_name=name, config=item_config))
 
 
