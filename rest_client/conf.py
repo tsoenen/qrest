@@ -1,5 +1,5 @@
 '''
-Contains all the configuration classes to create a RestClient Configuration
+Contains all the configuration classes to create a API Configuration
 '''
 from collections import defaultdict
 from typing import Optional, Type
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 # ================================================================================================
 # local imports
 from .auth import AuthConfig
-from .resource import Resource, JsonResource
+from .resource import Resource, JSONResource
 from .exception import RestClientConfigurationError
 from .utils import URLValidator
 
@@ -116,7 +116,7 @@ class ResourceConfig:
                  method: str,
                  parameters: Optional[dict] = None,
                  headers: Optional[dict] = None,
-                 resource_class: Optional[Type[Resource]] = None,
+                 processor: Optional[Type[Resource]] = None,
                  description: Optional[str] = None,
                  path_description: Optional[dict] = None
                  ):
@@ -130,7 +130,7 @@ class ResourceConfig:
                     relevant for body and query parameters only, path parameters are specified in the path itself
                     and subsequent annotation of those parameters is done in path_description.
         :param headers: a dictionary of headers that will be provided to the endpoint. Typical use is the response_type
-        :param resource_class: a subclass of rest_client.RestResource that handles specific use cases.
+        :param processor: a subclass of rest_client.RestResource that handles specific use cases.
                     This now defaults to JSONResource as this is the most common use type
         :param description: A general description of the endpoint that can be obtained by the user through the description
                     property of the endpointconfig instance
@@ -143,7 +143,11 @@ class ResourceConfig:
         self.method = method
         self.parameters = parameters or {}
         self.headers = headers
-        self.resource_class = resource_class or JsonResource()  # undocumented default JSONresource, may be confusing
+
+        #  we cannot set default processor above in the parameters as this means all endpoints
+        #  share the same processor instance, and they cross-contaminate . By setting this below
+        #  we enforce recreation of a new unique Resource instance each time
+        self.processor = processor or JSONResource()
         self.validate()
 
     # ----------------------------------------------------
@@ -187,9 +191,9 @@ class ResourceConfig:
                 raise RestClientConfigurationError("Parameter '%s' must be ParameterConfig instance" % str(key))
 
         #  resource class ----------------------------------
-        if self.resource_class:
-            if not isinstance(self.resource_class, Resource):
-                raise RestClientConfigurationError("resource_class must be subclass of RestResource")
+        if self.processor:
+            if not isinstance(self.processor, Resource):
+                raise RestClientConfigurationError("processor must be subclass of RestResource")
 
         # integration tests ---------------------------------------------------
         if self.method == 'GET':

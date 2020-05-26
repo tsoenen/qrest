@@ -1,24 +1,23 @@
-##########
-RestClient
-##########
+#####################################
+API Base and Resources Processors
+#####################################
 
-Goal
-====
 
-This module
+.. automodule:: rest_client.resource
 
-Module RestClient
-=================
+.. autoclass:: API
+  :members:
+  :private-members:
+  :special-members: __init__
 
-.. automodule:: rest_client
+.. autoclass:: Resource
+  :members:
+  :private-members:
+  :special-members: __init__
 
-.. autoclass:: RestClient
-	:members:
-	:private-members: 
-	:special-members: __init__
+.. autoclass:: JSONResource
+  :members:
+  :private-members:
+  :special-members: __init__
 
-.. autoclass:: RestClientLauncher
-	:members:
-	:private-members: 
-	:special-members: __init__
 

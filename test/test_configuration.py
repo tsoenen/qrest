@@ -3,7 +3,7 @@ import unittest
 import rest_client
 from rest_client import APIConfig, RestClientConfigurationError
 from rest_client import QueryParameter, BodyParameter, ResourceConfig
-from rest_client import JsonResource
+from rest_client import JSONResource
 from rest_client.auth import UserPassAuthConfig
 
 class TestMinimal(unittest.TestCase):
@@ -473,36 +473,38 @@ class TestResourceClass(unittest.TestCase):
 		pass
 
 	# --------------------------------------------------------------
-	def test_good_resource_class(self):
+	def test_empty_processor(self):
 		class Config(self.UrlApiConfig):
 			ep = ResourceConfig(path=[''], method='GET',
-						  resource_class=JsonResource()
-                       )
-		Config()
-
-		class Config(self.UrlApiConfig):
-			ep = ResourceConfig(path=[''], method='GET',
-						  resource_class=JsonResource(['a', 'b', 'c'], 'sink')
+						  processor=JSONResource()
                        )
 		Config()
 
 	# --------------------------------------------------------------
-	def test_bad_resource_class(self):
+	def test_good_processor(self):
+		class Config(self.UrlApiConfig):
+			ep = ResourceConfig(path=[''], method='GET',
+						  processor=JSONResource(extract_section=['a', 'b', 'c'], create_attribute='sink')
+                       )
+		Config()
+
+	# --------------------------------------------------------------
+	def test_bad_processor(self):
 		with self.assertRaises(RestClientConfigurationError):
 			class Config(self.UrlApiConfig):
 				ep = ResourceConfig(path=[''], method='GET',
-							  resource_class='error'
+							  processor='error'
                         )
 
 		with self.assertRaises(RestClientConfigurationError):
 			class Config(self.UrlApiConfig):
 				ep = ResourceConfig(path=[''], method='GET',
-							  resource_class=JsonResource
-						   )
+							  processor=JSONResource
+                        )
 
-		with self.assertRaises(RestClientConfigurationError):
+		with self.assertRaises(TypeError):
 			class Config(self.UrlApiConfig):
 				ep = ResourceConfig(path=[''], method='GET',
-							  resource_class=JsonResource('error')
+							  processor=JSONResource('error')
                         )
 

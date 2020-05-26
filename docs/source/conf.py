@@ -49,7 +49,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Python REST API client'
+project = u'qREST: Generic Python REST API client'
 copyright = u'2019'
 author = u'Joris Benschop'
 

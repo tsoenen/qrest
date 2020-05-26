@@ -1,6 +1,8 @@
 '''
-This module contains the main Resource .
-A Resource (or endpoint) .
+The main working module of the package: contains the API class (which creates the ORM for a
+RES server), and the Resource class (which wraps around a single endpoint / resources ). The Resource
+class is encouraged to be subclassed to add functionality such as complex pagination or response processing
+
 '''
 
 import importlib
@@ -20,7 +22,6 @@ from .utils import URLValidator
 from .exception import RestClientQueryError, RestClientConfigurationError, RestLoginError, RestResourceHTTPError, InvalidResourceError
 from .response import JSONResponse
 
-
 logger = logging.getLogger(__name__)
 
 # ================================================================================================
@@ -29,17 +30,19 @@ class API:
     This is the main point of contact for end users
     '''
 
-    #placeholder for subclassed resources
+    # placeholder for subclassed resources
     config = None
     auth = None
 
     def __init__(self, config):
         """
-        RestClient constructor
+        REST Client constructor
+        
         :param config: The configuration object of the REST API resources
         :type config: Subclass of APIConfig
         
-        THe complex bit here is that we allow customization of the "resource class", which is basically
+        An API describes a REST server, and contains a list of resources. 
+        We allow customization of the "resource class", which is basically
         a wrapper around the response object: default is JSON, so we pre-made a JSON resource class.
         Optionally this resource class handles non-standard responses such as pagination or a
         specific response format from which the payload needs to be derived
@@ -50,24 +53,21 @@ class API:
         if not isinstance(config, APIConfig):
             raise RestClientConfigurationError('configuration is not a APIConfig instance')
 
+
         self.config = config
         self.verifySSL = config.verify_ssl
         self.auth = config.authentication
 
         #  process the endpoints
         for name, item_config in self.config.endpoints.items():
-            cls = item_config.resource_class.__class__
-            if cls:
-                try:
-                    module_name = cls.__module__
-                    class_name = cls.__name__
-                except ValueError:
-                    raise RestClientConfigurationError('unable to parse %s into module and class name' % cls)
-                somemodule = importlib.import_module(module_name)
-                resource_class = getattr(somemodule, class_name)
-            else:
-                resource_class = JsonResource
-            setattr(self, name, self._create_rest_resource(resource_class, resource_name=name, config=item_config))
+            if not isinstance(item_config.processor, Resource):
+                raise RestClientConfigurationError(f'defined resource class for {ep} is not a Resource instance')
+            new_resource = self._create_rest_resource(item_config.processor,
+                                                      resource_name=name,
+                                                      config=item_config)
+            setattr(self, name, new_resource)
+            xx = 1
+        x = 1
 
 
     # ---------------------------------------------------------------------------------------------
@@ -92,7 +92,7 @@ class API:
 
 
     # ---------------------------------------------------------------------------------------------
-    def _create_rest_resource(self, resource_class, resource_name, config):
+    def _create_rest_resource(self, processor, resource_name, config):
         """ This function is used to dynamically create request functions for a specified REST API resource
 
             :param resource: A string that represents the REST API resource
@@ -105,8 +105,11 @@ class API:
         if not config:
             raise InvalidResourceError(name=type(self).__name__, resource=resource_name)
 
-        rest_resource = resource_class(client=self, name=resource_name, config=config)
-        return rest_resource
+        if not isinstance(processor, Resource):
+            raise RestClientConfigurationError('processor must be a class instance')
+
+        processor.configure(name=resource_name, config=config, server_url=self.config.url)
+        return processor
 
 
 # ===================================================================================================
@@ -134,11 +137,12 @@ class Resource(ABC):
         '''
 
     # ---------------------------------------------------------------------------------------------
-    def configure(self, name: str,
+    def configure(self,
+                  name: str,
                   server_url: str,
-                  verify_ssl: bool,
-                  auth,
-                  config
+                  config,
+                  auth=None,
+                  verify_ssl: bool = False
                   ):
         ''' Configure the resource. This is a required procedure to set all parameters.
         Setting these parameters is not possible by using __init__, because this class is initialized
@@ -152,7 +156,7 @@ class Resource(ABC):
         :param config: which ResourceConfiguration to use
         :type config: subclass of ResourceConfig 
         '''
-        
+
         self.name = name
         self.server_url = server_url
         self.config = config
@@ -217,9 +221,9 @@ class Resource(ABC):
                 return 'this endpoint has no parameters'
         if parameter_name in self.config.parameters:
             param_help = self.config.parameters[parameter_name].description
-            choices = ', '.join(self.config.parameters[parameter_name].choices)
+            choices = self.config.parameters[parameter_name].choices
             if choices:
-                param_help += '. Valid choices are: %s' % choices
+                param_help += '. Valid choices are: %s' % ', '.join(choices)
             return (param_help or 'no description given for this parameter')
         if parameter_name in self.config.path_parameters:
             param_help = self.config.path_description.get(parameter_name, 'no description given for this parameter')
@@ -312,16 +316,17 @@ class Resource(ABC):
 
 
         resolved_path = "/".join(self.config.path)
-        path_para = {parameter: quote(self.cleaned_data[parameter], safe='') for parameter in self.cleaned_data if parameter in self.config.path_parameters}
+        selected_params = [parameter for parameter in self.cleaned_data if parameter in self.config.path_parameters]
+        path_para = {p: quote(str(self.cleaned_data[p]), safe='') for p in selected_params}
         resolved_path = resolved_path.format(**path_para)
 
         # Construct URL using base URL and path
-        url = urljoin(url=self.server_url, path=resolved_path)
+        url = urljoin(base=self.server_url, url=resolved_path)
 
         # Check if valid URL
         # Only allow http or https schemes for the REST API base URL
         url_validator = URLValidator(schemes=["http", "https"])
-        url_validator(url)
+        url_validator.check(url)
 
         return url
 
@@ -360,6 +365,9 @@ class Resource(ABC):
             The parameters are validated in a previous call to validate_query().
             It returns a dictionary of the response or throws an appropriate
             error, depending on the HTTP return code.
+            
+            This should be the *only* place in the module where the Requests module is called!
+            
         """
 
         # check if user is logged in
@@ -410,16 +418,17 @@ class Resource(ABC):
             # not get here
             raise http
         else:
-            return self.response_class(response)
+            r = self.response_class(response)
+            return r
 
 
 # ###############################################################
-class JsonResource(Resource):
+class JSONResource(Resource):
     """ A REST Resource that expects a JSON return
     
     """
 
-    def __init__(self, extract_section: Optional[list] = None, create_attribute: Optional[str] = 'results'):
+    def __init__(self, *, extract_section: Optional[list] = None, create_attribute: Optional[str] = 'results'):
         '''
         :param extract_section: This indicates which part of the obtained JSON response contains the main
             payload that should be extracted. The tree is provided as a list of items to traverse

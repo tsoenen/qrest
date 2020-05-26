@@ -1,18 +1,5 @@
-.. Python REST API client documentation master file, created by
-   sphinx-quickstart on Wed Jan 18 16:22:53 2017.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Python REST API client documentation
 ====================================
-
-.. toctree::
-   :titlesonly:
-   :caption: Extra documentation:
-   :maxdepth: 2
-
-   resources-configuration
-   rest-client
 
 Indices and tables
 ==================
@@ -21,107 +8,70 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+##########################################
+The Python Generic REST client project
+##########################################
 
-Resources
-=========
+A Python project for sending requests to REST APIs.
 
-.. automodule:: rest_client.resources
+Overview
+***************************************************
 
-.. autoclass:: RestResource
-   :members:
-   :private-members:
-   :special-members: __init__
+This module aims to do for REST services what applications like SQLalchemy do for SQL services:
+to provide a python-like interface that hides the technical background and provides a native python
+ORM. 
+THis is achieved by creating configuration files for each REST service that can be extended or modified 
+at will, and allows restrictions on input that are required by the backend. Also custom authentication
+and output handling is provided 
 
-.. autoclass:: RestResponse
-   :members:
-   :private-members:
-   :special-members: __init__
+For example, taking the JSONplaceholder test site, there is a 
+URL `<http://https://jsonplaceholder.typicode.com/posts?userId=1>`_ 
 
+To query this resource, some text formatting magic needs to be combined with the requests module, after which the results need to be parsed.
 
-Configuration
-=============
+An easier solution
+***************************************************
 
-.. automodule:: rest_client.conf
+Would it not be a lot easier to use this format
+::
 
-.. autoclass:: RESTConfiguration
-   :members:
-   :private-members:
-   :special-members: __init__
+    import jsonplaceholder as jp
 
-.. autoclass:: EndPointConfig
-   :members:
-   :private-members:
-   :special-members: __init__
+    list_of_pots = jp.filter_posts.fetch(user_id=1)
+    print list_of_posts
 
-.. autoclass:: ParameterConfig
-   :members:
-   :private-members:
-   :special-members: __init__
+To achieve this, we need only this code:
+::
 
-.. autoclass:: QueryParameter
-   :members:
-   :private-members:
-   :special-members: __init__
+    from rest_client import API, APIConfig
 
-.. autoclass:: BodyParameter
-   :members:
-   :private-members:
-   :special-members: __init__
+    class JsonPlaceHolderConfig(APIConfig):
+        url = 'https://jsonplaceholder.typicode.com'
+        filter_posts = ResourceConfig(path=['posts'],
+                                      method='GET',
+                                      description='retrieve all posts by filter criteria',
+                                      parameters={ 'user_id': QueryParameter(name='userId',
+                                                                             required=False,
+                                                                             description='the user Id that made the post'),
+                                                                             }
+                                    )
 
-
-
-Authentication
-==============
-
-.. automodule:: rest_client.auth
-
-Authentication classes 
-----------------------
-.. autoclass:: RESTAuthentication
-   :members:
-   :private-members:
-   :special-members: __init__
-
-.. autoclass:: UserPassAuth
-   :members:
-   :private-members:
-   :special-members: __init__
-
-.. autoclass:: NetRCAuth
-   :members:
-   :private-members:
-   :special-members: __init__
-
-.. autoclass:: UserPassOrNetRCAuth
-   :members:
-   :private-members:
-   :special-members: __init__
-
-Configuration
--------------
-
-.. autoclass:: UserPassAuthConfig
-   :members:
-   :private-members:
-   :special-members: __init__
-
-.. autoclass:: NetrcOrUserPassAuthConfig
-   :members:
-   :private-members:
-   :special-members: __init__
-
-CAS Authentication
-------------------
-
-.. autoclass:: CASAuth
-   :members:
-   :private-members:
-   :special-members: __init__
+    config =  JsonPlaceHolderConfig()
+    jp  = API(config)  
+    list_of_pots = jp.filter_posts.fetch(user_id=1)
 
 
-.. autoclass:: CasAuthConfig
-   :members:
-   :private-members:
-   :special-members: __init__
+
+.. toctree::
+   :titlesonly:
+   :caption: Table of Contents:
+   :maxdepth: 2
+
+   configuration
+
+   rest-client
+   authentication
+   responses
+
 
 

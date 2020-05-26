@@ -14,7 +14,7 @@ class URLValidator:
 	checker, as the configs are mostly supposed to be fixed in advance of usage.
 	"""
 
-	def __init__(self):
+	def __init__(self, schemes=None):
 		"""
 		set the restrictions imposed on the URL to be checked
 		"""
