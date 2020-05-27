@@ -33,8 +33,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc',
-              'sphinx.ext.coverage',
-			  'sphinx_autodoc_typehints']
+              'sphinx.ext.coverage']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['.templates']
@@ -50,7 +49,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'qREST: Generic Python REST API client'
-copyright = u'2019'
+copyright = u'2020'
 author = u'Joris Benschop'
 
 # The version info for the project you're documenting, acts as replacement for
