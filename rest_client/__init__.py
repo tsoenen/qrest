@@ -1,4 +1,4 @@
-__version__ = '3.0.1'
+__version__ = '2.99'
 
 from .resource import JSONResource
 from .conf import APIConfig, ResourceConfig, BodyParameter, QueryParameter
