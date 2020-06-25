@@ -14,8 +14,6 @@ from typing import Optional
 from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
-disable_warnings(InsecureRequestWarning)
-
 # ================================================================================================
 # local imports
 from .utils import URLValidator
@@ -27,6 +25,8 @@ from .exception import (
     InvalidResourceError,
 )
 from .response import JSONResponse
+
+disable_warnings(InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 

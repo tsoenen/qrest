@@ -6,8 +6,6 @@ from typing import Optional, Type
 
 import logging
 
-logger = logging.getLogger(__name__)
-
 # ================================================================================================
 # local imports
 from .auth import AuthConfig
@@ -19,6 +17,8 @@ from .utils import URLValidator
 #  Interface tweak
 from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+logger = logging.getLogger(__name__)
 
 disable_warnings(InsecureRequestWarning)
 
@@ -43,7 +43,7 @@ class ParameterConfig:
     ):
         """
         Parameter configuration. Details the name and limitations on the REST parameter and how it
-        interacts with other parameters within the same endpoint. 
+        interacts with other parameters within the same endpoint.
 
         :param name: the 'remote' name of the parameter. this name is what the REST resource actually gets to interpret
         :param required: if this parameter is ommitted in the qyery, throw an exception
@@ -115,7 +115,7 @@ class ResourceConfig:
     """
     contain and validate details for a REST endpoint. Effectively this creates an ORM wrapper around a
     REST endpoint, pretending it is a python object
-    
+
     """
 
     # -----------------------------------------------------------------------------------------------------
@@ -131,9 +131,9 @@ class ResourceConfig:
     ):
         """
         Constructor, stores externally supplied parameters and validate the quality of it
-        
+
         :param path: a list separation of the path components, e.g. ['api','v2','user','{name},'stats'] where
-                     names in brackets are converted to path parameters. 
+                     names in brackets are converted to path parameters.
         :param method: one of GET,PUT,etc
         :param parameters: a dictionary of ParameterConfig instances that each describe one parameter. This is
                     relevant for body and query parameters only, path parameters are specified in the path itself
@@ -144,7 +144,7 @@ class ResourceConfig:
         :param description: A general description of the endpoint that can be obtained by the user through the description
                     property of the endpointconfig instance
         :param path_description: a dictionary that provides a description for each path parameter.
-       
+
         """
         self.path = path
         self.description = description
@@ -165,9 +165,9 @@ class ResourceConfig:
         Each parameter is checked for type, and if a specific substructure is required
         then this is also introspected. Currently Method is limited to GET or POST for no reason other then
         no tests were conducted with PUT, HEAD etc etc
-        
+
         :raises RestClientConfigurationError: No response is provided if there is no problem
-        
+
         """
 
         # description --------------------
@@ -217,7 +217,7 @@ class ResourceConfig:
         """
         For internal use. Update endpoint parameters from a shared default. This allows the user to set
         e.g. headers that are applicable to multiple endpoints in a single activity.
-        
+
         Note that this default only provides functionality for headers
         """
 
@@ -276,7 +276,7 @@ class ResourceConfig:
             Also summarises the query parameters that can be multiple.
 
             :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters
-                    (value, a list) for the specified REST API resource. 
+                    (value, a list) for the specified REST API resource.
         """
         result = {"required": [], "optional": [], "multiple": []}
         for para_name, para_set in self.parameters.items():
