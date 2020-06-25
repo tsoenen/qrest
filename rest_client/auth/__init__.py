@@ -18,6 +18,7 @@ from ..exception import RestLoginError
 
 logger = logging.getLogger(__name__)
 
+
 # ==========================================================================================
 class RESTAuthentication(ABC, requests.auth.HTTPBasicAuth):
     """

@@ -7,6 +7,7 @@ from .exception import RestClientConfigurationError
 
 logger = logging.getLogger(__name__)
 
+
 # ###############################################################
 class URLValidator:
     """

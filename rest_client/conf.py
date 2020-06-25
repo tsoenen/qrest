@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 disable_warnings(InsecureRequestWarning)
 
+
 # ================================================================================================
 class ParameterConfig:
     """
