@@ -1,6 +1,6 @@
-'''
+"""
 This module handle authentication against a variety of REST services
-'''
+"""
 
 
 import os
@@ -20,11 +20,11 @@ logger = logging.getLogger(__name__)
 
 # ==========================================================================================
 class RESTAuthentication(ABC, requests.auth.HTTPBasicAuth):
-    '''
+    """
     Standard authentication methods and credentials
     This basic authentication does not complain if user is not logging in
     explicitely. This is the most silent form of authentication
-    '''
+    """
 
     is_logged_in = False
     username = None
@@ -46,9 +46,9 @@ class RESTAuthentication(ABC, requests.auth.HTTPBasicAuth):
 
     @property
     def login_tuple(self):
-        '''
+        """
         returns a username/password tuple to use in basic authentication
-        '''
+        """
         return (self.username, self.password)
 
     @staticmethod
@@ -76,24 +76,24 @@ class RESTAuthentication(ABC, requests.auth.HTTPBasicAuth):
             return True
         else:
             if self.is_valid_credential(password):
-                raise RestLoginError('provided password but not a username')
+                raise RestLoginError("provided password but not a username")
             else:
                 return False
 
     # -------------------------------------------------------------------------------
     @abstractmethod
     def login(self):
-        '''
+        """
         placeholder to enforce subclasses to customize the login method
-        '''
-        raise NotImplementedError('Define login procedure in subclass')
+        """
+        raise NotImplementedError("Define login procedure in subclass")
 
 
 # ==========================================================================================
 class UserPassAuth(RESTAuthentication):
-    '''
+    """
     Authentication that enforces username / password
-    '''
+    """
 
     is_logged_in = False
 
@@ -121,17 +121,16 @@ class UserPassAuth(RESTAuthentication):
 
 # ==========================================================================================
 class NetRCAuth(RESTAuthentication):
-    '''
+    """
     Authentication that enforces username / password
-    '''
+    """
 
     netrc_path = os.path.expanduser("~/.netrc")
     is_logged_in = False
 
     # -------------------------------------------------------------------------------
-    #def __init__(self, rest_client, config):
-        #super(UserPassAuth, self).__init__(rest_client)
-
+    # def __init__(self, rest_client, config):
+    # super(UserPassAuth, self).__init__(rest_client)
 
     # -------------------------------------------------------------------------------
     def login(self, netrc_path: Optional[str] = os.path.expanduser("~/.netrc")):
@@ -153,23 +152,36 @@ class NetRCAuth(RESTAuthentication):
             try:
                 (netrc_login, _, netrc_password) = nrc.authenticators(host)
             except TypeError:
-                raise ValueError("No credentials found for host '{host}' or 'default' in the netrc file at location '{location}'".format(host=host, location=self.netrc_path))
+                raise ValueError(
+                    "No credentials found for host '{host}' or 'default' in the netrc file at location '{location}'".format(
+                        host=host, location=self.netrc_path
+                    )
+                )
             if self.are_valid_credentials(netrc_login, netrc_password):
                 self.username = netrc_login
                 self.password = netrc_password
             else:
-                raise ValueError("No valid credentials found for host '{host}' or 'default' in the netrc file at location '{location}'".format(host=host, location=self.netrc_path))
+                raise ValueError(
+                    "No valid credentials found for host '{host}' or 'default' in the netrc file at location '{location}'".format(
+                        host=host, location=self.netrc_path
+                    )
+                )
         else:
             raise ValueError("No Netrc path supplied")
 
 
 # ==========================================================================================
 class UserPassOrNetRCAuth(RESTAuthentication):
-    '''
+    """
     wrapper to allow both netRC and User+Pass logins
-    '''
+    """
 
-    def login(self, netrc_path: Optional[str] = os.path.expanduser("~/.netrc"), username: Optional[str] = None, password: Optional[str] = None):
+    def login(
+        self,
+        netrc_path: Optional[str] = os.path.expanduser("~/.netrc"),
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+    ):
         """
         Allow logins via either netRC or user/pass.
         If netrc is true, try this. Else, try user/pass if supplied.
@@ -184,41 +196,40 @@ class UserPassOrNetRCAuth(RESTAuthentication):
             parent_auth = UserPassAuth(rest_client=self.rest_client)
             parent_auth.login(username=username, password=password)
         elif netrc_path:
-            parent_auth = NetRCAuth(rest_client=self.rest_client, auth_config_object=self.auth_config_object)
+            parent_auth = NetRCAuth(
+                rest_client=self.rest_client, auth_config_object=self.auth_config_object
+            )
             parent_auth.login(netrc_path=netrc_path)
         else:
-            raise RestLoginError('not enough data is provided to login')
+            raise RestLoginError("not enough data is provided to login")
         self.username = parent_auth.username
         self.password = parent_auth.password
 
         self.is_logged_in = True
 
 
-
-
 # ==========================================================================================
 class AuthConfig(object):
-    '''
+    """
     Configuration and validation for custom authentication schemas
-    '''
+    """
+
     pass
 
 
 # ==========================================================================================
 class UserPassAuthConfig(AuthConfig):
-    '''
+    """
     Allow authentication via NetRC or User/Password
-    '''
+    """
 
     authentication_module = UserPassAuth
 
 
 # ==========================================================================================
 class NetrcOrUserPassAuthConfig(AuthConfig):
-    '''
+    """
     Allow authentication via NetRC or User/Password
-    '''
+    """
 
     authentication_module = UserPassOrNetRCAuth
-
-
