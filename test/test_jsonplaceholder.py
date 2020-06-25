@@ -74,7 +74,6 @@ class JsonPlaceHolderConfig(APIConfig):
 class TestJsonPlaceHolderGet(unittest.TestCase):
     def setUp(self):
         self.config = JsonPlaceHolderConfig()
-        x = 1
 
     def test_get_all_posts(self):
         """
@@ -127,7 +126,6 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
 class TestJsonPlaceHolderPost(unittest.TestCase):
     def setUp(self):
         self.config = JsonPlaceHolderConfig()
-        x = 1
 
     def test_new_post(self):
         """

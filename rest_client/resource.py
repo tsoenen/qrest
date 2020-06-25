@@ -74,8 +74,6 @@ class API:
                 item_config.processor, resource_name=name, config=item_config
             )
             setattr(self, name, new_resource)
-            xx = 1
-        x = 1
 
     # ---------------------------------------------------------------------------------------------
     @property

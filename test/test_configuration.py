@@ -84,7 +84,7 @@ class TestParameters(unittest.TestCase):
                 parameters={"para": QueryParameter(name="sort", required=False,),},
             )
 
-        conf = Config()
+        _ = Config()  # noqa: F841
 
     def test_bad_query_parameters(self):
         # --------------------------------------------------------------
@@ -314,7 +314,7 @@ class TestEndpoint(unittest.TestCase):
         class Config(self.UrlApiConfig):
             ep = ResourceConfig(path=[""], method="GET", description="OK")
 
-        conf = Config()
+        _ = Config()  # noqa: F401
 
         # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
