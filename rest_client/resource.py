@@ -71,7 +71,7 @@ class API:
         for name, item_config in self.config.endpoints.items():
             if not isinstance(item_config.processor, Resource):
                 raise RestClientConfigurationError(
-                    f"defined resource class for {ep} is not a Resource instance"
+                    f"defined resource class for {name} is not a Resource instance"
                 )
             new_resource = self._create_rest_resource(
                 item_config.processor, resource_name=name, config=item_config
