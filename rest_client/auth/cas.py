@@ -272,7 +272,7 @@ request to the REST end-point.
         """
 
         # special case: if TGT is None then clear the underlying variable
-        if tgt == None:
+        if tgt is None:
             self.__ticket_granting_ticket = None
             return
 
@@ -330,7 +330,7 @@ request to the REST end-point.
         tgt = response.headers["location"]
         return tgt
 
-    ## -------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------------
     def __call__(self, r):
         """Is called by the requests library when authentication is needed while
         issuing a RESTful request.

@@ -81,7 +81,7 @@ class TestParameters(unittest.TestCase):
             ep = ResourceConfig(
                 path=[""],
                 method="GET",
-                parameters={"para": QueryParameter(name="sort", required=False,),},
+                parameters={"para": QueryParameter(name="sort", required=False,)},
             )
 
         _ = Config()  # noqa: F841
@@ -94,33 +94,33 @@ class TestParameters(unittest.TestCase):
                 ep = ResourceConfig(
                     path=[""],
                     method="GET",
-                    parameters={"para": QueryParameter(name="sort", required=3),},
+                    parameters={"para": QueryParameter(name="sort", required=3)},
                 )
 
         # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
+            class Config2(self.UrlApiConfig):
                 ep = ResourceConfig(
                     path=[""],
                     method="GET",
-                    parameters={"para": QueryParameter(name="sort", multiple=3),},
+                    parameters={"para": QueryParameter(name="sort", multiple=3)},
                 )
 
         # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
+            class Config3(self.UrlApiConfig):
                 ep = ResourceConfig(
                     path=[""],
                     method="GET",
-                    parameters={"para": QueryParameter(name="sort", exclusion_group=3),},
+                    parameters={"para": QueryParameter(name="sort", exclusion_group=3)},
                 )
 
         # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
+            class Config4(self.UrlApiConfig):
                 ep = ResourceConfig(
                     path=[""],
                     method="GET",
@@ -137,13 +137,13 @@ class TestParameters(unittest.TestCase):
                 ep = ResourceConfig(
                     path=[""],
                     method="GET",
-                    parameters={"para": QueryParameter(name="sort", exclusion_group="\n",),},
+                    parameters={"para": QueryParameter(name="sort", exclusion_group="\n",)},
                 )
 
         # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
+            class Config2(self.UrlApiConfig):
                 ep = ResourceConfig(
                     path=[""],
                     method="GET",
@@ -160,7 +160,7 @@ class TestParameters(unittest.TestCase):
                 ep = ResourceConfig(
                     path=[""],
                     method="GET",
-                    parameters={"para": QueryParameter(name="sort", choices="some_default",),},
+                    parameters={"para": QueryParameter(name="sort", choices="some_default",)},
                 )
 
     # --------------------------------------------------------------
@@ -171,7 +171,7 @@ class TestParameters(unittest.TestCase):
                 ep = ResourceConfig(
                     path=[""],
                     method="GET",
-                    parameters={"para": QueryParameter(name="sort", description=3,),},
+                    parameters={"para": QueryParameter(name="sort", description=3,)},
                 )
 
     # --------------------------------------------------------------
@@ -180,7 +180,7 @@ class TestParameters(unittest.TestCase):
 
             class Config(self.UrlApiConfig):
                 ep = ResourceConfig(
-                    path=[""], method="GET", parameters={"para": BodyParameter(name="sort"),}
+                    path=[""], method="GET", parameters={"para": BodyParameter(name="sort")}
                 )
 
 
@@ -207,13 +207,13 @@ class TestEndpoint(unittest.TestCase):
         # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
+            class Config2(self.UrlApiConfig):
                 ep = ResourceConfig(path=[""], method="GET", path_description=3)
 
         # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
+            class Config3(self.UrlApiConfig):
                 ep = ResourceConfig(path=[""], method="GET", headers="none")
 
     # --------------------------------------------------------------
@@ -238,14 +238,14 @@ class TestEndpoint(unittest.TestCase):
         # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
+            class Config2(self.UrlApiConfig):
                 ep = ResourceConfig(path=[""], method="GET", parameters="x")
 
         # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
-                ep = ResourceConfig(path=[""], method="GET", parameters={"x": "y",})
+            class Config3(self.UrlApiConfig):
+                ep = ResourceConfig(path=[""], method="GET", parameters={"x": "y"})
 
     def test_bad_endpoints(self):
         # --------------------------------------------------------------
@@ -294,7 +294,7 @@ class TestEndpoint(unittest.TestCase):
 
         # --------------------------------------------------------------
         class Config(self.UrlApiConfig):
-            ep = ResourceConfig(path=[""], method="GET", headers={"key": "oldval",})
+            ep = ResourceConfig(path=[""], method="GET", headers={"key": "oldval"})
             default_headers = {"key": "val"}
 
         conf = Config()
@@ -302,7 +302,7 @@ class TestEndpoint(unittest.TestCase):
 
         # --------------------------------------------------------------
         class Config(self.UrlApiConfig):
-            ep = ResourceConfig(path=[""], method="GET", headers={"otherkey": "val",})
+            ep = ResourceConfig(path=[""], method="GET", headers={"otherkey": "val"})
             default_headers = {"key": "val"}
 
         conf = Config()
@@ -327,7 +327,7 @@ class TestEndpoint(unittest.TestCase):
             # --------------------------------------------------------------
 
         class Config(self.UrlApiConfig):
-            ep = ResourceConfig(path=[""], method="GET", path_description={"x": "y",})
+            ep = ResourceConfig(path=[""], method="GET", path_description={"x": "y"})
             Config()
 
         # --------------------------------------------------------------
@@ -536,10 +536,10 @@ class TestResourceClass(unittest.TestCase):
 
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
+            class Config2(self.UrlApiConfig):
                 ep = ResourceConfig(path=[""], method="GET", processor=JSONResource)
 
         with self.assertRaises(TypeError):
 
-            class Config(self.UrlApiConfig):
+            class Config3(self.UrlApiConfig):
                 ep = ResourceConfig(path=[""], method="GET", processor=JSONResource("error"))

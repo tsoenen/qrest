@@ -101,7 +101,7 @@ class JSONResponse(Response):
 
     def _check_content(self):
         content_type = self.headers.get("content-type", "unknown")
-        if not "json" in content_type:
+        if "json" not in content_type:
             raise TypeError(f"the REST response did not give a JSON but a {content_type}")
 
     def _parse(self):
@@ -132,7 +132,7 @@ class JSONResponse(Response):
 class CSVRestResponse(Response):
     def _check_content(self):
         content_type = self.headers.get("content-type", "unknown")
-        if not "text/csv" in content_type:
+        if "text/csv" not in content_type:
             raise TypeError(f"the REST response did not give a CSV but a {content_type}")
 
     def _parse(self) -> list:

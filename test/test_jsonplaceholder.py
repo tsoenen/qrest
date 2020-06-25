@@ -30,19 +30,19 @@ class JsonPlaceHolderConfig(APIConfig):
         path=["posts", "{item}"],
         method="GET",
         description="Retrieve a single post",
-        path_description={"item": "select the post ID to retrieve",},
-        headers={"X-test-post": "qREST python ORM",},
+        path_description={"item": "select the post ID to retrieve"},
+        headers={"X-test-post": "qREST python ORM"},
     )
 
     comments = ResourceConfig(
         path=["posts", "{post_id}", "comments"],
         method="GET",
         description="Retrieve comments for a single post",
-        path_description={"post_id": "select the post ID to retrieve",},
+        path_description={"post_id": "select the post ID to retrieve"},
     )
 
     create_post = ResourceConfig(
-        path=["posts",],
+        path=["posts"],
         method="POST",
         description="Create a new post",
         parameters={
