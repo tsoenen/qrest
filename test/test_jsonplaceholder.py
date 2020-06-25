@@ -1,5 +1,7 @@
 import unittest
 
+import pytest
+
 import rest_client
 from rest_client import APIConfig
 from rest_client import QueryParameter, BodyParameter, ResourceConfig
@@ -75,6 +77,7 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
     def setUp(self):
         self.config = JsonPlaceHolderConfig()
 
+    @pytest.mark.skip(reason="unable to reach jsonplaceholder.typicode.com")
     def test_get_all_posts(self):
         """
         check method or path
@@ -84,6 +87,7 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
         self.assertIsInstance(response, list)
         self.assertEqual(len(response), 100)
 
+    @pytest.mark.skip(reason="unable to reach jsonplaceholder.typicode.com")
     def test_get_post_1(self):
         """
         check method or path
@@ -93,6 +97,7 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
         self.assertIsInstance(response, dict)
         self.assertEqual(len(response), 4)
 
+    @pytest.mark.skip(reason="unable to reach jsonplaceholder.typicode.com")
     def test_filter_posts_fetch(self):
         """
         check method or path
@@ -102,6 +107,7 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
         self.assertIsInstance(response, list)
         self.assertEqual(len(response), 10)
 
+    @pytest.mark.skip(reason="unable to reach jsonplaceholder.typicode.com")
     def test_filter_posts_response(self):
         """
         check method or path
@@ -113,6 +119,7 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
         self.assertIsInstance(response, list)
         self.assertEqual(len(response), 10)
 
+    @pytest.mark.skip(reason="unable to reach jsonplaceholder.typicode.com")
     def test_posts_comments(self):
         """
         check method or path
@@ -127,6 +134,7 @@ class TestJsonPlaceHolderPost(unittest.TestCase):
     def setUp(self):
         self.config = JsonPlaceHolderConfig()
 
+    @pytest.mark.skip(reason="unable to reach jsonplaceholder.typicode.com")
     def test_new_post(self):
         """
         create a new post
