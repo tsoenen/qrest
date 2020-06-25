@@ -9,18 +9,25 @@ https://github.com/pypa/sampleproject
 
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
+import re
 
 # To use a consistent encoding
 from codecs import open
 from os import path
 
 here = path.abspath(path.dirname(__file__))
-
-# get version from init
-for line in open("rest_client/__init__.py"):
-    if line.startswith("__version__"):
-        exec(line.strip())
-        break
+# Versions should comply with PEP440.  For a discussion on single-sourcing
+# the version across setup.py and the project code, see
+# https://packaging.python.org/en/latest/single_source_version.html
+version = "0.0.0"
+current_dir = path.dirname(__file__)
+with open(path.join(current_dir, "rest_client", "__init__.py")) as f:
+    rx = re.compile('__version__ = "(.*)"')
+    for line in f:
+        m = rx.match(line)
+        if m:
+            version = m.group(1)
+            break
 
 
 # Get the long description from the README file
@@ -30,11 +37,7 @@ with open(path.join(here, "README.rst"), encoding="utf-8") as f:
 setup(
     #    name='universal-rest-client',
     name="qrest",
-    # Versions should comply with PEP440.  For a discussion on single-sourcing
-    # the version across setup.py and the project code, see
-    # https://packaging.python.org/en/latest/single_source_version.html
-    # version='0.9.0',
-    version=__version__,
+    version=version,
     description="A generic python REST client",
     long_description=long_description,
     # The project's main homepage.
@@ -53,7 +56,6 @@ setup(
         #   4 - Beta
         #   5 - Production/Stable
         "Development Status :: 4 - Beta",
-        #'Development Status :: 5 - Production/Stable',
         # Indicate who your project is intended for
         "Intended Audience :: Information Technology",
         "Topic :: Software Development :: Libraries :: Python Modules",
@@ -82,5 +84,5 @@ setup(
     # dependencies). You can install these using the following syntax,
     # for example:
     # $ pip install -e .[dev,test]
-    extras_require={"dev": ["Sphinx"], "test": ["requests-mock"],},
+    extras_require={"dev": ["Sphinx"], "test": ["requests-mock"]},
 )
