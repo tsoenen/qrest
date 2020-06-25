@@ -1,11 +1,8 @@
-from pprint import pprint
 import unittest
 
 import rest_client
-from rest_client import APIConfig, RestClientConfigurationError
+from rest_client import APIConfig
 from rest_client import QueryParameter, BodyParameter, ResourceConfig
-from rest_client import JSONResource
-from rest_client.auth import UserPassAuthConfig
 
 
 class JsonPlaceHolderConfig(APIConfig):

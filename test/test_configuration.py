@@ -1,6 +1,5 @@
 import unittest
 
-import rest_client
 from rest_client import APIConfig, RestClientConfigurationError
 from rest_client import QueryParameter, BodyParameter, ResourceConfig
 from rest_client import JSONResource

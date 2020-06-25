@@ -5,12 +5,11 @@ class is encouraged to be subclassed to add functionality such as complex pagina
 
 """
 
-import importlib
 import requests
 import logging
 from urllib.parse import quote, urljoin
 from abc import ABC, abstractmethod
-from typing import Optional, Type
+from typing import Optional
 
 from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -44,11 +43,11 @@ class API:
     def __init__(self, config):
         """
         REST Client constructor
-        
+
         :param config: The configuration object of the REST API resources
         :type config: Subclass of APIConfig
-        
-        An API describes a REST server, and contains a list of resources. 
+
+        An API describes a REST server, and contains a list of resources.
         We allow customization of the "resource class", which is basically
         a wrapper around the response object: default is JSON, so we pre-made a JSON resource class.
         Optionally this resource class handles non-standard responses such as pagination or a
@@ -148,14 +147,14 @@ class Resource(ABC):
         """ Configure the resource. This is a required procedure to set all parameters.
         Setting these parameters is not possible by using __init__, because this class is initialized
         within the config, to enable setting custom parameters instead
-        
+
         :param name: the pythonic name of this resource (i.e. my own name). Used to generate error messages
         :param server_url: the base server URL (e.g. http://localhost:8080)
         :param verify_ssl: boolean to set verify_ssl in the request on or off
         :param auth: Which Authentication module to use
-        :type auth: subclass of AuthConfig 
+        :type auth: subclass of AuthConfig
         :param config: which ResourceConfiguration to use
-        :type config: subclass of ResourceConfig 
+        :type config: subclass of ResourceConfig
         """
 
         self.name = name
@@ -374,9 +373,9 @@ class Resource(ABC):
             The parameters are validated in a previous call to validate_query().
             It returns a dictionary of the response or throws an appropriate
             error, depending on the HTTP return code.
-            
+
             This should be the *only* place in the module where the Requests module is called!
-            
+
         """
 
         # check if user is logged in
@@ -435,7 +434,7 @@ class Resource(ABC):
 # ###############################################################
 class JSONResource(Resource):
     """ A REST Resource that expects a JSON return
-    
+
     """
 
     def __init__(
