@@ -11,21 +11,21 @@ logger = logging.getLogger(__name__)
 # ###############################################################
 class URLValidator:
     """
-	lightweight URL validation checker. This is a minimal implementation compared to e.g. the Django validation
-	checker, as the configs are mostly supposed to be fixed in advance of usage.
-	"""
+    lightweight URL validation checker. This is a minimal implementation compared to e.g. the
+    Django validation checker, as the configs are mostly supposed to be fixed in advance of usage.
+    """
 
     def __init__(self, schemes=None):
         """
-		set the restrictions imposed on the URL to be checked
-		"""
+        set the restrictions imposed on the URL to be checked
+        """
         pass
 
     # ------------------------------------------------------------------
     def check(self, url, require_path=True):
         """
-		check if the presented URL is valid
-		"""
+        check if the presented URL is valid
+        """
 
         final_url = urlparse(url)
         if not all([final_url.scheme, final_url.netloc]):

@@ -25,10 +25,11 @@ disable_warnings(InsecureRequestWarning)
 
 # ================================================================================================
 class ParameterConfig:
-    """
-    Contain and validate parameters for a REST endpoint. As this is a configuration container only, the main
-    purpose is to store the config and check if the input aligns with the intended use. There is no
-    validation beyond this point
+    """Contain and validate parameters for a REST endpoint. As this is a
+    configuration container only, the main purpose is to store the config and
+    check if the input aligns with the intended use. There is no validation
+    beyond this point
+
     """
 
     # -----------------------------------------------------------------------------------------------------
@@ -46,7 +47,8 @@ class ParameterConfig:
         Parameter configuration. Details the name and limitations on the REST parameter and how it
         interacts with other parameters within the same endpoint.
 
-        :param name: the 'remote' name of the parameter. this name is what the REST resource actually gets to interpret
+        :param name: the 'remote' name of the parameter. this name is what the REST resource
+            actually gets to interpret
         :param required: if this parameter is ommitted in the qyery, throw an exception
         :param multiple: if set to True, the value of the query parameter is a list
         :param exclusion_group: parameters in the same exclusion group may not be used together
@@ -66,8 +68,9 @@ class ParameterConfig:
 
     # -----------------------------------------------------------------------------------------------------
     def _validate(self):
-        """
-        internal routine to check a set of rules to validate if the ParameterConfig is configured correctly
+        """internal routine to check a set of rules to validate if the ParameterConfig
+        is configured correctly
+
         """
         if not isinstance(self.required, bool):
             raise RestClientConfigurationError('parameter "required" must be boolean')
@@ -113,9 +116,8 @@ class BodyParameter(ParameterConfig):
 
 # ================================================================================================
 class ResourceConfig:
-    """
-    contain and validate details for a REST endpoint. Effectively this creates an ORM wrapper around a
-    REST endpoint, pretending it is a python object
+    """contain and validate details for a REST endpoint. Effectively this creates
+    an ORM wrapper around a REST endpoint, pretending it is a python object
 
     """
 
@@ -133,17 +135,19 @@ class ResourceConfig:
         """
         Constructor, stores externally supplied parameters and validate the quality of it
 
-        :param path: a list separation of the path components, e.g. ['api','v2','user','{name},'stats'] where
-                     names in brackets are converted to path parameters.
+        :param path: a list separation of the path components, e.g. ['api','v2','user','{name},
+            'stats'] where names in brackets are converted to path parameters.
         :param method: one of GET,PUT,etc
-        :param parameters: a dictionary of ParameterConfig instances that each describe one parameter. This is
-                    relevant for body and query parameters only, path parameters are specified in the path itself
-                    and subsequent annotation of those parameters is done in path_description.
-        :param headers: a dictionary of headers that will be provided to the endpoint. Typical use is the response_type
+        :param parameters: a dictionary of ParameterConfig instances that each describe one
+            parameter. This is relevant for body and query parameters only, path parameters are
+            specified in the path itself and subsequent annotation of those parameters is done in
+            path_description.
+        :param headers: a dictionary of headers that will be provided to the endpoint. Typical use
+            is the response_type
         :param processor: a subclass of rest_client.RestResource that handles specific use cases.
-                    This now defaults to JSONResource as this is the most common use type
-        :param description: A general description of the endpoint that can be obtained by the user through the description
-                    property of the endpointconfig instance
+            This now defaults to JSONResource as this is the most common use type
+        :param description: A general description of the endpoint that can be obtained by the user
+            through the description property of the endpointconfig instance
         :param path_description: a dictionary that provides a description for each path parameter.
 
         """
@@ -164,8 +168,8 @@ class ResourceConfig:
     def validate(self):
         """ Check quality of each parameter and its type.
         Each parameter is checked for type, and if a specific substructure is required
-        then this is also introspected. Currently Method is limited to GET or POST for no reason other then
-        no tests were conducted with PUT, HEAD etc etc
+        then this is also introspected. Currently Method is limited to GET or POST for no reason
+        other then no tests were conducted with PUT, HEAD etc etc
 
         :raises RestClientConfigurationError: No response is provided if there is no problem
 
@@ -215,11 +219,12 @@ class ResourceConfig:
 
     # --------------------------------------------------------------------------------------------
     def apply_default_headers(self, default):
-        """
-        For internal use. Update endpoint parameters from a shared default. This allows the user to set
-        e.g. headers that are applicable to multiple endpoints in a single activity.
+        """For internal use. Update endpoint parameters from a shared default. This
+        allows the user to set e.g. headers that are applicable to multiple
+        endpoints in a single activity.
 
         Note that this default only provides functionality for headers
+
         """
 
         # check types
@@ -238,11 +243,14 @@ class ResourceConfig:
     # ---------------------------------------------------------------------------------------------
     @property
     def path_parameters(self) -> list:
-        """ Lists the (always required) path parameters for the specified REST API resource. THis list is obtained
-        by checking the path list (['api','v2','{para}','details']) for items that are within curly brackets {}.
-        These parameters are stripped and the remainder is added to the path parameter list
+        """Lists the (always required) path parameters for the specified REST API
+        resource. This list is obtained by checking the path list (['api',
+        'v2', '{para}', 'details']) for items that are within curly brackets
+        {}. These parameters are stripped and the remainder is added to the
+        path parameter list
 
         :return: A list of the path parameters for the specified REST API resource
+
         """
 
         path_parameters = []
@@ -259,7 +267,8 @@ class ResourceConfig:
             them can be used in a query at a time, unless the 'multiple' property
             has been used for every query parameter of that group.
 
-        :return: A dictionary of the different groups (key) of query parameters (value, is list) for the specified REST API resource
+        :return: A dictionary of the different groups (key) of query parameters (value, is list)
+            for the specified REST API resource
         """
 
         result = defaultdict(list)
@@ -276,8 +285,8 @@ class ResourceConfig:
         """ Lists the required and optional query parameters for the specified REST API resource.
             Also summarises the query parameters that can be multiple.
 
-            :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters
-                    (value, a list) for the specified REST API resource.
+            :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query
+                parameters (value, a list) for the specified REST API resource.
         """
         result = {"required": [], "optional": [], "multiple": []}
         for para_name, para_set in self.parameters.items():
@@ -309,7 +318,8 @@ class ResourceConfig:
         """ Lists the required parameters for the specified REST API resource.
             Also summarises the query parameters that can be multiple.
 
-            :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters (value, a list) for the specified REST API resource
+            :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query
+                parameters (value, a list) for the specified REST API resource
             :rtype: ``list``
         """
         return self.path_parameters + self.query_parameters["required"]

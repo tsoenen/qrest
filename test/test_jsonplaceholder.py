@@ -77,8 +77,8 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
 
     def test_get_all_posts(self):
         """
-		check method or path
-		"""
+        check method or path
+        """
         x = rest_client.API(self.config)
         response = x.all_posts.fetch()
         self.assertIsInstance(response, list)
@@ -86,8 +86,8 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
 
     def test_get_post_1(self):
         """
-		check method or path
-		"""
+        check method or path
+        """
         x = rest_client.API(self.config)
         response = x.single_post.fetch(item=1)
         self.assertIsInstance(response, dict)
@@ -95,8 +95,8 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
 
     def test_filter_posts_fetch(self):
         """
-		check method or path
-		"""
+        check method or path
+        """
         x = rest_client.API(self.config)
         response = x.filter_posts.fetch(user_id=1)
         self.assertIsInstance(response, list)
@@ -104,8 +104,8 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
 
     def test_filter_posts_response(self):
         """
-		check method or path
-		"""
+        check method or path
+        """
         x = rest_client.API(self.config)
         resource = x.filter_posts(user_id=1)
         response = resource.data
@@ -115,8 +115,8 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
 
     def test_posts_comments(self):
         """
-		check method or path
-		"""
+        check method or path
+        """
         x = rest_client.API(self.config)
         response = x.comments.fetch(post_id=1)
         self.assertIsInstance(response, list)
@@ -129,8 +129,8 @@ class TestJsonPlaceHolderPost(unittest.TestCase):
 
     def test_new_post(self):
         """
-		create a new post
-		"""
+        create a new post
+        """
         x = rest_client.API(self.config)
         print(x.create_post.help("title"))
 

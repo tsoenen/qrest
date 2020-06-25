@@ -1,6 +1,6 @@
-"""
-This module contains the Response objects. A response object is a wrapper around the data the comes from the
-REST server after the client asks for it. 
+"""This module contains the Response objects. A response object is a wrapper
+around the data the comes from the REST server after the client asks for it.
+
 """
 
 import copy
@@ -25,9 +25,9 @@ logger = logging.getLogger(__name__)
 class Response(ABC):
 
     """
-	Abstract Base class wrapper around the REST response. This is meant to process the returned data
-	obtained from the REST request into a python object
-	"""
+    Abstract Base class wrapper around the REST response. This is meant to process the returned
+    data obtained from the REST request into a python object
+    """
 
     _response = None
     headers = None
@@ -37,13 +37,14 @@ class Response(ABC):
     @abstractmethod
     def __init__(self):
         """ RestResponse constructor
-		This should be overridden by subclasses so that required parameters are visible through introspection
-		"""
+        This should be overridden by subclasses so that required parameters are visible through
+        introspection
+        """
 
     def __call__(self, response: Type[requests.models.Response]):
         """ RestResponse wrapper call
-		    :param response: The Requests Response object
-		"""
+            :param response: The Requests Response object
+        """
         if not self.options:
             # raise RestClientConfigurationError('configuration is not set for API Response')
             logger.warn("No options are provided")
@@ -61,8 +62,8 @@ class Response(ABC):
 
     def fetch(self):
         """
-		systematic function to indicate that the required content is to be delivered
-		"""
+        systematic function to indicate that the required content is to be delivered
+        """
         return self.data
 
     @abstractmethod
@@ -80,16 +81,18 @@ class JSONResponse(Response):
         self, extract_section: Optional[list] = None, create_attribute: Optional[str] = "results"
     ):
         """
-		Special Wrapper to handle JSON responses. It takes the response object and creates a dictionary.
-		Optionally it allows extraction of a payload subsection to a user-defined attribute. In all cases the
-		raw data goes to the 'data' property'.
-		
-		:param extract_section: This indicates which part of the obtained JSON response contains the main
-		    payload that should be extracted. The tree is provided as a list of items to traverse
-		:param create_attribute: The "results_name" which is the property that will be generated to contain
-		    the previously obtained subsection of the json tree
-		
-		"""
+        Special Wrapper to handle JSON responses. It takes the response object and creates a
+        dictionary.
+        Optionally it allows extraction of a payload subsection to a user-defined attribute. In all
+        cases the raw data goes to the 'data' property'.
+
+        :param extract_section: This indicates which part of the obtained JSON response contains
+            the main payload that should be extracted. The tree is provided as a list of items to
+            traverse
+        :param create_attribute: The "results_name" which is the property that will be generated to
+            contain the previously obtained subsection of the json tree
+
+        """
 
         if extract_section and not isinstance(extract_section, list):
             raise RestClientConfigurationError("extract_section option is not a list")
@@ -102,11 +105,13 @@ class JSONResponse(Response):
             raise TypeError(f"the REST response did not give a JSON but a {content_type}")
 
     def _parse(self):
-        """ Returns the JSON contained in the Requests Response object, following the options specified in the JSON configuration
+        """ Returns the JSON contained in the Requests Response object, following the options
+        specified in the JSON configuration
 
-		    :return: A dictionary containing the Requests Response object, adapted to the JSON configuration
-		    :rtype: ``dict``
-		"""
+        :return: A dictionary containing the Requests Response object, adapted to the JSON
+            configuration
+        :rtype: ``dict``
+        """
 
         # replace content by decoded content
         self.raw = copy.deepcopy(self._response.json())
@@ -132,7 +137,7 @@ class CSVRestResponse(Response):
 
     def _parse(self) -> list:
         """ processes a raw CSV into lines. For very large content this may be better served by a generator
-		"""
+        """
 
         data = self._response.content
         self.raw = data.decode("UTF-8")

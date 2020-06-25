@@ -9,8 +9,8 @@ from rest_client.auth import UserPassAuthConfig
 class TestMinimal(unittest.TestCase):
     def test_minimal_config(self):
         """
-		check method or path
-		"""
+        check method or path
+        """
 
         class Config(APIConfig):
             url = "http://localhost"

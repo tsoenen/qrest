@@ -27,22 +27,22 @@ class CASServiceTicketError(CASLoginError):
 
 class CASAuth(RESTAuthentication):
     """
-	Subclass of the RESTAuthentication that is able to use CAS to request and store
-	a ticket-granting-ticket and subsequent service tickets.
-	"""
+    Subclass of the RESTAuthentication that is able to use CAS to request and store
+    a ticket-granting-ticket and subsequent service tickets.
+    """
 
     # -------------------------------------------------------------------------------------
     def __init__(self, rest_client, auth_config_object):
         """
-		CASAuth constructor
+        CASAuth constructor
 
-		:param rest_client: A reference to the RESTclient object
-		:type rest_client: ``RESTclient``
+        :param rest_client: A reference to the RESTclient object
+        :type rest_client: ``RESTclient``
 
-		:param auth_config_object: The configuration object
-		:type auth_config_object: ``AuthConfig``
+        :param auth_config_object: The configuration object
+        :type auth_config_object: ``AuthConfig``
 
-		"""
+        """
 
         super(CASAuth, self).__init__(rest_client)
 
@@ -71,37 +71,39 @@ class CASAuth(RESTAuthentication):
         ticket_granting_ticket=None,
     ):
         """
-		CAS-auth requires a secondary auth, so it has two authentication levels...
-		Allow logins via either netRC or user/pass.
-		If netrc is true, try this. Else, try user/pass if supplied.
-		If neither is available, raise error
+        CAS-auth requires a secondary auth, so it has two authentication levels...
+        Allow logins via either netRC or user/pass.
+        If netrc is true, try this. Else, try user/pass if supplied.
+        If neither is available, raise error
 
 
-		:param server_url: the URL of the CAS server
-		:type server_url: ``string_type``
+        :param server_url: the URL of the CAS server
+        :type server_url: ``string_type``
 
-		:param service_name: the name of the service of CAS
-		:type service_name: ``string_type``
+        :param service_name: the name of the service of CAS
+        :type service_name: ``string_type``
 
 
-		:param verify_ssl: Whether the CAS client should verify SSL certificates upon making requests
-		:type verify_ssl: ``bool``  or `` string_type`` 
+        :param verify_ssl: Whether the CAS client should verify SSL certificates upon making
+            requests
+        :type verify_ssl: ``bool``  or `` string_type``
 
-		:param netrc_path: The path to Netrc
-		:type netrc_path: ``string_type_or_none``
+        :param netrc_path: The path to Netrc
+        :type netrc_path: ``string_type_or_none``
 
-		:param username: The user for authenticating with the CAS end-point
-		:type username: ``string_type_or_none``
+        :param username: The user for authenticating with the CAS end-point
+        :type username: ``string_type_or_none``
 
-		:param password: The password for authenticating with the CAS end-point
-		:type password: ``string_type_or_none``
+        :param password: The password for authenticating with the CAS end-point
+        :type password: ``string_type_or_none``
 
-		:param granting_ticket_filepath: The local path where a "ticket getting ticket" will be saved
-		:type granting_ticket_filepath: ``string_type``
+        :param granting_ticket_filepath: The local path where a "ticket getting ticket" will be
+            saved
+        :type granting_ticket_filepath: ``string_type``
 
-		:param tgt_volatile_storage: Is the TGT stored on the filesystem or handed over to the user
-		:type tgt_volatile_storage: ``boolean``
-		"""
+        :param tgt_volatile_storage: Is the TGT stored on the filesystem or handed over to the user
+        :type tgt_volatile_storage: ``boolean``
+        """
 
         # the connection parameters
         self.server = server_url
@@ -145,7 +147,8 @@ class CASAuth(RESTAuthentication):
             except ValueError:
                 pass
 
-        # if no TGT, then a new request needs to be made: either using user/pass, or netrc as backup
+        # if no TGT, then a new request needs to be made: either using
+        # user/pass, or netrc as backup
         if not self.ticket_granting_ticket:
             if not self.are_valid_credentials(username, password):
                 raise RestLoginError(
@@ -163,8 +166,8 @@ class CASAuth(RESTAuthentication):
                 username, password
             ):  # this uses the netrc creds, but only after trying without first
                 raise RestLoginError(
-                    '[CAS] could not get service ticket, and netrc credentials are invalid or absent. Exact error msg="%s"'
-                    % str(e)
+                    "[CAS] could not get service ticket, and netrc credentials are invalid or "
+                    'absent. Exact error msg="%s"' % str(e)
                 )
             try:
                 self.ticket_granting_ticket = self.request_new_tgt(username, password)
@@ -176,19 +179,22 @@ class CASAuth(RESTAuthentication):
                 )
             except CASServiceTicketError as e2:
                 raise RestLoginError(
-                    '[CAS] could not get service ticket, despite getting a new TGT. Exact error msg="%s"'
-                    % str(e2)
+                    "[CAS] could not get service ticket, despite getting a new TGT. Exact error "
+                    'msg="%s"' % str(e2)
                 )
 
         self.is_logged_in = True
 
     # -------------------------------------------------------------------------------------
     def request_new_service_ticket(self):
-        """ Retrieves the service ticket that will ultimately be used inside the request to the REST end-point.
+        """Retrieves the service ticket that will ultimately be used inside the
+request to the REST end-point.
 
-		    :return: The text or token to be used inside the Authorization header of the RESTful request
-		    :rtype: ``string_type``
-		"""
+        :return: The text or token to be used inside the Authorization header of the RESTful
+            request
+        :rtype: ``string_type``
+
+        """
         logger.debug("[CAS] Requesting new service ticket")
 
         # allow override of service name
@@ -207,7 +213,8 @@ class CASAuth(RESTAuthentication):
         if not response.ok:
             logger.debug("[CAS] Service ticket request failed")
             raise CASServiceTicketError(
-                "Cannot authenticate against CAS service using service name '{service}'. HTTP status code: '{status}'".format(
+                "Cannot authenticate against CAS service using service name '{service}'. HTTP "
+                "status code: '{status}'".format(
                     status=response.status_code, service=body["service"]
                 )
             )
@@ -218,13 +225,13 @@ class CASAuth(RESTAuthentication):
     @property
     def ticket_granting_ticket(self):
         """
-		Reads the ticket getting ticket that will ultimately be used inside
-		the request to the CAS end-point for retrieving a service ticket.
-		The "tgtPath" parameter has to point to an existing location.
+        Reads the ticket getting ticket that will ultimately be used inside
+        the request to the CAS end-point for retrieving a service ticket.
+        The "tgtPath" parameter has to point to an existing location.
 
-		:return: The URL to be used for retrieving a service ticket from the CAS end-point
-		:rtype: ``string_type``
-		"""
+        :return: The URL to be used for retrieving a service ticket from the CAS end-point
+        :rtype: ``string_type``
+        """
         if self.tgt_volatile_storage:
             if not self.__ticket_granting_ticket:
                 return None
@@ -261,8 +268,8 @@ class CASAuth(RESTAuthentication):
     @ticket_granting_ticket.setter
     def ticket_granting_ticket(self, tgt):
         """
-		depending on method, store TGT in file or within class instance
-		"""
+        depending on method, store TGT in file or within class instance
+        """
 
         # special case: if TGT is None then clear the underlying variable
         if tgt == None:
@@ -290,10 +297,10 @@ class CASAuth(RESTAuthentication):
     # -------------------------------------------------------------------------------------
     def request_new_tgt(self, username, password):
         """ Retrieves the ticket getting ticket that will ultimately be used inside the request to the CAS
-		    end-point for retrieving a service ticket.
-		    If the "tgtPath" parameter isn't pointing to an existing location, that location will be created.
-		    If the file at "tgtPath" exists, it will be replaced by the newly retrieved TGT.
-		"""
+            end-point for retrieving a service ticket.
+        If the "tgtPath" parameter isn't pointing to an existing location, that location will be
+        created. If the file at "tgtPath" exists, it will be replaced by the newly retrieved TGT.
+        """
 
         if not self.are_valid_credentials(username, password):
             raise CASGrantingTicketError(
@@ -314,7 +321,8 @@ class CASAuth(RESTAuthentication):
             )
         elif (response.status_code < 200) or (response.status_code >= 300):
             raise CASGrantingTicketError(
-                "TGT: Cannot authenticate against CAS using provided 'username:{username}' and 'password'. HTTP status code: '{status}'".format(
+                "TGT: Cannot authenticate against CAS using provided 'username:{username}' and "
+                " 'password'. HTTP status code: '{status}'".format(
                     status=response.status_code, username=username
                 )
             )
@@ -324,11 +332,14 @@ class CASAuth(RESTAuthentication):
 
     ## -------------------------------------------------------------------------------------
     def __call__(self, r):
+        """Is called by the requests library when authentication is needed while
+        issuing a RESTful request.
+
+        Will retrieve a new service ticket or token if necessary. Adds the
+        Authorization header and supplies the correct service ticket or token
+        to it.
+
         """
-		Is called by the requests library when authentication is needed while issuing a RESTful request.
-		Will retrieve a new service ticket or token if necessary.
-		Adds the Authorization header and supplies the correct service ticket or token to it.
-		"""
         service_ticket = self.request_new_service_ticket()
         logger.debug("[CAS] add service ticket to request header")
         r.headers["Authorization"] = "CAS {service_ticket}".format(service_ticket=service_ticket)
@@ -338,21 +349,21 @@ class CASAuth(RESTAuthentication):
 # ==========================================================================================
 class CasAuthConfig(AuthConfig):
     """
-	CAS authentication specific for the CLS implementation below
-	"""
+    CAS authentication specific for the CLS implementation below
+    """
 
     authentication_module = CASAuth
 
     # -------------------------------------------------------------------------------------
     def __init__(self, path, service_name):
         """
-		:param path: The absolute path for the ticket granting tickets
-		:type path: ``list``
+        :param path: The absolute path for the ticket granting tickets
+        :type path: ``list``
 
-		:param service: The service name used to authenticate with the CAS end-point
-		:type service: ``string_type``
+        :param service: The service name used to authenticate with the CAS end-point
+        :type service: ``string_type``
 
-		"""
+        """
 
         self.path = path
         self.service_name = service_name

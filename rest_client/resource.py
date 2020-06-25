@@ -1,7 +1,8 @@
-"""
-The main working module of the package: contains the API class (which creates the ORM for a
-RES server), and the Resource class (which wraps around a single endpoint / resources ). The Resource
-class is encouraged to be subclassed to add functionality such as complex pagination or response processing
+"""The main working module of the package: contains the API class (which
+creates the ORM for a RES server), and the Resource class (which wraps around a
+single endpoint / resources ). The Resource class is encouraged to be
+subclassed to add functionality such as complex pagination or response
+processing
 
 """
 
@@ -42,17 +43,18 @@ class API:
     auth = None
 
     def __init__(self, config):
-        """
-        REST Client constructor
+        """REST Client constructor
 
         :param config: The configuration object of the REST API resources
         :type config: Subclass of APIConfig
 
-        An API describes a REST server, and contains a list of resources.
-        We allow customization of the "resource class", which is basically
-        a wrapper around the response object: default is JSON, so we pre-made a JSON resource class.
-        Optionally this resource class handles non-standard responses such as pagination or a
-        specific response format from which the payload needs to be derived
+        An API describes a REST server, and contains a list of resources. We
+        allow customization of the "resource class", which is basically a
+        wrapper around the response object: default is JSON, so we pre-made a
+        JSON resource class. Optionally this resource class handles
+        non-standard responses such as pagination or a specific response format
+        from which the payload needs to be derived
+
         """
 
         # check
@@ -103,7 +105,8 @@ class API:
             :param resource: A string that represents the REST API resource
             :type resource: ``string_type``
 
-            :return: A function that builds and sends a request for the specified REST API resource and validates the function call
+            :return: A function that builds and sends a request for the specified REST API resource
+                and validates the function call
             :rtype: ``list(string_type)``
         """
 
@@ -143,17 +146,20 @@ class Resource(ABC):
 
     # ---------------------------------------------------------------------------------------------
     def configure(self, name: str, server_url: str, config, auth=None, verify_ssl: bool = False):
-        """ Configure the resource. This is a required procedure to set all parameters.
-        Setting these parameters is not possible by using __init__, because this class is initialized
-        within the config, to enable setting custom parameters instead
+        """Configure the resource. This is a required procedure to set all parameters.
+        Setting these parameters is not possible by using __init__, because
+        this class is initialized within the config, to enable setting custom
+        parameters instead
 
-        :param name: the pythonic name of this resource (i.e. my own name). Used to generate error messages
+        :param name: the pythonic name of this resource (i.e. my own name). Used to generate error
+            messages
         :param server_url: the base server URL (e.g. http://localhost:8080)
         :param verify_ssl: boolean to set verify_ssl in the request on or off
         :param auth: Which Authentication module to use
         :type auth: subclass of AuthConfig
         :param config: which ResourceConfiguration to use
         :type config: subclass of ResourceConfig
+
         """
 
         self.name = name
@@ -179,8 +185,9 @@ class Resource(ABC):
 
     # ---------------------------------------------------------------------------------------------
     def fetch(self, *args, **kwargs):
-        """
-        shortcut function to immedaitely deliver the content of the response insetead of the response object itself
+        """shortcut function to immediately deliver the content of the response
+        insetead of the response object itself
+
         """
         response = self.__call__(*args, **kwargs)
         return response.fetch()
@@ -190,7 +197,8 @@ class Resource(ABC):
     def parameters(self) -> dict:
         """
         return the configuration parameters for this rest resource
-        :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters (value, a list)
+        :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters
+            (value, a list)
 
         """
         return self.config.as_dict
@@ -244,9 +252,8 @@ class Resource(ABC):
         diff = list(set(kwargs.keys()).difference(conf.all_parameters))
         if diff:
             raise RestClientQueryError(
-                "parameters {difference} are supplied but not usable for resource '{resource}'".format(
-                    difference=diff, resource=self.name
-                )
+                "parameters {difference} are supplied but not usable for "
+                "resource '{resource}'".format(difference=diff, resource=self.name)
             )
 
         # ----------------------------------
@@ -268,7 +275,8 @@ class Resource(ABC):
             if config.choices:
                 if not kwargs[parameter] in config.choices:
                     raise RestClientQueryError(
-                        "value '{val}' for parameter '{parameter}' is not a valid choice: pick from {choices}".format(
+                        "value '{val}' for parameter '{parameter}' is not a valid choice: pick "
+                        "from {choices}".format(
                             val=kwargs[parameter],
                             parameter=parameter,
                             choices=", ".join(config.choices),
@@ -284,7 +292,8 @@ class Resource(ABC):
                 if kwarg in conf.query_parameter_groups[group]:
                     if group in groups_used:
                         raise RestClientQueryError(
-                            "parameter '{kwarg1}' and '{kwarg2}' from group '{group}' can't be used together".format(
+                            "parameter '{kwarg1}' and '{kwarg2}' from group '{group}' can't be "
+                            "used together".format(
                                 kwarg1=kwarg, kwarg2=groups_used[group], group=group
                             )
                         )
@@ -443,10 +452,11 @@ class JSONResource(Resource):
         create_attribute: Optional[str] = "results",
     ):
         """
-        :param extract_section: This indicates which part of the obtained JSON response contains the main
-            payload that should be extracted. The tree is provided as a list of items to traverse
-        :param create_attribute: The "results_name" which is the property that will be generated to contain
-            the previously obtained subsection of the json tree
+        :param extract_section: This indicates which part of the obtained JSON response contains
+            the main payload that should be extracted. The tree is provided as a list of items to
+            traverse
+        :param create_attribute: The "results_name" which is the property that will be generated
+            to contain the previously obtained subsection of the json tree
         """
 
         self.response_class = JSONResponse(extract_section, create_attribute)

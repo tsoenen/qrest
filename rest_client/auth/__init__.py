@@ -100,15 +100,18 @@ class UserPassAuth(RESTAuthentication):
 
     # -------------------------------------------------------------------------------
     def login(self, username=None, password=None):
-        """ Explicitly do a login with supplied username and password.
-            If username and password are supplied, it will use those to login.
-            If either or both username and/or password is missing, will try to retrieve the credentials from the netrc file.
+        """Explicitly do a login with supplied username and password.
 
-            :param username: The user for authenticating with the CAS end-point
-            :type username: ``string_type_or_none``
+        If username and password are supplied, it will use those to login. If
+        either or both username and/or password is missing, will try to
+        retrieve the credentials from the netrc file.
 
-            :param password: The password for authenticating with the CAS end-point
-            :type password: ``string_type_or_none``
+        :param username: The user for authenticating with the CAS end-point
+        :type username: ``string_type_or_none``
+
+        :param password: The password for authenticating with the CAS end-point
+        :type password: ``string_type_or_none``
+
         """
 
         if not self.are_valid_credentials(username, password):
@@ -135,11 +138,14 @@ class NetRCAuth(RESTAuthentication):
 
     # -------------------------------------------------------------------------------
     def login(self, netrc_path: Optional[str] = os.path.expanduser("~/.netrc")):
-        """ Explicitly do a login with supplied username and password.
-            If username and password are supplied, it will use those to login.
-            If either or both username and/or password is missing, will try to retrieve the credentials from the netrc file.
+        """Explicitly do a login with supplied username and password.
 
-            :param netrc_path: The network path to the netrc file
+        If username and password are supplied, it will use those to login. If
+        either or both username and/or password is missing, will try to
+        retrieve the credentials from the netrc file.
+
+        :param netrc_path: The network path to the netrc file
+
         """
 
         if netrc_path:
@@ -154,18 +160,16 @@ class NetRCAuth(RESTAuthentication):
                 (netrc_login, _, netrc_password) = nrc.authenticators(host)
             except TypeError:
                 raise ValueError(
-                    "No credentials found for host '{host}' or 'default' in the netrc file at location '{location}'".format(
-                        host=host, location=self.netrc_path
-                    )
+                    "No credentials found for host '{host}' or 'default' in the netrc file at "
+                    "location '{location}'".format(host=host, location=self.netrc_path)
                 )
             if self.are_valid_credentials(netrc_login, netrc_password):
                 self.username = netrc_login
                 self.password = netrc_password
             else:
                 raise ValueError(
-                    "No valid credentials found for host '{host}' or 'default' in the netrc file at location '{location}'".format(
-                        host=host, location=self.netrc_path
-                    )
+                    "No valid credentials found for host '{host}' or 'default' in the netrc file "
+                    "at location '{location}'".format(host=host, location=self.netrc_path)
                 )
         else:
             raise ValueError("No Netrc path supplied")
