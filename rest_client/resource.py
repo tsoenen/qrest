@@ -186,7 +186,7 @@ class Resource(ABC):
     # ---------------------------------------------------------------------------------------------
     def fetch(self, *args, **kwargs):
         """shortcut function to immediately deliver the content of the response
-        insetead of the response object itself
+        instead of the response object itself
 
         """
         response = self.__call__(*args, **kwargs)

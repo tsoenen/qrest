@@ -1,10 +1,13 @@
 import unittest
+import unittest.mock as mock
 
 import pytest
+import requests
 
 import rest_client
 from rest_client import APIConfig
 from rest_client import QueryParameter, BodyParameter, ResourceConfig
+from rest_client.response import Response
 
 
 class JsonPlaceHolderConfig(APIConfig):
@@ -73,9 +76,53 @@ class JsonPlaceHolderConfig(APIConfig):
     )
 
 
+class PassthroughResponse(Response):
+    """Provide access to the requests.Response that is wrapped."""
+
+    def __init__(self):
+        pass
+
+    def fetch(self):
+        """Return the requests.Response object received."""
+        return self._response
+
+    def _check_content(self):
+        pass
+
+    def _parse(self):
+        pass
+
+
 class TestJsonPlaceHolderGet(unittest.TestCase):
     def setUp(self):
         self.config = JsonPlaceHolderConfig()
+
+    def test_all_posts_queries_the_right_endpoint(self):
+        api = rest_client.API(self.config)
+        api.all_posts.response_class = PassthroughResponse()
+
+        with mock.patch("requests.request") as mock_request:
+            mock_response = mock.Mock(spec=requests.Response)
+            mock_response.status_code = 200
+            mock_response.content = b"Hello World!"
+            # for this test we're not interested in the headers attribute of
+            # the requests.Response but our Response object requires it
+            mock_response.headers = {}
+            mock_request.return_value = mock_response
+
+            response = api.all_posts.fetch()
+
+            mock_request.assert_called_with(
+                method="GET",
+                auth=None,
+                verify=False,
+                url="https://jsonplaceholder.typicode.com/posts",
+                params={},
+                json={},
+                headers={"Content-type": "application/json; charset=UTF-8"},
+            )
+
+            self.assertEqual(b"Hello World!", response.content)
 
     @pytest.mark.skip(reason="unable to reach jsonplaceholder.typicode.com")
     def test_get_all_posts(self):

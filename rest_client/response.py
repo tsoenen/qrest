@@ -47,7 +47,7 @@ class Response(ABC):
         """
         if not self.options:
             # raise RestClientConfigurationError('configuration is not set for API Response')
-            logger.warn("No options are provided")
+            logger.warning("No options are provided")
 
         if not isinstance(response, requests.models.Response):
             raise TypeError("RestResponse expects a requests.models.Response as input")
@@ -61,9 +61,7 @@ class Response(ABC):
         return self
 
     def fetch(self):
-        """
-        systematic function to indicate that the required content is to be delivered
-        """
+        """Return the data of interest of the REST response."""
         return self.data
 
     @abstractmethod
