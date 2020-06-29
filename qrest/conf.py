@@ -385,11 +385,11 @@ class APIConfig:
     verify_ssl = False
 
     def __init__(self):
-        self.endpoints = self.get_list_of_endpoints()
-        self.apply_defaults()
-        self.validate()
+        self.endpoints = self._get_list_of_endpoints()
+        self._apply_defaults()
+        self._validate()
 
-    def apply_defaults(self):
+    def _apply_defaults(self):
         """
         rotate throught the endpoints and apply the fedault settings
         """
@@ -397,7 +397,7 @@ class APIConfig:
             for endpoint in self.endpoints.values():
                 endpoint.apply_default_headers(self.default_headers)
 
-    def validate(self):
+    def _validate(self):
         """
         Validates a resources configuration and raises appropriate exceptions
         """
@@ -419,7 +419,7 @@ class APIConfig:
                 "authentication attribute is not an initiated instance of AuthConfig"
             )
 
-    def get_list_of_endpoints(self):
+    def _get_list_of_endpoints(self):
         """
         returns a dictionary of all the defined endpoints
         """
