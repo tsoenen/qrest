@@ -9,7 +9,7 @@ processing
 import requests
 import logging
 from urllib.parse import quote, urljoin
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Optional
 
 from requests.packages.urllib3 import disable_warnings
@@ -17,6 +17,7 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 # ================================================================================================
 # local imports
+from .response import Response
 from .utils import URLValidator
 from .exception import (
     RestClientQueryError,
@@ -122,10 +123,12 @@ class API:
 
 # ===================================================================================================
 class Resource(ABC):
-    """
-    A resource is defined as a single REST endpoint.
+    """A resource is defined as a single REST endpoint.
     This class wraps functionality of creating and querying this resources, starting with a
     configuration string
+
+    :param response: object that wraps the return value of requests.request
+
     """
 
     is_configured = False
@@ -137,7 +140,7 @@ class Resource(ABC):
     auth = None
     cleaned_data = None
 
-    response_class = None
+    response: Response
 
     # ---------------------------------------------------------------------------------------------
     def configure(self, name: str, server_url: str, config, auth=None, verify_ssl: bool = False):
@@ -430,7 +433,7 @@ class Resource(ABC):
             # not get here
             raise http
         else:
-            r = self.response_class(response)
+            r = self.response(response)
             return r
 
 
@@ -454,4 +457,4 @@ class JSONResource(Resource):
             to contain the previously obtained subsection of the json tree
         """
 
-        self.response_class = JSONResponse(extract_section, create_attribute)
+        self.response = JSONResponse(extract_section, create_attribute)

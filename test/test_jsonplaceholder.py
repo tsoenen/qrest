@@ -121,11 +121,11 @@ class TestJsonPlaceHolder(unittest.TestCase):
         # the processor in our tests, we have to reset it after each test.
         for config_name in ["all_posts", "comments", "filter_posts", "single_post"]:
             config = getattr(JsonPlaceHolderConfig, config_name)
-            config.processor.response_class = JSONResponse()
+            config.processor.response = JSONResponse()
 
     def test_all_posts_queries_the_right_endpoint(self):
         api = qrest.API(self.config)
-        api.all_posts.response_class = PassthroughResponse()
+        api.all_posts.response = PassthroughResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
             response = api.all_posts.fetch()
@@ -144,7 +144,7 @@ class TestJsonPlaceHolder(unittest.TestCase):
 
     def test_single_post_queries_the_right_endpoint(self):
         api = qrest.API(self.config)
-        api.single_post.response_class = PassthroughResponse()
+        api.single_post.response = PassthroughResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
             response = api.single_post.fetch(item=1)
@@ -166,7 +166,7 @@ class TestJsonPlaceHolder(unittest.TestCase):
 
     def test_filter_posts_queries_the_right_endpoint(self):
         api = qrest.API(self.config)
-        api.filter_posts.response_class = PassthroughResponse()
+        api.filter_posts.response = PassthroughResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
             response = api.filter_posts.fetch(user_id=1)
@@ -192,7 +192,7 @@ class TestJsonPlaceHolder(unittest.TestCase):
 
     def test_comments_queries_the_right_endpoint(self):
         api = qrest.API(self.config)
-        api.comments.response_class = PassthroughResponse()
+        api.comments.response = PassthroughResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
             response = api.comments.fetch(post_id=1)
