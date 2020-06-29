@@ -120,7 +120,7 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
         # multiple times. This means we are are reusing the same ResourceConfig
         # objects and as such, the same processor (JSONResource). As we modify
         # the processor in our tests, we have to reset it after each test.
-        for config_name in ["all_posts", "filter_posts", "single_post"]:
+        for config_name in ["all_posts", "comments", "filter_posts", "single_post"]:
             config = getattr(JsonPlaceHolderConfig, config_name)
             config.processor.response_class = JSONResponse()
 
@@ -191,15 +191,24 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
             response = api.filter_posts(user_id=1)
             self.assertIsInstance(response, JSONResponse)
 
-    @pytest.mark.skip(reason="unable to reach jsonplaceholder.typicode.com")
-    def test_posts_comments(self):
-        """
-        check method or path
-        """
-        x = rest_client.API(self.config)
-        response = x.comments.fetch(post_id=1)
-        self.assertIsInstance(response, list)
-        self.assertEqual(len(response), 5)
+    def test_comments_queries_the_right_endpoint(self):
+        api = rest_client.API(self.config)
+        api.comments.response_class = PassthroughResponse()
+
+        with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
+            response = api.comments.fetch(post_id=1)
+
+            mock_request.assert_called_with(
+                method="GET",
+                auth=None,
+                verify=False,
+                url="https://jsonplaceholder.typicode.com/posts/1/comments",
+                params={},
+                json={},
+                headers={"Content-type": "application/json; charset=UTF-8"},
+            )
+
+            self.assertEqual(b"Hello World!", response.content)
 
 
 class TestJsonPlaceHolderPost(unittest.TestCase):
