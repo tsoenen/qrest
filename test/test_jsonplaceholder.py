@@ -1,7 +1,6 @@
 import unittest
 import unittest.mock as mock
 
-import pytest
 import requests
 
 import rest_client
@@ -104,7 +103,7 @@ class PassthroughResponse(Response):
         pass
 
 
-class TestJsonPlaceHolderGet(unittest.TestCase):
+class TestJsonPlaceHolder(unittest.TestCase):
     def setUp(self):
         self.config = JsonPlaceHolderConfig()
 
@@ -210,31 +209,28 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
 
             self.assertEqual(b"Hello World!", response.content)
 
+    def test_create_post_help_returns_the_correct_title(self):
 
-class TestJsonPlaceHolderPost(unittest.TestCase):
-    def setUp(self):
-        self.config = JsonPlaceHolderConfig()
+        api = rest_client.API(self.config)
+        self.assertEqual("The title of the post", api.create_post.help("title"))
 
-    @pytest.mark.skip(reason="unable to reach jsonplaceholder.typicode.com")
-    def test_new_post(self):
-        """
-        create a new post
-        """
-        x = rest_client.API(self.config)
-        print(x.create_post.help("title"))
+    def test_create_post_accesses_the_right_endpoint_when_called(self):
+        api = rest_client.API(self.config)
 
         title = "new post using qREST ORM"
         content = "this is the new data posted using qREST"
         user_id = 200
 
-        # send data to jsonplaceholder server
-        response = x.create_post(title=title, content=content, user_id=user_id)
-        self.assertIsInstance(response.data, dict)
+        with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
+            response = api.create_post(title=title, content=content, user_id=user_id,)
 
-        self.assertEqual(response.data["userId"], user_id)
-
-        # also test using default values
-        response = x.create_post(title=title, content=content)
-        self.assertIsInstance(response.data, dict)
-
-        self.assertEqual(response.data["userId"], 101)
+            mock_request.assert_called_with(
+                method="POST",
+                auth=None,
+                verify=False,
+                url="https://jsonplaceholder.typicode.com/posts",
+                params={},
+                json={"title": title, "body": content, "userId": user_id},
+                headers={"Content-type": "application/json; charset=UTF-8"},
+            )
+            self.assertIsInstance(response, JSONResponse)
