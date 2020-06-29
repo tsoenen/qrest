@@ -184,17 +184,12 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
 
             self.assertEqual(b"Hello World!", response.content)
 
-    @pytest.mark.skip(reason="unable to reach jsonplaceholder.typicode.com")
-    def test_filter_posts_response(self):
-        """
-        check method or path
-        """
-        x = rest_client.API(self.config)
-        resource = x.filter_posts(user_id=1)
-        response = resource.data
+    def test_filter_posts_returns_the_response_when_called(self):
+        api = rest_client.API(self.config)
 
-        self.assertIsInstance(response, list)
-        self.assertEqual(len(response), 10)
+        with mock.patch("requests.request", return_value=self.mock_response):
+            response = api.filter_posts(user_id=1)
+            self.assertIsInstance(response, JSONResponse)
 
     @pytest.mark.skip(reason="unable to reach jsonplaceholder.typicode.com")
     def test_posts_comments(self):
