@@ -3,7 +3,7 @@ import unittest.mock as mock
 
 import requests
 
-from qrest.response import JSONResponse
+from qrest.response import CSVResponse, JSONResponse
 
 # the following content has been copied from the response to
 # https://jsonplaceholder.typicode.com/posts and extended
@@ -82,3 +82,38 @@ class JSONResponseTests(unittest.TestCase):
         expected_content = single_post["body"]["intro"]
         self.assertEqual(expected_content, response.fetch())
         self.assertEqual(expected_content, response.results)
+
+
+class CSVResponseTests(unittest.TestCase):
+    def test_fetch_multiline_text_with_commas(self):
+        mock_response = self._create_mock_response()
+
+        response = CSVResponse()(mock_response)
+
+        expected_content = [
+            ["Lorem ipsum dolor sit amet", " consectetur adipiscing elit", " sed do eiusmod"],
+            ["tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam", ""],
+            ["quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo"],
+            ["consequat."],
+        ]
+        self.assertEqual(expected_content, response.fetch())
+
+    def _create_mock_response(self):
+        text = b"""Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+consequat."""
+
+        mock_response = mock.Mock(spec=requests.Response)
+        mock_response.headers = {"Content-type": "text/csv; charset=UTF-8"}
+        mock_response.content = text
+
+        return mock_response
+
+    def test_raise_exception_on_incorrect_content_type(self):
+        mock_response = self._create_mock_response()
+        mock_response.headers = {"Content-type": "application/json; charset=UTF-8"}
+
+        regex = ".* response did not give a CSV but a application/json;.*"
+        with self.assertRaisesRegex(TypeError, regex):
+            _ = CSVResponse()(mock_response)  # noqa

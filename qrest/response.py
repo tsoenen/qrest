@@ -7,7 +7,7 @@ import copy
 import requests
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional, Type
+from typing import List, Optional, Type
 
 from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -132,18 +132,24 @@ class JSONResponse(Response):
         self.data = json
 
 
-#  =========================================================================================================
-class CSVRestResponse(Response):
+class CSVResponse(Response):
+    """Wrap a REST response for content type text/csv.
+
+    This class shows how to support different content types with their own
+    content processing.
+
+    """
+
     def _check_content(self):
         content_type = self._headers_lowercase.get("content-type", "unknown")
         if "text/csv" not in content_type:
             raise TypeError(f"the REST response did not give a CSV but a {content_type}")
 
-    def _parse(self) -> list:
+    def _parse(self) -> List[List[str]]:
         """ processes a raw CSV into lines. For very large content this may be better served by a generator
         """
+        content = self._response.content
+        self.raw = content.decode("UTF-8")
 
-        data = self._response.content
-        self.raw = data.decode("UTF-8")
-        data = self.raw.strip().split("\n")
-        return [x.split(",") for x in data]
+        lines = self.raw.strip().split("\n")
+        self.data = [line.split(",") for line in lines]
