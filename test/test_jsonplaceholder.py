@@ -77,7 +77,18 @@ class JsonPlaceHolderConfig(APIConfig):
 
 
 class PassthroughResponse(Response):
-    """Provide access to the requests.Response that is wrapped."""
+    """Provide access to the requests.Response that is wrapped.
+
+    The rest_client.API uses a Response to process the requests.Response it
+    receives from the endpoint. That processing requires specific responses and
+    would make the setup of the API tests much more elaborate and the tests
+    themselves much less focussed on the API. To work around that, we use a
+    PassthroughResponse for the tests, which does no processing at all.
+
+    Note that Response objects have their own tests and do not have to be
+    tested by the API tests.
+
+    """
 
     def __init__(self):
         pass
@@ -124,15 +135,35 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
 
             self.assertEqual(b"Hello World!", response.content)
 
-    @pytest.mark.skip(reason="unable to reach jsonplaceholder.typicode.com")
-    def test_get_post_1(self):
-        """
-        check method or path
-        """
-        x = rest_client.API(self.config)
-        response = x.single_post.fetch(item=1)
-        self.assertIsInstance(response, dict)
-        self.assertEqual(len(response), 4)
+    def test_single_post_queries_the_right_endpoint(self):
+        api = rest_client.API(self.config)
+        api.single_post.response_class = PassthroughResponse()
+
+        with mock.patch("requests.request") as mock_request:
+            mock_response = mock.Mock(spec=requests.Response)
+            mock_response.status_code = 200
+            mock_response.content = b"Hello World!"
+            # for this test we're not interested in the headers attribute of
+            # the requests.Response but our Response object requires it
+            mock_response.headers = {}
+            mock_request.return_value = mock_response
+
+            response = api.single_post.fetch(item=1)
+
+            mock_request.assert_called_with(
+                method="GET",
+                auth=None,
+                verify=False,
+                url="https://jsonplaceholder.typicode.com/posts/1",
+                params={},
+                json={},
+                headers={
+                    "Content-type": "application/json; charset=UTF-8",
+                    "X-test-post": "qREST python ORM",
+                },
+            )
+
+            self.assertEqual(b"Hello World!", response.content)
 
     @pytest.mark.skip(reason="unable to reach jsonplaceholder.typicode.com")
     def test_filter_posts_fetch(self):
