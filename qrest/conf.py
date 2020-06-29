@@ -2,7 +2,7 @@
 Contains all the configuration classes to create a API Configuration
 """
 from collections import defaultdict
-from typing import Optional, Type
+from typing import Dict, Optional, Type
 
 import logging
 
@@ -384,8 +384,10 @@ class APIConfig:
     url = None
     verify_ssl = False
 
+    endpoints: Dict[str, ResourceConfig]
+
     def __init__(self):
-        self.endpoints = self._get_list_of_endpoints()
+        self.endpoints = self._get_endpoints()
         self._apply_defaults()
         self._validate()
 
@@ -419,9 +421,12 @@ class APIConfig:
                 "authentication attribute is not an initiated instance of AuthConfig"
             )
 
-    def _get_list_of_endpoints(self):
-        """
-        returns a dictionary of all the defined endpoints
+    def _get_endpoints(self) -> Dict[str, ResourceConfig]:
+        """Return the dictionary of attribute name to ResourceConfig.
+
+        An API has attributes that store a ResourceConfig. This method collects
+        these attributes and returns the resulting dictionary.
+
         """
         endpoints_dict = {}
         dirlist = [x for x in dir(self) if not x.startswith("_")]
@@ -432,4 +437,3 @@ class APIConfig:
         if not endpoints_dict:
             raise RestClientConfigurationError("no endpoints defined for this REST client at all!")
         return endpoints_dict
-        # return []
