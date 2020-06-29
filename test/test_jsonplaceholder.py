@@ -108,19 +108,18 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
     def setUp(self):
         self.config = JsonPlaceHolderConfig()
 
+        self.mock_response = mock.Mock(spec=requests.Response)
+        self.mock_response.status_code = 200
+        self.mock_response.content = b"Hello World!"
+        # for this test we're not interested in the headers attribute of
+        # the requests.Response but our Response object requires it
+        self.mock_response.headers = {}
+
     def test_all_posts_queries_the_right_endpoint(self):
         api = rest_client.API(self.config)
         api.all_posts.response_class = PassthroughResponse()
 
-        with mock.patch("requests.request") as mock_request:
-            mock_response = mock.Mock(spec=requests.Response)
-            mock_response.status_code = 200
-            mock_response.content = b"Hello World!"
-            # for this test we're not interested in the headers attribute of
-            # the requests.Response but our Response object requires it
-            mock_response.headers = {}
-            mock_request.return_value = mock_response
-
+        with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
             response = api.all_posts.fetch()
 
             mock_request.assert_called_with(
@@ -139,15 +138,7 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
         api = rest_client.API(self.config)
         api.single_post.response_class = PassthroughResponse()
 
-        with mock.patch("requests.request") as mock_request:
-            mock_response = mock.Mock(spec=requests.Response)
-            mock_response.status_code = 200
-            mock_response.content = b"Hello World!"
-            # for this test we're not interested in the headers attribute of
-            # the requests.Response but our Response object requires it
-            mock_response.headers = {}
-            mock_request.return_value = mock_response
-
+        with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
             response = api.single_post.fetch(item=1)
 
             mock_request.assert_called_with(
