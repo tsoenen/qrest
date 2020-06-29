@@ -31,21 +31,32 @@ _POSTS = [
 
 class JSONResponseTests(unittest.TestCase):
     def test_fetch_all_posts(self):
-        mock_response = mock.Mock(spec=requests.Response)
-        mock_response.headers = {"Content-type": "application/json; charset=UTF-8"}
-        mock_response.json = mock.Mock(return_value=_POSTS)
+        all_posts = _POSTS
+        mock_response = self._create_mock_response(all_posts)
 
         response = JSONResponse()(mock_response)
 
-        expected_content = _POSTS
+        expected_content = all_posts
         self.assertEqual(expected_content, response.fetch())
+
+    def _create_mock_response(self, json):
+        mock_response = mock.Mock(spec=requests.Response)
+        mock_response.headers = {"Content-type": "application/json; charset=UTF-8"}
+        mock_response.json = mock.Mock(return_value=json)
+        return mock_response
+
+    def test_raise_exception_on_incorrect_content_type(self):
+        all_posts = _POSTS
+        mock_response = self._create_mock_response(all_posts)
+        mock_response.headers = {"Content-type": "text; charset=UTF-8"}
+
+        regex = ".* response did not give a JSON but a text;.*"
+        with self.assertRaisesRegex(TypeError, regex):
+            _ = JSONResponse()(mock_response)  # noqa
 
     def test_fetch_single_post(self):
         single_post = _POSTS[0]
-
-        mock_response = mock.Mock(spec=requests.Response)
-        mock_response.headers = {"Content-type": "application/json; charset=UTF-8"}
-        mock_response.json = mock.Mock(return_value=single_post)
+        mock_response = self._create_mock_response(single_post)
 
         response = JSONResponse()(mock_response)
 
@@ -54,10 +65,7 @@ class JSONResponseTests(unittest.TestCase):
 
     def test_fetch_body_of_single_post(self):
         single_post = _POSTS[0]
-
-        mock_response = mock.Mock(spec=requests.Response)
-        mock_response.headers = {"Content-type": "application/json; charset=UTF-8"}
-        mock_response.json = mock.Mock(return_value=single_post)
+        mock_response = self._create_mock_response(single_post)
 
         response = JSONResponse(extract_section=["body"])(mock_response)
 
@@ -67,10 +75,7 @@ class JSONResponseTests(unittest.TestCase):
 
     def test_fetch_intro_of_single_post(self):
         single_post = _POSTS[0]
-
-        mock_response = mock.Mock(spec=requests.Response)
-        mock_response.headers = {"Content-type": "application/json; charset=UTF-8"}
-        mock_response.json = mock.Mock(return_value=single_post)
+        mock_response = self._create_mock_response(single_post)
 
         response = JSONResponse(extract_section=["body", "intro"])(mock_response)
 

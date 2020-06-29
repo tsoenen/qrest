@@ -49,7 +49,13 @@ class Response(ABC):
         self.headers = response.headers
         self.raw = response.content
 
-        # prepare the content to a python object
+        # We also store the headers with lowercase field names so we become
+        # independent of the case of each fiel name. For example, a response
+        # header can have field "Content-Type", but field "content-type" is
+        # also allowed.
+        self._headers_lowercase = {name.lower(): value for name, value in self.headers.items()}
+
+        self._check_content()
         self._parse()
         return self
 
@@ -91,7 +97,7 @@ class JSONResponse(Response):
         self.create_attribute = create_attribute
 
     def _check_content(self):
-        content_type = self.headers.get("content-type", "unknown")
+        content_type = self._headers_lowercase.get("content-type", "unknown")
         if "json" not in content_type:
             raise TypeError(f"the REST response did not give a JSON but a {content_type}")
 
@@ -122,7 +128,7 @@ class JSONResponse(Response):
 #  =========================================================================================================
 class CSVRestResponse(Response):
     def _check_content(self):
-        content_type = self.headers.get("content-type", "unknown")
+        content_type = self._headers_lowercase.get("content-type", "unknown")
         if "text/csv" not in content_type:
             raise TypeError(f"the REST response did not give a CSV but a {content_type}")
 

@@ -185,10 +185,11 @@ class TestJsonPlaceHolder(unittest.TestCase):
 
     def test_filter_posts_returns_the_response_when_called(self):
         api = qrest.API(self.config)
+        api.filter_posts.response = PassthroughResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response):
             response = api.filter_posts(user_id=1)
-            self.assertIsInstance(response, JSONResponse)
+            self.assertIs(api.filter_posts.response, response)
 
     def test_comments_queries_the_right_endpoint(self):
         api = qrest.API(self.config)
@@ -216,13 +217,14 @@ class TestJsonPlaceHolder(unittest.TestCase):
 
     def test_create_post_accesses_the_right_endpoint_when_called(self):
         api = qrest.API(self.config)
+        api.create_post.response = PassthroughResponse()
 
         title = "new post using qREST ORM"
         content = "this is the new data posted using qREST"
         user_id = 200
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
-            response = api.create_post(title=title, content=content, user_id=user_id,)
+            response = api.create_post(title=title, content=content, user_id=user_id)
 
             mock_request.assert_called_with(
                 method="POST",
@@ -233,4 +235,4 @@ class TestJsonPlaceHolder(unittest.TestCase):
                 json={"title": title, "body": content, "userId": user_id},
                 headers={"Content-type": "application/json; charset=UTF-8"},
             )
-            self.assertIsInstance(response, JSONResponse)
+            self.assertIs(api.create_post.response, response)
