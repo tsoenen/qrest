@@ -7,7 +7,7 @@ import requests
 import rest_client
 from rest_client import APIConfig
 from rest_client import QueryParameter, BodyParameter, ResourceConfig
-from rest_client.response import Response
+from rest_client.response import JSONResponse, Response
 
 
 class JsonPlaceHolderConfig(APIConfig):
@@ -114,6 +114,15 @@ class TestJsonPlaceHolderGet(unittest.TestCase):
         # for this test we're not interested in the headers attribute of
         # the requests.Response but our Response object requires it
         self.mock_response.headers = {}
+
+    def tearDown(self):
+        # In this testsuite we instantiate an API from the same APIConfig
+        # multiple times. This means we are are reusing the same ResourceConfig
+        # objects and as such, the same processor (JSONResource). As we modify
+        # the processor in our tests, we have to reset it after each test.
+        for config_name in ["all_posts", "filter_posts", "single_post"]:
+            config = getattr(JsonPlaceHolderConfig, config_name)
+            config.processor.response_class = JSONResponse()
 
     def test_all_posts_queries_the_right_endpoint(self):
         api = rest_client.API(self.config)
