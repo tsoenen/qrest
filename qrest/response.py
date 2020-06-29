@@ -24,15 +24,21 @@ logger = logging.getLogger(__name__)
 
 class Response(ABC):
 
-    """
-    Abstract Base class wrapper around the REST response. This is meant to process the returned
+    """Abstract Base class wrapper around the REST response. This is meant to process the returned
     data obtained from the REST request into a python object
+
+    :param data: stores the data of interest of the REST response
+
+    Attribute data is initialized to None and should be set in method _parse.
+
     """
 
     _response = None
     headers = None
     raw = None
     options = None
+
+    data = None
 
     def __call__(self, response: Type[requests.models.Response]):
         """ RestResponse wrapper call
@@ -69,6 +75,7 @@ class Response(ABC):
 
     @abstractmethod
     def _parse(self):
+        """Parse the REST response and let self.data contain the data of interest."""
         pass
 
 
