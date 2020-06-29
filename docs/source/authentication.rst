@@ -5,7 +5,7 @@ Authentication
 Authentication Module
 *********************
 
-.. automodule:: rest_client.auth
+.. automodule:: qrest.auth
 
 Authentication classes 
 ----------------------

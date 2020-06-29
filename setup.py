@@ -21,7 +21,7 @@ here = path.abspath(path.dirname(__file__))
 # https://packaging.python.org/en/latest/single_source_version.html
 version = "0.0.0"
 current_dir = path.dirname(__file__)
-with open(path.join(current_dir, "rest_client", "__init__.py")) as f:
+with open(path.join(current_dir, "qrest", "__init__.py")) as f:
     rx = re.compile('__version__ = "(.*)"')
     for line in f:
         m = rx.match(line)

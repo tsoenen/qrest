@@ -3,7 +3,7 @@ import unittest.mock as mock
 
 import requests
 
-from rest_client.response import JSONResponse
+from qrest.response import JSONResponse
 
 # the following content has been copied from the response to
 # https://jsonplaceholder.typicode.com/posts and extended

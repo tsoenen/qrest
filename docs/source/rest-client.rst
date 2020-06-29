@@ -3,7 +3,7 @@ API Base and Resources Processors
 #####################################
 
 
-.. automodule:: rest_client.resource
+.. automodule:: qrest.resource
 
 .. autoclass:: API
   :members:

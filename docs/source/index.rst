@@ -43,7 +43,7 @@ Would it not be a lot easier to use this format
 To achieve this, we need only this code:
 ::
 
-    from rest_client import API, APIConfig
+    from qrest import API, APIConfig
 
     class JsonPlaceHolderConfig(APIConfig):
         url = 'https://jsonplaceholder.typicode.com'

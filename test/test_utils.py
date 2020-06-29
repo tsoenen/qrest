@@ -1,6 +1,6 @@
 import unittest
-from rest_client.utils import URLValidator
-from rest_client.exception import RestClientConfigurationError
+from qrest.utils import URLValidator
+from qrest.exception import RestClientConfigurationError
 
 
 class TestURLValidator(unittest.TestCase):

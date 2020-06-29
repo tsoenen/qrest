@@ -84,7 +84,7 @@ to prevent a lot of duplicate information. Currently only the 'headers' and 'jso
 
 authentication
 --------------
-This optional property configures an rest_client.auth.AuthConfig instance. If this property is omitted, no authentication is attempted. 
+This optional property configures an qrest.auth.AuthConfig instance. If this property is omitted, no authentication is attempted. 
 Basic authentication and CAS authentication are provided. BasicAuthentication is provided to be able to use both .netrc as regular usernames 
 and password combinations. Each AuthConfig instance has a login() method that allows customization of the credentials. For NetrcOrUserPassAuthConfig
 the module first checks the presence of a .netrc file, and then tries the optional username and password parameters.
@@ -351,7 +351,7 @@ any information about the parameter, such as data format
 Configuration Module
 ******************** 
 
-.. automodule:: rest_client.conf
+.. automodule:: qrest.conf
 
 .. autoclass:: APIConfig
 	:members:

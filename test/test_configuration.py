@@ -1,9 +1,9 @@
 import unittest
 
-from rest_client import APIConfig, RestClientConfigurationError
-from rest_client import QueryParameter, BodyParameter, ResourceConfig
-from rest_client import JSONResource
-from rest_client.auth import UserPassAuthConfig
+from qrest import APIConfig, RestClientConfigurationError
+from qrest import QueryParameter, BodyParameter, ResourceConfig
+from qrest import JSONResource
+from qrest.auth import UserPassAuthConfig
 
 
 class TestMinimal(unittest.TestCase):

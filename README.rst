@@ -29,7 +29,7 @@ Would it not be a lot easier to use this format
 To achieve this, we need only this code:
 ::
 
-    from rest_client import API, APIConfig
+    from qrest import API, APIConfig
 
     class JsonPlaceHolderConfig(APIConfig):
         url = 'https://jsonplaceholder.typicode.com'
@@ -138,7 +138,7 @@ The following table lists the command to use the aforementioned tools:
 Tool to run Using tox                   Using active virtualenv
 =========== =========================== ==================================================================
 black       ``$> tox -e py37-black``    ``(py37-dev) $> black setup.py rest-client test``
-coverage    ``$> tox -e py37-coverage`` ``(py37-dev) $> coverage run --source=rest_client,test -m pytest``
+coverage    ``$> tox -e py37-coverage`` ``(py37-dev) $> coverage run --source=qrest,test -m pytest``
 flake8      ``$> tox -e py37-flake8``   ``(py37-dev) $> flake8 setup.py rest-client test``
 pytest      ``$> tox -e py37-test``     ``(py37-dev) $> pytest``
 =========== =========================== ==================================================================

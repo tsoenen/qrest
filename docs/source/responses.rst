@@ -14,7 +14,7 @@ python classes, such as lists and dictionaries
 Module Response
 ***************
 
-.. automodule:: rest_client.response
+.. automodule:: qrest.response
 
 .. autoclass:: Response
 	:members:
