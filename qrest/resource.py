@@ -139,11 +139,6 @@ class Resource(ABC):
 
     response_class = None
 
-    @abstractmethod
-    def __init__(self):
-        """ ABC to set response parameters during configuration
-        """
-
     # ---------------------------------------------------------------------------------------------
     def configure(self, name: str, server_url: str, config, auth=None, verify_ssl: bool = False):
         """Configure the resource. This is a required procedure to set all parameters.

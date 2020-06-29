@@ -34,13 +34,6 @@ class Response(ABC):
     raw = None
     options = None
 
-    @abstractmethod
-    def __init__(self):
-        """ RestResponse constructor
-        This should be overridden by subclasses so that required parameters are visible through
-        introspection
-        """
-
     def __call__(self, response: Type[requests.models.Response]):
         """ RestResponse wrapper call
             :param response: The Requests Response object
