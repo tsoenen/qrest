@@ -137,9 +137,9 @@ The following table lists the command to use the aforementioned tools:
 =========== =========================== ==================================================================
 Tool to run Using tox                   Using active virtualenv
 =========== =========================== ==================================================================
-black       ``$> tox -e py37-black``    ``(py37-dev) $> black setup.py rest-client test``
+black       ``$> tox -e py37-black``    ``(py37-dev) $> black setup.py qrest test``
 coverage    ``$> tox -e py37-coverage`` ``(py37-dev) $> coverage run --source=qrest,test -m pytest``
-flake8      ``$> tox -e py37-flake8``   ``(py37-dev) $> flake8 setup.py rest-client test``
+flake8      ``$> tox -e py37-flake8``   ``(py37-dev) $> flake8 setup.py qrest test``
 pytest      ``$> tox -e py37-test``     ``(py37-dev) $> pytest``
 =========== =========================== ==================================================================
 
