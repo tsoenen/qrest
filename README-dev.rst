@@ -22,8 +22,8 @@ if you execute the following command::
 
   $ tox -e py37-test
 
-tox automatically configures a virtualenv in subdirectory ``.tox/py37-dev`` (in
-the project root directory) and uses it to run the unit tests. If you execute
+tox automatically configures a virtualenv in subdirectory ``.tox/py37-dev`` of
+the repository (directory) and uses it to run the unit tests. If you execute
 ``tox`` again, it will reuse that same virtualenv and not create a new one.
 
 You can use the virtualenv yourself. To activate it, execute the following
@@ -35,7 +35,7 @@ command::
 Create virtualenv yourself
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The commands in this section have to be executed from the root of the repo.
+The commands in this section have to be executed from the repository root.
 
 To create a virtualenv named py37-dev, execute the following command::
 
@@ -77,26 +77,36 @@ not (yet) covered by black and does some other thing, e.g., warn for unused
 imports and variables. Furthermore, most IDEs can execute flake8 "in the
 background" and inform you of any violations while you type.
 
+coverage_ is available to compute the coverage and show a report in plain text
+or as a set of HTML pages that allow you to navigate to the file(s) of interest.
+
 pytest_ is available to collect and run the unit tests. It has more
 functionality than plain ``unittest``, such as a more extensive configurability
 of test selection and test output. It's compatible to the standard ``unittest``.
 
-coverage_ is available to compute the coverage and show a report in plain text
-or as a set of HTML pages that allow you to navigate to the file(s) of interest.
+Sphinx_ is used to generate the HTML documentation from text files that are
+formatted usinng RestrucuturedText. The text files themselves can be found in
+subdirectory ``docs/`` of the repository root.
 
 The following table lists the command to use the aforementioned tools:
 
 =========== =========================== ============================================================
 Tool to run Using tox                   Using active virtualenv
 =========== =========================== ============================================================
-black       ``$> tox -e py37-black``    ``(py37-dev) $> black setup.py qrest test``
+Black       ``$> tox -e py37-black``    ``(py37-dev) $> black setup.py qrest test``
 coverage    ``$> tox -e py37-coverage`` ``(py37-dev) $> coverage run --source=qrest,test -m pytest``
 flake8      ``$> tox -e py37-flake8``   ``(py37-dev) $> flake8 setup.py qrest test``
 pytest      ``$> tox -e py37-test``     ``(py37-dev) $> pytest``
+Sphinx      ``$> tox -e py37-docs``     ``(py37-dev) $> make -C docs html``
 =========== =========================== ============================================================
 
-The exact specification of the tox commands can be found in file ``tox.ini`` in
-the project root directory.
+The following remarks are in order:
+
+1. The tox commands can be executed from anywhere in the repository. The
+   commands for use in an active virtualenv have to be executed from the repository
+   root.
+2. The exact specification of the tox commands can be found in file ``tox.ini``
+   in the repository root.
 
 .. _black: https://black.readthedocs.io/en/stable/
 .. _coverage: https://coverage.readthedocs.io/en/coverage-5.1/
@@ -104,3 +114,4 @@ the project root directory.
 .. _PEP8: https://www.python.org/dev/peps/pep-0008/
 .. _pytest: https://docs.pytest.org/en/stable/index.html
 .. _tox: https://tox.readthedocs.io/en/latest/
+.. _Sphinx: https://www.sphinx-doc.org/en/master/
