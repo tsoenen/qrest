@@ -5,44 +5,71 @@ Overview
 ********
 
 Let's have a look at the REST API that is provided by the JSONPlaceholder
-website for testing and prototyping. If you sent a GET request to retrieve all
-posts, you get a response with a text string in JSON format::
+website for testing and prototyping. The following Python snippet uses the
+Python requests library to send a GET request that retrieves all posts::
 
-    $ curl jsonplaceholder.typicode.com/posts
-    [
-      {
-        "userId": 1,
-        "id": 1,
-        "title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
-        "body": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto"
-      },
-      {
-        "userId": 1,
-        "id": 2,
-        "title": "qui est esse",
-        "body": "est rerum tempore vitae\nsequi sint nihil reprehenderit dolor beatae ea dolores neque\nfugiat blanditiis voluptate porro vel nihil molestiae ut reiciendis\nqui aperiam non debitis possimus qui neque nisi nulla"
-      },
-      ...
+    import pprint
+    import requests
 
-qrest allows you to build an API that can query the JSONPlaceholder API like
-this::
+    response = requests.request("GET", "https://jsonplaceholder.typicode.com/posts")
+    pprint.pprint(response.json()[0:2])
 
+This snippet outputs::
+
+    [{'body': 'quia et suscipit\n'
+              'suscipit recusandae consequuntur expedita et cum\n'
+              'reprehenderit molestiae ut ut quas totam\n'
+              'nostrum rerum est autem sunt rem eveniet architecto',
+     'id': 1,
+     'title': 'sunt aut facere repellat provident occaecati excepturi optio '
+              'reprehenderit',
+     'userId': 1},
+    {'body': 'est rerum tempore vitae\n'
+             'sequi sint nihil reprehenderit dolor beatae ea dolores neque\n'
+             'fugiat blanditiis voluptate porro vel nihil molestiae ut '
+             'reiciendis\n'
+             'qui aperiam non debitis possimus qui neque nisi nulla',
+     'id': 2,
+     'title': 'qui est esse',
+     'userId': 1}]
+
+
+If you have multiple requests in your code, before you know it you will add code
+to
+
+- avoid passing the same URL again and again,
+- easily access different endpoints using different parameters,
+- parse responses etc.
+
+This is where qrest comes in: it allows you to configure a Python API that hides
+the complexity and repetition of manually writing REST API code. For example,
+using qrest the code to retrieve the posts looks like this::
+
+    import pprint
     import qrest
-    from jsonplaceholder import JSONPlaceholderConfig
 
     api = qrest.API(JSONPlaceholderConfig())
+
     posts = api.all_posts.fetch()
 
-    print(posts[0:2])
+If you want to retrieve the posts with a specific title::
 
-If you want to retrieve a post with a specific title::
+    posts = api.filter_posts.fetch(title="qui est esse")
+    pprint.pprint(post)
 
-    post = api.filter_posts(title="qui est esse")
+which outputs::
 
-    print(post)
+    [{'body': 'est rerum tempore vitae\n'
+              'sequi sint nihil reprehenderit dolor beatae ea dolores neque\n'
+              'fugiat blanditiis voluptate porro vel nihil molestiae ut '
+              'reiciendis\n'
+              'qui aperiam non debitis possimus qui neque nisi nulla',
+      'id': 2,
+      'title': 'qui est esse',
+      'userId': 1}]
 
-To make this possible, you have to provide the API config such as the
-JSONPlaceholderConfig in the example above::
+The one thing you have to do is configure this API. The
+``JSONPlaceholderConfig`` in the example above is configured like this::
 
     from qrest import APIConfig, ResourceConfig, QueryParameter
 
