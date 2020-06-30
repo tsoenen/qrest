@@ -1,13 +1,6 @@
 Python REST API client documentation
 ====================================
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
 .. include:: ../../README.rst
 
 .. toctree::
@@ -20,3 +13,10 @@ Indices and tables
    rest-client
    authentication
    responses
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
