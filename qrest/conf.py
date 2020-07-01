@@ -117,7 +117,7 @@ class BodyParameter(ParameterConfig):
 # ================================================================================================
 class ResourceConfig:
     """contain and validate details for a REST endpoint. Effectively this creates
-    an ORM wrapper around a REST endpoint, pretending it is a python object
+    an wrapper around a REST endpoint, pretending it is a python object
 
     """
 

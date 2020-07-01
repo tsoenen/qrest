@@ -1,8 +1,7 @@
-"""The main working module of the package: contains the API class (which
-creates the ORM for a RES server), and the Resource class (which wraps around a
-single endpoint / resources ). The Resource class is encouraged to be
-subclassed to add functionality such as complex pagination or response
-processing
+"""The main working module of the package: contains the API class (to access
+the REST server), and the Resource class (which wraps around a single endpoint
+/ resources ). The Resource class is encouraged to be subclassed to add
+functionality such as complex pagination or response processing
 
 """
 
