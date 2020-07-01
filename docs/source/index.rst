@@ -1,5 +1,5 @@
-Python REST API client documentation
-====================================
+qrest: build Python clients for REST APIs
+=========================================
 
 .. include:: ../../README.rst
 
