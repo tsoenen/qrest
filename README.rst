@@ -1,13 +1,13 @@
-qrest is a Python package that allows you to easily build a Python client to use
-a REST API.
+qrest is a Python package that allows you to easily build a Python client to
+access a REST API.
 
 Overview
 ********
 
-The `JSONPlaceholder website`_ provides information through a REST API for
-testing and prototyping purposes. The following Python snippet retrieves all
-"posts", which is one of the resources that the website provides. The snippet
-sends a HTTP GET request using the Python requests_ library::
+The `JSONPlaceholder website`_ is a website with a REST API that provides dummy
+data for testing and prototyping purposes. The following Python snippet sends a
+HTTP GET request to retrieve all "posts", which is one of the resources that the
+website provides::
 
     import pprint
     import requests
@@ -34,12 +34,13 @@ This snippet outputs::
      'title': 'qui est esse',
      'userId': 1}]
 
-Although the requests library makes it very easy to query a REST API, it
-requires the user to know the structure of the REST API, how to build calls to
-that API, how to parse responses. This is where qrest comes in: it allows you to
-*configure* a Python API that provides access to the *information* and hides the
-nitty-gritty details of writing REST API code. For example, using qrest the code
-to retrieve the posts looks like this::
+The snippet uses the Python requests_ library to send the request. Although this
+library makes it very easy to query a REST API, it requires the user to know the
+structure of the REST API, how to build calls to that API, how to parse
+responses etc. This is where qrest comes in: it allows you to *configure* a
+Python API that provides access to the *information* and hides the nitty-gritty
+details of writing REST API code. For example, using qrest the code to retrieve
+the posts looks like this::
 
     import qrest
 

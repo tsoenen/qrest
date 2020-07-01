@@ -49,53 +49,43 @@ objects. It contains the configuration of a REST API.
 
       # ...
 
-The structure of the class is as follows:
-
-* Each resource is configured as a ResourceConfig instance.
-
-* Besides resources, two fixed-named objects are allowed
-
-  * ``default_headers`` is a dictionary with default entries that ResourceConfig objects use to populate
-  * ``authentication`` is an AuthConfig instance that describes the type of configuration.
-
-You pass the APIConfig to a qrest API to initialize the object to query the REST
-API, e.g
+You use the APIConfig to initialize the object that will access the REST API,
+e.g.
 
 ::
 
   api = qrest.API(MyRESTConfig())
   items = api.list_items.fetch()
 
-The snippet shows that the names of the attributes of the APIConfig that specify
-the resources, are also used to name the attributes on the actual API object.
-You can specify another name using the ``name`` argument of the ResourceConfig.
+The names of the attributes of the APIConfig that specify the resources, are
+also used to name the attributes on the actual API object. You can specify
+another name using the ``name`` argument of the ResourceConfig.
 
-Each API instance has a property ``resources`` that lists the resources. This
-code
-
-::
+Each API instance has a property ``resources`` that lists the resources::
 
   api = qrest.API(MyRESTConfig())
-  print(api.resources)
-
-outputs ``['list_items']``.
+  assert ["list_items"] == api.resources
 
 Available configuration options
 ===============================
 
-Apart from attributes to configure resources an APIConfig has the following attributes.
+Apart from attributes to configure resources, an APIConfig has the following
+attributes.
 
 url
 ---
+
 This is the base URL of the REST server. You have to specify this field
-otherwise the API cannot be initialized
+otherwise the API cannot be initialized.
 
 default_headers
 ---------------
-This is a dictionary that contains default values for all ResourceConfig
-instances of the APIConfig class. Its aim is to prevent a lot of duplicate
-information. Currently only the 'headers' and 'json' parameters are supported.
 
+This is a dictionary that contains the default headers for all ResourceConfig
+instances of the APIConfig class. Its aim is to prevent a lot of duplicate
+information. The headers that a ResourceConfig uses consist of these defaults,
+extended or overridden by the defaults that can be specified for that
+ResourceConfig.
 
 authentication
 --------------
