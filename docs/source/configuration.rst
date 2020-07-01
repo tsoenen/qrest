@@ -1,242 +1,249 @@
-##################### 
-Configuring Resources
 #####################
-This document is part of the Python REST API client package and documents how to use the package to query arbitrary REST APIs.
-For a given REST API, the resources are described by means of a RESTConfig instance which holds the configuration of every resource in the REST API.
-The configuration class is then passed to a API object to create an interface to a REST server
+Configuring resources
+#####################
 
-Basic usage is to define all parameters of the REST service into a configuration structure, and then use this as a parameter
-::
+This section documents the use of the qrest package to query arbitrary REST
+APIs. For a given REST API, you create an APIConfig that configures all the
+resources of the API [#subclass]_. A resource itself is configured using a
+ResourceConfig instance. The introduction showed how that looks for the
+JSONPlaceholder website::
 
-	class MyRESTConfig(APIConfig):
-		...
-	my_config = MyRESTConfig()
+  class JSONPlaceholderConfig(APIConfig):
 
-	rest_client = API(config=my_config)
+      url = "https://jsonplaceholder.typicode.com"
 
-or:
-::
+      all_posts = ResourceConfig(path=["posts"], method="GET", description="retrieve all posts")
 
-	class MyRESTConfig(APIConfig):
-		...
-
-	class DataRepository(Launcher):
-		config = MyRESTConfig()
-
-	data_rep = DataRepository()
-
+      filter_posts = ResourceConfig(
+          path=["posts"],
+          method="GET",
+          description="retrieve all posts by filter criteria",
+          parameters={
+              "title": QueryParameter(
+                  name="title", required=False, description="the title of the post",
+              ),
+          },
 
 
 ********************
-Server Configuration
+Server configuration
 ********************
 
-The main configuration object is a Python class inspired by the Django Model objects. It contains the configuration of a a REST API.
+The main configuration object, the APIConfig, is inspired by Django Model
+objects. It contains the configuration of a REST API.
 
 ::
 
-	class MyRESTConfig(APIConfig):
+  class MyRESTConfig(APIConfig):
 
-		authentication = NetrcOrUserPassAuthConfig(verify_ssl=False)
+      url = "http://example.com/rest/v1/"
 
-		default_headers = {"Content-Type": "application/json",
-					       "Accept": "application/json;charset=UTF-8"}
-		
-		list_items = ResourceConfig(path=['api',"items"],
-									method='POST',
-									)
-	...
+      authentication = NetrcOrUserPassAuthConfig()
+
+      default_headers = {
+          "Content-Type": "application/json",
+          "Accept": "application/json;charset=UTF-8",
+      }
+
+      list_items = ResourceConfig(path=["api", "items"], method="GET")
+
+      # ...
 
 The structure of the class is as follows:
 
-* Each endpoint is configured as an ResourceConfig instance, 
+* Each resource is configured as a ResourceConfig instance.
 
-* Besides endpoints, two fixed-named objects are allowed
-	* 'default_headers' is a dictionary with default entries that ResourceConfig objects use to populate
-	* 'authentication' is an AuthConfig instance that describes the type of configuration. 
+* Besides resources, two fixed-named objects are allowed
 
-All items of the ResourceConfig class will be transformed into methods for the API object
-They are used to dynamically create functions in the REST API client object for every resource.
-The name of the function corresponds to the name of the resource, but this may be altered via the 'name' parameter in the Parameter Configuration.
+  * ``default_headers`` is a dictionary with default entries that ResourceConfig objects use to populate
+  * ``authentication`` is an AuthConfig instance that describes the type of configuration.
 
-For example, when constructing a API instance with the above configuration, the resulting API instance will have a property "resources".
-The code to invoke the function will be
+You pass the APIConfig to a qrest API to initialize the object to query the REST
+API, e.g
 
 ::
 
-	rc = API(configuration_class_instance)
-	print(rc.resources)
+  api = qrest.API(MyRESTConfig())
+  items = api.list_items.fetch()
+
+The snippet shows that the names of the attributes of the APIConfig that specify
+the resources, are also used to name the attributes on the actual API object.
+You can specify another name using the ``name`` parameter of the ResourceConfig.
+
+Each API instance has a property ``resources`` that lists the resources. This
+code
+
+::
+
+  api = qrest.API(MyRESTConfig())
+  print(api.resources)
+
+outputs ``['list_items']``.
 
 Available configuration options
 ===============================
 
-Apart from endpoint configurations (described below) there are other parameters that may be set
+Apart from attributes to configure resources an APIConfig has the following attributes.
 
 url
 ---
-This is the Base URL of the REST server
+This is the base URL of the REST server. You have to specify this field
+otherwise the API cannot be initialized
 
 default_headers
 ---------------
-This is a dictionary that contains default values for all EndpointConfig instances within the Configuration class. Its aim is 
-to prevent a lot of duplicate information. Currently only the 'headers' and 'json' parameters are supported.
+This is a dictionary that contains default values for all ResourceConfig
+instances of the APIConfig class. Its aim is to prevent a lot of duplicate
+information. Currently only the 'headers' and 'json' parameters are supported.
 
 
 authentication
 --------------
-This optional property configures an qrest.auth.AuthConfig instance. If this property is omitted, no authentication is attempted. 
-Basic authentication and CAS authentication are provided. BasicAuthentication is provided to be able to use both .netrc as regular usernames 
-and password combinations. Each AuthConfig instance has a login() method that allows customization of the credentials. For NetrcOrUserPassAuthConfig
-the module first checks the presence of a .netrc file, and then tries the optional username and password parameters.
 
-::
-
-	class MyConfig(APIConfig):
-		authentication = NetrcOrUserPassAuthConfig(verify_ssl=False)
-		
-	rest_client = API(config=MyConfig())
-	rest_client.login()
-	
+This optional property configures a qrest.auth.AuthConfig instance. If this
+property is omitted, no authentication is attempted. Basic authentication and
+CAS authentication are provided. BasicAuthentication is provided to be able to
+use both .netrc as regular usernames and password combinations. Each AuthConfig
+instance has a login() method that allows customization of the credentials. For
+NetrcOrUserPassAuthConfig the module first checks the presence of a .netrc file,
+and then tries the optional username and password parameters.
 
 
 **********************
-Endpoint Configuration
+Resource Configuration
 **********************
 
-::
+This section describes the different attributes of a ResourceConfig. It uses the
+following ResourceConfig as an example::
 
-	get_posts = ResourceConfig(path=['rest', 'v1', '{location}',"posts"],
-								description='this describes the role of the endpoint', 
-								path_description={'location': 'this desribes the path parameter',}
-								method='POST',
-								headers={"command": "search"},
-								processor=JSONResource(extract_section=["_embedded", "posts"],create_attribute="myposts",)
-								parameters={
-									'post_uid': BodyParameter(name="PostUID"),
-								},
-							)
+  class MyConfig(APIConfig):
 
+      get_posts = ResourceConfig(
+          method="GET",
+          path=["rest", "v1", "{location}", "posts"],
+          description="this describes the role of the endpoint",
+          path_description={"location": "this describes the location part of the parameter"},
+          headers={"command": "search"},
+          processor=JSONResource(extract_section=["_embedded", "posts"], create_attribute="myposts"),
+          parameters={"post_uid": BodyParameter(name="PostUID")},
+      )
 
-Method
+  api = API(config=MyConfig())
+
+method
 ======
 
-The resource method configuration option specifies which HTTP request method should be used.
-Commonly used HTTP request methods are "GET", "POST", "PUT" and "DELETE".
-If no resource method has been specified, the default method "GET" will be used.
-For request methods where content is part of the request body, the "data" parameter of the resource function can be used.
+The resource method configuration option specifies which HTTP request method
+should be used. Commonly used HTTP request methods are GET, POST, PUT and
+DELETE. If no resource method has been specified, the default method GET will be
+used. For request methods where content is part of the request body, the "data"
+parameter of the resource function can be used.
 
-In other words the code below
+In other words the code
 
 ::
 
-	rc = API(config=MyConfig())
-	rc.get_posts(post_uid='12345')
+  api.get_posts(post_uid="12345")
 
-will perform a HTTP POST request with {"PostUID": 12345} as the request body.
+will perform a HTTP GET request with ``{"PostUID": 12345}`` as the request body.
 
-Path
+path
 ====
 
-One of the configuration options of a resource, is the path.
-The path option is a list of strings that, when joined by a forward slash "/", specifies where the resource is located in the REST API.
-If a path parameter is used, you can put curly braces "{}" around the name of that parameter. From the example above:
+One of the configuration options of a resource, is the path. The path option is
+a list of strings that, when joined by a forward slash "/", specifies where the
+resource is located in the REST API. If a path parameter is used, you can put
+curly braces "{}" around the name of that parameter. From the example above::
+
+  path=["rest", "v1", "{location}", "posts"],
+
+Here, the above configuration corresponds to a path of
+``rest/v1/{location}/posts`` where ``{location}`` is specified by a required
+keyword parameter in the function call. To give an example, the code
 
 ::
 
-	path=['rest', 'v1', '{location}',"posts"]
+  api.get_posts.fetch(location='myhouse')
 
-Here, the above configuration corresponds to a path of "../{location}/.." where "{location}" is a required parameter specified in the function call.
-The following code
+will request the resource at URL http://example.com/rest/v1/myhouse/posts.
 
-::
-
-	rc = API(config=MyConfig())
-	rc.get_posts.fetch(location='myhouse')
-
-will request the resource at the URL: "http://example.com/rest/v1/myhouse/posts".
-
-
-Description
+description
 ===========
-allows you to add description for the endpoint
+
+This parameter describes the resource, e.g.
 
 ::
 
-	rc = API(config=MyConfig())
-	rc.get_posts.description
+  assert "this describes the role of the endpoint" == api.get_posts.description
 
-This will print "this describes the role of the endpoint" to screen
-
-
-Path_description
+path_description
 ================
-allows you to add description for path parameters of the endpoint
+
+This parameter describes the individual path parameters, e.g.
 
 ::
 
-	rc = API(config=MyConfig())
-	rc.get_posts.help('location')
+  assert "this describes the location part of the parameter" == api.get_posts.help('location')
 
-This will print "this desribes the path parameter" to screen. 
+processor
+=========
 
+When you create an API for an APIConfig, the API will have a Resource instance
+for every ResourceConfig of the APIConfig. It is the Resource that sends out the
+request to the REST API and that makes sure the response is handled. There are
+different Resource classes to handle different the content types. Out of the box
+qrest provides a JSONResource to handle JSON responses and CSVResource to handle
+CSV responses. You can create your own Response subclass to add specific
+functionality, e.g. to support paging.
 
-Processor
-============
-
-Normally a call to an endpoint returns a Response object. For most needs it may be required to subclass this 
-object to add functionality (paging is a typical example). This functionality may be specific for your REST service.
-Creating custom RestResponse objects is however not in scope of this document. This parameter allows to set and 
-configure the Resource object that handles the interaction for one specific endpoint
-
+Optional parameter ``processor`` configures the actual Resource object that the
+resulting API instance will use. If you don't specify this parameter, the API
+instance will use a standard JSONResource.
 
 JSONResource
 ------------
 
-Often a REST call will return a complicated JSON object, where the 'interesting' data is embedded within a structure. This parameter 
-creates a 'direct link' to this data. For example when the return data is
+A JSONResource can be configured to extract specific data from a JSON response.
+It accepts keyword parameter ``extract_section`` that specifies a list of
+strings that forms the path to the relevant key. Say the response looks like
+this::
+
+  {"_embedded": {"posts": ["a", "b", "c"], "count": 3}, "_links": {"self": "http://someurl"}}
+
+and you are only interested in the value of key ``["_embedded"]["posts"]``. The
+specified JSONResource will do exactly that::
+
+  assert ['a','b','c'] == api.get_posts().fetch()
+
+The JSONResource shows another keyword parameter, viz. ``create_attribute``.
+This parameter tells the JSONResource to store the retrieved value in a separate
+attribute that is named using keyword parameter ``create_attribute``, e.g.
 
 ::
 
-	{ "_embedded": { "posts":['a','b','c'],
-					"count":3
-				},
-	"_links":{"self":"http://someurl"}
-	}
+  assert ['a','b','c'] == api.get_posts().myposts
 
-The "extract_section" option will probably be the most used one.
-With this option, you can specify where to look for the resulting Python object in the response body JSON content.
-The "extract_section" JSON option is a list of strings and traverses the response body JSON content looking for nested keys, following the order of the specified list.
-THe "create_attribute" option is the name of an attribute that is created to store the returned data.
-The following configuration for example will look for the response_json["_embedded"] object for the first resource name and the response_json["_embedded"]["posts"] object for the second resource name.
+Even if you don't specify ``create_attribute``, the retrieved value is
+always accessible via attribute ``data``::
 
-Then it is possible to do either of:
+  assert ['a','b','c'] == api.get_posts().data
 
-::
+Finally, you can access the complete JSON response via attribute ``raw``::
 
-	rc = API(config=MyConfig())
-	print(rc.get_posts().fetch())  # will print ['a','b','c']
-	
-	returned_posts = rc.get_posts().myposts
-	print(returned_posts)  # will print ['a','b','c']
-	
-	print(rc.get_posts().data)  # will print ['a','b','c']
+  assert {
+      "_embedded": {"posts": ["a", "b", "c"], "count": 3},
+      "_links": {"self": "http://someurl"},
+  } == api.get_posts().raw
 
-	print(rc.get_posts().raw)  # will print the complete return JSON
-	
-
-As shown, there are multiple ways to retreive data. Specifically, the 'data' attribute doubles that of the 'myposts' attribute. This
-is done to allow both user-friendly coding (using the myposts), but the possibility to be consistent ('data' is always available and 
-thus predictable)
-
-
-
-
+As shown, there are multiple ways to retrieve data. Specifically, the ``data``
+attribute doubles that of the ``myposts`` attribute. This is done to allow both
+user-friendly coding (using the myposts), but the possibility to be consistent
+(``data`` is always available and thus predictable)
 
 Headers
 =======
 
 The required headers to be added to the request. Needs to be a dictionary
-
 
 Parameters
 ==========
@@ -244,140 +251,164 @@ Parameters
 this is a list of ParameterConfig instances that describe the query and body parameters of the request
 
 
-
 ***********************
 Parameter Configuration
 ***********************
 
-The parameters dictionary contains all possible parameters for this endpoint, described using ParameterConfig instances.
-The ParameterConfig class is subclassed into BodyParameter and QueryParameter.
+A ResourceConfig accepts the keyword argument ``parameters``, which is a
+dictionary that specifies the possible parameters for this resource. Each
+parameter is specified as a BodyParameter or QueryParameter, both subclasses of
+ParameterConfig.
 
-A QueryParameter is usually used in a HTTP GET request, by supplementing the request URL by a question mark "?" and adding key-value pairs separated by ampersands "&".
-An example: "http://example.com/resource?isThere=true&radius=2&...
-
-A BodyParameter ends up inside the body of a request (similar to the parameters in curl -X POST -d '{"key":"value","type":"json"}' http://localhost:8080/api/call)
-Although it is possible to use QueryParameters in a POST request, one cannot use POST parameters in a GET request.
+A BodyParameter ends up inside the body of a request similar to the parameters
+in curl, e.g
 
 ::
 
-	get_items = ResourceConfig(
-		...
-		parameters={'param1': BodyParameter(name="Parameter1", exclusion_group="group_a"),
-					'param2': BodyParameter(name="Parameter2", exclusion_group="group_a"),
-					'multi_param': BodyParameter("MultiParameter", multiple=True),
-					'required_param': BodyParameter(name="RequiredParameter", 
-													required=True,
-													),
-					'describe_param': BodyParameter(name="DescribedParameter", 
-													description='This parameter is described'
-													),
-					'choices_param': QueryParameter(name="ChoicesParam",
-													default='key',
-													choices=['key','name','date','value']),
-			},
-		...
-		)
+  curl -X POST -d '{"key":"value","type":"json"}' http://localhost:8080/api/call
 
-Name
+Although it is possible to use query parameterrs in a POST request, one cannot
+use body parameters in a GET request. A query parameter is usually used in a
+HTTP GET request, by supplementing the request URL by a question mark ``?`` and
+adding key-value pairs separated by ampersands ``&``. To give an example,
+
+::
+
+  http://example.com/resource?isThere=true&radius=2&...
+
+To explain the different keyword arguments of a BodyParameter and
+QueryParameter, we use the following ResourceConfig
+
+::
+
+  get_items = ResourceConfig(
+      # ...
+      parameters={
+          "param1": BodyParameter(name="Parameter1", exclusion_group="group_a"),
+          "param2": BodyParameter(name="Parameter2", exclusion_group="group_a"),
+          "multi_param": BodyParameter("MultiParameter", multiple=True),
+          "required_param": BodyParameter(name="RequiredParameter", required=True,),
+          "describe_param": BodyParameter(
+              name="DescribedParameter", description="This parameter is described"
+          ),
+          "choices_param": QueryParameter(
+              name="ChoicesParam", default="key", choices=["key", "name", "date", "value"]
+          ),
+      },
+      # ...
+  )
+
+name
 ====
-the 'remote' name of the parameter. this name is what the REST resource actually gets to interpret
 
-For example, the above configuration specifies one (optional) query parameter with a name of "required_param".
-An example invocation is given below:
+This (keyword) argument specifies the 'remote' name of the parameter, i.e., what
+the REST resource actually gets to interpret. For example, the configuration
+specifies a QueryParameter for key ``choices_param``, whose 'remote' name is
+``ChoicesParam``. This means that the call
 
 ::
 
-	rc = API(url="http://example.com", config=MyConf())
-	rc.get_items(choices_param="value")
+  api.get_items(choices_param="value")
 
-This will request the resource at the URL: "http://example.com?ChoicesParam=value".
+will request the resource at URL http://example.com?ChoicesParam=value
 
 
-Required
-=============================
-if this parameter is ommitted in the qyery, throw an exception
-Query parameters are optional by default, but can be configured to be required (and will be validated as a result of that).
-The "required" option is an optional boolean configuration value and is "False" by default.
+required
+========
+
+This argument is an optional Boolean value: if the value is True but the
+parameter is ommitted in the call, the API instance will raise an exception. By
+default, its value is False.
 
 
 multiple
-=============================
-if set to True, the value of the query parameter is a list
-Some query parameters can be used multiple times in a URL.
-This can be helpful if some query parameter key needs a list of values.
-The "multiple" option is an optional boolean configuration value and is "False" by default.
-When set to "True", not only single values ("some_value" or 1 or True or ...) but also lists can be used "[1, 2, 3]".
+========
 
-For example, the above configuration specifies one (optional) query parameter with a name of "multi_param" and allows lists as its value.
-One can indeed write
+This argument is an optional Boolean value: if the value is if set to True, not
+only single values can be used but also a list of values.
 
-::
+Some query parameters can be used multiple times in a URL. This can be helpful
+if some query parameter key needs a list of values.
 
-	rc.resource_name(multi_param=["some_value", "some_value_2"])
-
-for passing multiple values or
+For example, the configuration specifies a QueryParameter for key
+``multi_param``. One can indeed write
 
 ::
 
-	rc.resource_name(multi_param="some_value")
+  api.resource_name(multi_param=["some_value", "some_value_2"])
 
-for passing a single value. This will request the resource at the URL: 
-"http://example.com?multi_param=some_value&multi_param=some_value_2" in the first 
-case and "http://example.com?multi_param=some_value" in the latter case.
+to request the resource at
+http://example.com?multi_param=some_value&multi_param=some_value_2
 
+A single value is still allowed, so
 
-Exclusion_group
-=============================
-Parameters in the same exclusion group may not be used together
-Groups can be used to specify dynamic key-value pairs that can't be combined in a single request.
-If, for instance, some query parameter key can have different names but only one of those names can be used in a request, then grouping is needed.
-In the above example, the user must either set param1 or param2 (or neither) , but cannot set both param1 and param2.
+::
 
+  rc.resource_name(multi_param="some_value")
 
-Default
-=============================
-the default entry if this parameter is not supplied
+will request http://example.com?multi_param=some_value
 
-Choices
-=============================
-a list of possible values for this parameter
+exclusion_group
+===============
 
-Description
-=============================
-any information about the parameter, such as data format 
+Parameters in the same exclusion group cannot be used together. Groups can be
+used to specify dynamic key-value pairs that cannot be combined in a single
+request. For instance, if some query parameter key can have different names but
+only one of those names can be used in a request, then grouping is needed.
 
+For example, the configuration specifies that one should either pass ``param1``
+or ``param2``, or neither, but not both.
 
-******************** 
+default
+=======
+
+This argument specifies the value that will be used if the parameter is not
+supplied.
+
+choices
+=======
+
+This argument specifies the list of values that are allowed for the parameter.
+
+description
+===========
+
+This argument describes the parameter.
+
+********************
 Configuration Module
-******************** 
+********************
 
 .. automodule:: qrest.conf
 
 .. autoclass:: APIConfig
-	:members:
-	:private-members:
-	:special-members: __init__
+  :members:
+  :private-members:
+  :special-members: __init__
 
 .. autoclass:: ResourceConfig
-	:members:
-	:private-members:
-	:special-members: __init__
+  :members:
+  :private-members:
+  :special-members: __init__
 
 .. autoclass:: ParameterConfig
-	:members:
-	:private-members:
-	:special-members: __init__
-	
+  :members:
+  :private-members:
+  :special-members: __init__
+
 .. autoclass:: QueryParameter
-	:members:
-	:private-members:
-	:special-members: __init__
+  :members:
+  :private-members:
+  :special-members: __init__
 
 .. autoclass:: BodyParameter
-	:members:
-	:private-members:
-	:special-members: __init__
+  :members:
+  :private-members:
+  :special-members: __init__
 
+.. rubric:: Footnotes
 
-
-
+.. [#subclass] You actually create an instance of an APIConfig *subclass*. The
+               APIConfig class itself does not specify any resources.
+.. [#requests.Response] qrest uses the requests library to execute the requests.
+                        The "raw response" is a ``requests.Response`` object.
