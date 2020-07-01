@@ -1,12 +1,13 @@
-qrest is a Python package that allows you to build a Python API to send requests
-to a REST API.
+qrest is a Python package that allows you to easily build a Python client to use
+a REST API.
 
 Overview
 ********
 
-Let's have a look at the REST API that is provided by the JSONPlaceholder
-website for testing and prototyping. The following Python snippet uses the
-Python requests library to send a GET request that retrieves all posts::
+The `JSONPlaceholder website`_ provides information through a REST API for
+testing and prototyping purposes. The following Python snippet retrieves all
+"posts", which is one of the resources that the website provides. The snippet
+sends a HTTP GET request using the Python requests_ library::
 
     import pprint
     import requests
@@ -33,19 +34,13 @@ This snippet outputs::
      'title': 'qui est esse',
      'userId': 1}]
 
+Although the requests library makes it very easy to query a REST API, it
+requires the user to know the structure of the REST API, how to build calls to
+that API, how to parse responses. This is where qrest comes in: it allows you to
+*configure* a Python API that provides access to the *information* and hides the
+nitty-gritty details of writing REST API code. For example, using qrest the code
+to retrieve the posts looks like this::
 
-If you have multiple requests in your code, before you know it you will add code
-to
-
-- avoid passing the same URL again and again,
-- easily access different endpoints using different parameters,
-- parse responses etc.
-
-This is where qrest comes in: it allows you to configure a Python API that hides
-the complexity and repetition of manually writing REST API code. For example,
-using qrest the code to retrieve the posts looks like this::
-
-    import pprint
     import qrest
 
     api = qrest.API(JSONPlaceholderConfig())
@@ -53,6 +48,8 @@ using qrest the code to retrieve the posts looks like this::
     posts = api.all_posts.fetch()
 
 If you want to retrieve the posts with a specific title::
+
+    import pprint
 
     posts = api.filter_posts.fetch(title="qui est esse")
     pprint.pprint(post)
@@ -68,8 +65,8 @@ which outputs::
       'title': 'qui est esse',
       'userId': 1}]
 
-The one thing you have to do is configure this API. The
-``JSONPlaceholderConfig`` in the example above is configured like this::
+The one thing you have to do is configure this API. The JSONPlaceholderConfig in
+the example above is configured like this::
 
     from qrest import APIConfig, ResourceConfig, QueryParameter
 
@@ -96,3 +93,6 @@ For more information about qrest and its usage, we refer to the documentation.
 
 If you want to contribute to qrest itself, we refer to the developer README that
 is located in the root directory of the repo.
+
+.. _JSONPlaceholder website: https://jsonplaceholder.typicode.com
+.. _requests: https://requests.readthedocs.io/en/master/
