@@ -393,7 +393,7 @@ class APIConfig:
 
     def _apply_defaults(self):
         """
-        rotate throught the endpoints and apply the fedault settings
+        rotate through the endpoints and apply the default settings
         """
         if "default_headers" in dir(self):
             for endpoint in self.endpoints.values():
