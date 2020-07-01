@@ -68,7 +68,7 @@ API, e.g
 
 The snippet shows that the names of the attributes of the APIConfig that specify
 the resources, are also used to name the attributes on the actual API object.
-You can specify another name using the ``name`` parameter of the ResourceConfig.
+You can specify another name using the ``name`` argument of the ResourceConfig.
 
 Each API instance has a property ``resources`` that lists the resources. This
 code
@@ -113,8 +113,8 @@ and then tries the optional username and password parameters.
 Resource Configuration
 **********************
 
-This section describes the different attributes of a ResourceConfig. It uses the
-following ResourceConfig as an example::
+This section describes the different keyword arguments of a ResourceConfig. It
+uses the following ResourceConfig as an example::
 
   class MyConfig(APIConfig):
 
@@ -133,11 +133,11 @@ following ResourceConfig as an example::
 method
 ======
 
-The resource method configuration option specifies which HTTP request method
-should be used. Commonly used HTTP request methods are GET, POST, PUT and
-DELETE. If no resource method has been specified, the default method GET will be
-used. For request methods where content is part of the request body, the "data"
-parameter of the resource function can be used.
+This (keyword) argument specifies which HTTP request method should be used.
+Commonly used HTTP request methods are GET, POST, PUT and DELETE. If no resource
+method has been specified, GET will be used. For request methods where content
+is part of the request body, the "data" parameter of the resource function can
+be used.
 
 In other words the code
 
@@ -150,8 +150,8 @@ will perform a HTTP GET request with ``{"PostUID": 12345}`` as the request body.
 path
 ====
 
-One of the configuration options of a resource, is the path. The path option is
-a list of strings that, when joined by a forward slash "/", specifies where the
+Another argument to the ResourceConfig, is the path. The path option is a list
+of strings that, when joined by a forward slash "/", specifies where the
 resource is located in the REST API. If a path parameter is used, you can put
 curly braces "{}" around the name of that parameter. From the example above::
 
@@ -170,7 +170,7 @@ will request the resource at URL http://example.com/rest/v1/myhouse/posts.
 description
 ===========
 
-This parameter describes the resource, e.g.
+This argument describes the resource, e.g.
 
 ::
 
@@ -179,7 +179,7 @@ This parameter describes the resource, e.g.
 path_description
 ================
 
-This parameter describes the individual path parameters, e.g.
+This argument describes the individual path parameters, e.g.
 
 ::
 
@@ -196,15 +196,15 @@ qrest provides a JSONResource to handle JSON responses and CSVResource to handle
 CSV responses. You can create your own Response subclass to add specific
 functionality, e.g. to support paging.
 
-Optional parameter ``processor`` configures the actual Resource object that the
-resulting API instance will use. If you don't specify this parameter, the API
+Optional argument ``processor`` configures the actual Resource object that the
+resulting API instance will use. If you don't use this argument, the API
 instance will use a standard JSONResource.
 
 JSONResource
 ------------
 
 A JSONResource can be configured to extract specific data from a JSON response.
-It accepts keyword parameter ``extract_section`` that specifies a list of
+It accepts keyword argument ``extract_section`` that specifies a list of
 strings that forms the path to the relevant key. Say the response looks like
 this::
 
@@ -215,9 +215,9 @@ specified JSONResource will do exactly that::
 
   assert ['a','b','c'] == api.get_posts().fetch()
 
-The JSONResource shows another keyword parameter, viz. ``create_attribute``.
-This parameter tells the JSONResource to store the retrieved value in a separate
-attribute that is named using keyword parameter ``create_attribute``, e.g.
+The JSONResource shows another keyword argument, viz. ``create_attribute``. This
+argument tells the JSONResource to store the retrieved value in a separate
+attribute that is named using keyword argument ``create_attribute``, e.g.
 
 ::
 
@@ -277,9 +277,7 @@ adding key-value pairs separated by ampersands ``&``. To give an example,
   http://example.com/resource?isThere=true&radius=2&...
 
 To explain the different keyword arguments of a BodyParameter and
-QueryParameter, we use the following ResourceConfig
-
-::
+QueryParameter, we use the following ResourceConfig::
 
   get_items = ResourceConfig(
       # ...
