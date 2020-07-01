@@ -49,8 +49,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'qREST: Generic Python REST API client'
-copyright = u'2019'
+project = u'qrest'
+copyright = u'2019, 2020'
 author = u'Joris Benschop'
 
 # The version info for the project you're documenting, acts as replacement for
