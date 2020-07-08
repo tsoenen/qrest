@@ -46,13 +46,13 @@ the posts looks like this::
 
     api = qrest.API(JSONPlaceholderConfig())
 
-    posts = api.all_posts.fetch()
+    posts = api.all_posts()
 
 If you want to retrieve the posts with a specific title::
 
     import pprint
 
-    posts = api.filter_posts.fetch(title="qui est esse")
+    posts = api.filter_posts(title="qui est esse")
     pprint.pprint(post)
 
 which outputs::

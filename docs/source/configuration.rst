@@ -55,7 +55,7 @@ e.g.
 ::
 
   api = qrest.API(MyRESTConfig())
-  items = api.list_items.fetch()
+  items = api.list_items()
 
 The names of the attributes of the APIConfig that specify the resources, are
 also used to name the attributes on the actual API object. You can specify
@@ -153,7 +153,7 @@ keyword parameter in the function call. To give an example, the code
 
 ::
 
-  api.get_posts.fetch(location='myhouse')
+  api.get_posts(location='myhouse')
 
 will request the resource at URL http://example.com/rest/v1/myhouse/posts.
 
@@ -203,7 +203,7 @@ this::
 and you are only interested in the value of key ``["_embedded"]["posts"]``. The
 specified JSONResource will do exactly that::
 
-  assert ['a','b','c'] == api.get_posts().fetch()
+  assert ['a','b','c'] == api.get_posts()
 
 The JSONResource shows another keyword argument, viz. ``create_attribute``. This
 argument tells the JSONResource to store the retrieved value in a separate
