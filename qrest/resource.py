@@ -21,7 +21,7 @@ from .utils import URLValidator
 from .exception import (
     RestClientQueryError,
     RestClientConfigurationError,
-    RestLoginError,
+    RestCredentailsError,
     RestResourceHTTPError,
     InvalidResourceError,
 )
@@ -380,8 +380,8 @@ class Resource(ABC):
         """
 
         # check if user is logged in
-        if self.auth and not self.auth.is_logged_in:
-            raise RestLoginError("user is not logged in")
+        if self.auth and not self.auth.credentials_are_set:
+            raise RestCredentailsError("user credentials are not set")
 
         # url and parameters
         if "cleaned_data" not in dir(self):

@@ -2,7 +2,7 @@ import os
 import logging
 import requests
 
-from ..exception import RestLoginError, RestClientConfigurationError
+from ..exception import RestCredentailsError, RestClientConfigurationError
 from . import NetRCAuth, RESTAuthentication, AuthConfig
 from ..utils import URLValidator
 
@@ -10,15 +10,15 @@ from ..utils import URLValidator
 logger = logging.getLogger(__name__)
 
 
-class CASLoginError(RestLoginError):
+class CASCredentailsError(RestCredentailsError):
     pass
 
 
-class CASGrantingTicketError(CASLoginError):
+class CASGrantingTicketError(CASCredentailsError):
     pass
 
 
-class CASServiceTicketError(CASLoginError):
+class CASServiceTicketError(CASCredentailsError):
     pass
 
 
@@ -58,7 +58,7 @@ class CASAuth(RESTAuthentication):
         self.__ticket_granting_ticket = None  # content of the TGT
 
     # -------------------------------------------------------------------------------------
-    def login(
+    def set_credentials(
         self,
         server_url,
         service_name=None,
@@ -141,7 +141,7 @@ class CASAuth(RESTAuthentication):
             # try to get creds from parent, in case we may need it later
             # if this request fails, its ok for now
             try:
-                parent_auth.login(netrc_path=netrc_path)
+                parent_auth.set_credentials(netrc_path=netrc_path)
                 username = parent_auth.username
                 password = parent_auth.password
             except ValueError:
@@ -151,7 +151,7 @@ class CASAuth(RESTAuthentication):
         # user/pass, or netrc as backup
         if not self.ticket_granting_ticket:
             if not self.are_valid_credentials(username, password):
-                raise RestLoginError(
+                raise RestCredentailsError(
                     "no username or password is provided via parameters or in netrc file"
                 )
             self.ticket_granting_ticket = self.request_new_tgt(username, password)
@@ -165,7 +165,7 @@ class CASAuth(RESTAuthentication):
             if not self.are_valid_credentials(
                 username, password
             ):  # this uses the netrc creds, but only after trying without first
-                raise RestLoginError(
+                raise RestCredentailsError(
                     "[CAS] could not get service ticket, and netrc credentials are invalid or "
                     'absent. Exact error msg="%s"' % str(e)
                 )
@@ -173,17 +173,17 @@ class CASAuth(RESTAuthentication):
                 self.ticket_granting_ticket = self.request_new_tgt(username, password)
                 self.request_new_service_ticket()
             except CASGrantingTicketError as e2:
-                raise RestLoginError(
+                raise RestCredentailsError(
                     '[CAS] could not get TGT while using netrc credentials. Exact error msg="%s"'
                     % str(e2)
                 )
             except CASServiceTicketError as e2:
-                raise RestLoginError(
+                raise RestCredentailsError(
                     "[CAS] could not get service ticket, despite getting a new TGT. Exact error "
                     'msg="%s"' % str(e2)
                 )
 
-        self.is_logged_in = True
+        self.credentials_are_set = True
 
     # -------------------------------------------------------------------------------------
     def request_new_service_ticket(self):

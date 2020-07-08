@@ -84,7 +84,7 @@ class RestAccessDeniedError(RestClientResourceError):
     pass
 
 
-class RestLoginError(RestClientResourceError):
+class RestCredentailsError(RestClientResourceError):
     """ wrapper exception """
 
     pass
