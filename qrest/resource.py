@@ -191,7 +191,8 @@ class Resource(ABC):
     def parameters(self) -> dict:
         """
         return the configuration parameters for this rest resource
-        :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters (value, a list)
+        :return: A dictionary of the 'optional', 'required' and 'multiple' (keys) query parameters
+        (value, a list)
 
         """
         return self.config.as_dict
