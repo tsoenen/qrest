@@ -171,23 +171,20 @@ class Resource(ABC):
 
     # ---------------------------------------------------------------------------------------------
     def __call__(self, *args, **kwargs):
-        """
-        runs the REST query using supplied arguments, checks input quality and format the REST
-        parameters.
-        """
+        """Execute the REST query and return the content of interest of the response."""
+        response = self.get_response(*args, **kwargs)
+        return response.fetch()
 
+    def get_response(self, *args, **kwargs):
+        """Execute the REST query and return the qrest.response.Response object.
+
+        This method executes the REST query for the given arguments, checks
+        input quality and formats the REST parameters.
+
+        """
         self.cleaned_data = {}
         self.check(**kwargs)
         return self._get()
-
-    # ---------------------------------------------------------------------------------------------
-    def fetch(self, *args, **kwargs):
-        """shortcut function to immediately deliver the content of the response
-        instead of the response object itself
-
-        """
-        response = self.__call__(*args, **kwargs)
-        return response.fetch()
 
     # ---------------------------------------------------------------------------------------------
     @property

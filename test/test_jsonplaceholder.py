@@ -75,14 +75,14 @@ class JsonPlaceHolderConfig(APIConfig):
     )
 
 
-class PassthroughResponse(Response):
-    """Provide access to the requests.Response that is wrapped.
+class ContentResponse(Response):
+    """Provide access to the content of the requests.Response that is wrapped.
 
     The qrest.API uses a Response to process the requests.Response it
     receives from the endpoint. That processing requires specific responses and
     would make the setup of the API tests much more elaborate and the tests
     themselves much less focussed on the API. To work around that, we use a
-    PassthroughResponse for the tests, which does no processing at all.
+    ContentResponse for the tests, which does no processing at all.
 
     Note that Response objects have their own tests and do not have to be
     tested by the API tests.
@@ -93,8 +93,8 @@ class PassthroughResponse(Response):
         pass
 
     def fetch(self):
-        """Return the requests.Response object received."""
-        return self._response
+        """Return the content of the requests.Response object received."""
+        return self._response.content
 
     def _check_content(self):
         pass
@@ -125,10 +125,10 @@ class TestJsonPlaceHolder(unittest.TestCase):
 
     def test_all_posts_queries_the_right_endpoint(self):
         api = qrest.API(self.config)
-        api.all_posts.response = PassthroughResponse()
+        api.all_posts.response = ContentResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
-            response = api.all_posts.fetch()
+            posts = api.all_posts()
 
             mock_request.assert_called_with(
                 method="GET",
@@ -140,14 +140,14 @@ class TestJsonPlaceHolder(unittest.TestCase):
                 headers={"Content-type": "application/json; charset=UTF-8"},
             )
 
-            self.assertEqual(b"Hello World!", response.content)
+            self.assertEqual(self.mock_response.content, posts)
 
     def test_single_post_queries_the_right_endpoint(self):
         api = qrest.API(self.config)
-        api.single_post.response = PassthroughResponse()
+        api.single_post.response = ContentResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
-            response = api.single_post.fetch(item=1)
+            post = api.single_post(item=1)
 
             mock_request.assert_called_with(
                 method="GET",
@@ -162,14 +162,14 @@ class TestJsonPlaceHolder(unittest.TestCase):
                 },
             )
 
-            self.assertEqual(b"Hello World!", response.content)
+            self.assertEqual(self.mock_response.content, post)
 
     def test_filter_posts_queries_the_right_endpoint(self):
         api = qrest.API(self.config)
-        api.filter_posts.response = PassthroughResponse()
+        api.filter_posts.response = ContentResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
-            response = api.filter_posts.fetch(user_id=1)
+            posts = api.filter_posts(user_id=1)
 
             mock_request.assert_called_with(
                 method="GET",
@@ -181,22 +181,22 @@ class TestJsonPlaceHolder(unittest.TestCase):
                 headers={"Content-type": "application/json; charset=UTF-8"},
             )
 
-            self.assertEqual(b"Hello World!", response.content)
+            self.assertEqual(self.mock_response.content, posts)
 
     def test_filter_posts_returns_the_response_when_called(self):
         api = qrest.API(self.config)
-        api.filter_posts.response = PassthroughResponse()
+        api.filter_posts.response = ContentResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response):
-            response = api.filter_posts(user_id=1)
+            response = api.filter_posts.get_response(user_id=1)
             self.assertIs(api.filter_posts.response, response)
 
     def test_comments_queries_the_right_endpoint(self):
         api = qrest.API(self.config)
-        api.comments.response = PassthroughResponse()
+        api.comments.response = ContentResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
-            response = api.comments.fetch(post_id=1)
+            comments = api.comments(post_id=1)
 
             mock_request.assert_called_with(
                 method="GET",
@@ -208,7 +208,7 @@ class TestJsonPlaceHolder(unittest.TestCase):
                 headers={"Content-type": "application/json; charset=UTF-8"},
             )
 
-            self.assertEqual(b"Hello World!", response.content)
+            self.assertEqual(self.mock_response.content, comments)
 
     def test_create_post_help_returns_the_correct_title(self):
 
@@ -217,14 +217,14 @@ class TestJsonPlaceHolder(unittest.TestCase):
 
     def test_create_post_accesses_the_right_endpoint_when_called(self):
         api = qrest.API(self.config)
-        api.create_post.response = PassthroughResponse()
+        api.create_post.response = ContentResponse()
 
         title = "new post using qREST ORM"
         content = "this is the new data posted using qREST"
         user_id = 200
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
-            response = api.create_post(title=title, content=content, user_id=user_id)
+            response = api.create_post.get_response(title=title, content=content, user_id=user_id)
 
             mock_request.assert_called_with(
                 method="POST",
