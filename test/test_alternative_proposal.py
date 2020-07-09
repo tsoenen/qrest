@@ -1,9 +1,12 @@
 import unittest
 import unittest.mock as mock
 
+import ddt
+
 import qrest
 from qrest import APIConfig, BodyParameter, QueryParameter
 from qrest import ResourceConfig
+from qrest.exception import RestClientConfigurationError
 from qrest.resource import JSONResource
 
 
@@ -30,6 +33,7 @@ class AlternativeConfigurationTests(unittest.TestCase):
         self.assertIsInstance(api.all_posts, JSONResource)
 
 
+@ddt.ddt
 class ResourceConfigCreateTests(unittest.TestCase):
     def test_pass_required_attributes(self):
         class MyConfig(ResourceConfig):
@@ -44,6 +48,20 @@ class ResourceConfigCreateTests(unittest.TestCase):
 
             self.assertEqual((["my", "config"], "GET"), args)
             self.assertDictEqual({}, kwargs)
+
+    @ddt.data("path", "method")
+    def test_raise_proper_exception_when_required_attribute_is_missing(self, attribute):
+        class MyConfig(ResourceConfig):
+            name = "my_config"
+            path = ["my", "config"]
+            method = "GET"
+
+        delattr(MyConfig, attribute)
+
+        with self.assertRaisesRegex(
+            RestClientConfigurationError, f"Required attribute '{attribute}' is missing"
+        ):
+            _ = MyConfig.create()
 
     def test_pass_named_optional_attributes(self):
         class MyConfig(ResourceConfig):

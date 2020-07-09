@@ -139,9 +139,6 @@ class ResourceConfig:
 
     """
 
-    _NAMED_OPTIONAL_ATTRIBUTES = ["description", "headers", "path_description", "processor"]
-    # list of class attributes for a ResourceConfig that may or may not be defined
-
     # -----------------------------------------------------------------------------------------------------
     def __init__(
         self,
@@ -187,14 +184,22 @@ class ResourceConfig:
 
     @classmethod
     def create(cls):
+        """Return a ResourceConfig initialized using its class attributes."""
+        all_attributes = dir(cls)
+
+        required_attributes = ["method", "path"]
+        for attribute in required_attributes:
+            if attribute not in all_attributes:
+                raise RestClientConfigurationError(f"Required attribute '{attribute}' is missing")
         args = [cls.path, cls.method]
+
         kwargs = {}
-        optional_attributes = cls._NAMED_OPTIONAL_ATTRIBUTES
+        optional_attributes = ["description", "headers", "path_description", "processor"]
         for attribute in optional_attributes:
-            if attribute in dir(cls):
+            if attribute in all_attributes:
                 kwargs[attribute] = getattr(cls, attribute)
 
-        for attribute_name in dir(cls):
+        for attribute_name in all_attributes:
             attribute = getattr(cls, attribute_name)
             if isinstance(attribute, ParameterConfig):
                 parameters = kwargs.setdefault("parameters", {})
