@@ -23,6 +23,24 @@ logger = logging.getLogger(__name__)
 disable_warnings(InsecureRequestWarning)
 
 
+def _find_endpoints(o):
+    """Return the dictionary of attribute name to ResourceConfig.
+
+    An API has attributes that store a ResourceConfig. This method collects
+    these attributes and returns the resulting dictionary.
+
+    """
+    endpoints_dict = {}
+    dirlist = [x for x in dir(o) if not x.startswith("_")]
+    for item in dirlist:
+        endpoint = getattr(o, item)
+        if endpoint.__class__ == ResourceConfig:
+            endpoints_dict[item] = endpoint
+    if not endpoints_dict:
+        raise RestClientConfigurationError("no endpoints defined for this REST client at all!")
+    return endpoints_dict
+
+
 # ================================================================================================
 class ParameterConfig:
     """Contain and validate parameters for a REST endpoint. As this is a
@@ -163,6 +181,10 @@ class ResourceConfig:
         #  we enforce recreation of a new unique Resource instance each time
         self.processor = processor or JSONResource()
         self.validate()
+
+    @classmethod
+    def create(cls):
+        return cls(cls.path, cls.method)
 
     # ----------------------------------------------------
     def validate(self):
@@ -386,8 +408,8 @@ class APIConfig:
 
     endpoints: Dict[str, ResourceConfig]
 
-    def __init__(self):
-        self.endpoints = self._get_endpoints()
+    def __init__(self, find_endpoints=_find_endpoints):
+        self.endpoints = find_endpoints(self)
         self._apply_defaults()
         self._validate()
 
@@ -420,20 +442,3 @@ class APIConfig:
             raise RestClientConfigurationError(
                 "authentication attribute is not an initiated instance of AuthConfig"
             )
-
-    def _get_endpoints(self) -> Dict[str, ResourceConfig]:
-        """Return the dictionary of attribute name to ResourceConfig.
-
-        An API has attributes that store a ResourceConfig. This method collects
-        these attributes and returns the resulting dictionary.
-
-        """
-        endpoints_dict = {}
-        dirlist = [x for x in dir(self) if not x.startswith("_")]
-        for item in dirlist:
-            endpoint = getattr(self, item)
-            if endpoint.__class__ == ResourceConfig:
-                endpoints_dict[item] = endpoint
-        if not endpoints_dict:
-            raise RestClientConfigurationError("no endpoints defined for this REST client at all!")
-        return endpoints_dict
