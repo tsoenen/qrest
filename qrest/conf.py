@@ -139,6 +139,9 @@ class ResourceConfig:
 
     """
 
+    _NAMED_OPTIONAL_ATTRIBUTES = ["description", "headers", "path_description", "processor"]
+    # list of class attributes for a ResourceConfig that may or may not be defined
+
     # -----------------------------------------------------------------------------------------------------
     def __init__(
         self,
@@ -184,7 +187,20 @@ class ResourceConfig:
 
     @classmethod
     def create(cls):
-        return cls(cls.path, cls.method)
+        args = [cls.path, cls.method]
+        kwargs = {}
+        optional_attributes = cls._NAMED_OPTIONAL_ATTRIBUTES
+        for attribute in optional_attributes:
+            if attribute in dir(cls):
+                kwargs[attribute] = getattr(cls, attribute)
+
+        for attribute_name in dir(cls):
+            attribute = getattr(cls, attribute_name)
+            if isinstance(attribute, ParameterConfig):
+                parameters = kwargs.setdefault("parameters", {})
+                parameters[attribute_name] = attribute
+
+        return cls(*args, **kwargs)
 
     # ----------------------------------------------------
     def validate(self):
