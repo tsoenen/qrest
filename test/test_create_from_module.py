@@ -45,6 +45,18 @@ class CreateAPIFromModuleTests(unittest.TestCase):
             with self.assertRaisesRegex(RestClientConfigurationError, message):
                 _ = qrest.API.from_module(inspect.getmodule(self))
 
+    def test_raise_proper_exception_when_ResourceConfig_class_is_without_name(self):
+        class WithoutName(ResourceConfig):
+            path = ["without", "name"]
+            method = "GET"
+
+        registry = mock.Mock()
+        registry.retrieve.return_value = [WithoutName]
+        with mock.patch("qrest.resource.ModuleClassRegistry", return_value=registry):
+            message = "Imported class '.*' does not have a 'name' attribute."
+            with self.assertRaisesRegex(RestClientConfigurationError, message):
+                _ = qrest.API.from_module(inspect.getmodule(self))
+
 
 @ddt.ddt
 class ResourceConfigCreateTests(unittest.TestCase):

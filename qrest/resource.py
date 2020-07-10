@@ -100,6 +100,11 @@ class API:
             )
 
         resource_configs = registry.retrieve(ResourceConfig)
+        for c in resource_configs:
+            if "name" not in dir(c):
+                raise RestClientConfigurationError(
+                    f"Imported class '{c.__name__}' does not have a 'name' attribute."
+                )
         endpoints = {c.name: c.create() for c in resource_configs}
 
         return cls(api_configs[0](find_endpoints=lambda cls: endpoints))
