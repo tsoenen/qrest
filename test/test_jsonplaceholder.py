@@ -1,12 +1,15 @@
 import unittest
 import unittest.mock as mock
 
+import ddt
 import requests
 
 import qrest
 from qrest import APIConfig
 from qrest import QueryParameter, BodyParameter, ResourceConfig
 from qrest.response import JSONResponse, Response
+
+from . import jsonplaceholderconfig
 
 
 class JsonPlaceHolderConfig(APIConfig):
@@ -103,6 +106,7 @@ class ContentResponse(Response):
         pass
 
 
+@ddt.ddt
 class TestJsonPlaceHolder(unittest.TestCase):
     def setUp(self):
         self.config = JsonPlaceHolderConfig()
@@ -116,15 +120,41 @@ class TestJsonPlaceHolder(unittest.TestCase):
 
     def tearDown(self):
         # In this testsuite we instantiate an API from the same APIConfig
-        # multiple times. This means we are are reusing the same ResourceConfig
+        # multiple times. This means we are reusing the same ResourceConfig
         # objects and as such, the same processor (JSONResource). As we modify
         # the processor in our tests, we have to reset it after each test.
         for config_name in ["all_posts", "comments", "filter_posts", "single_post"]:
             config = getattr(JsonPlaceHolderConfig, config_name)
             config.processor.response = JSONResponse()
 
-    def test_all_posts_queries_the_right_endpoint(self):
-        api = qrest.API(self.config)
+    def _create_api_from_class(self):
+        return qrest.API(self.config)
+
+    def _create_api_from_module(self):
+        return qrest.API.from_module(jsonplaceholderconfig)
+
+    @ddt.data("_create_api_from_class", "_create_api_from_module")
+    def test_all_posts_queries_the_right_endpoint(self, function_name):
+        api = getattr(self, function_name)()
+        api.all_posts.response = ContentResponse()
+
+        with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
+            posts = api.all_posts()
+
+            mock_request.assert_called_with(
+                method="GET",
+                auth=None,
+                verify=False,
+                url="https://jsonplaceholder.typicode.com/posts",
+                params={},
+                json={},
+                headers={"Content-type": "application/json; charset=UTF-8"},
+            )
+
+            self.assertEqual(self.mock_response.content, posts)
+
+    def test_all_posts_queries_the_right_endpoint_2(self):
+        api = qrest.API.from_module(jsonplaceholderconfig)
         api.all_posts.response = ContentResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
