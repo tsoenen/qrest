@@ -47,23 +47,3 @@ class ModuleClassRegistryTests(unittest.TestCase):
                 issubclass(config_class, ResourceConfig),
                 f"Class {config_class} should be a subclass of ResourceConfig",
             )
-
-
-def find_endpoints(config_class):
-    endpoints = {}
-    module = inspect.getmodule(config_class)
-    for name, value in inspect.getmembers(module):
-        if inspect.isclass(value) and inspect.getmodule(value) == module:
-            if issubclass(value, ResourceConfig):
-                endpoints[value.name] = value.create()
-    return endpoints
-
-
-class FindEndpointTests(unittest.TestCase):
-    def test_initial(self):
-        configs = find_endpoints(MyAPIConfig)
-
-        self.assertEqual(2, len(configs), "Two endpoints should have been found")
-        self.assertSetEqual(set(["first", "second"]), set(configs.keys()))
-        self.assertIsInstance(configs["first"], FirstResourceConfig)
-        self.assertIsInstance(configs["second"], SecondResourceConfig)
