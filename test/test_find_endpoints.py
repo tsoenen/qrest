@@ -20,23 +20,55 @@ class SecondResourceConfig(ResourceConfig):
     method = "GET"
 
 
-def find_api_config_class(module):
-    for name, value in inspect.getmembers(module):
-        # the member should be defined in the given module
-        if inspect.getmodule(value) == module:
-            # issubclass requires its first argument to be a class
-            if inspect.isclass(value) and issubclass(value, APIConfig):
-                return value
+class ModuleClassRegistry:
+    """Allows you to retrieve the classes that are defined in an imported module."""
+
+    def __init__(self, imported_module):
+        """Store the module from which the classes can be retrieved."""
+        self._module = imported_module
+
+    def retrieve(self, base_class):
+        """Return all subclasses of the given base class.
+
+        The classes returned are defined in the imported module.
+
+        """
+        classes = []
+        for name, value in inspect.getmembers(self._module):
+            # the member should be defined in the given module
+            if inspect.getmodule(value) == self._module:
+                # issubclass requires its first argument to be a class
+                if inspect.isclass(value) and issubclass(value, base_class):
+                    classes.append(value)
+        return classes
 
 
-class FindAPIConfigTests(unittest.TestCase):
-    def test_return_APIConfig_from_given_module(self):
-        current_module = inspect.getmodule(FindEndpointsConfig)
-        config_class = find_api_config_class(current_module)
-        self.assertTrue(
-            issubclass(config_class, FindEndpointsConfig),
-            f"Class {config_class} should be a subclass of FindEndpointsConfig",
+class ModuleClassRegistryTests(unittest.TestCase):
+    def setUp(self):
+        self.current_module = inspect.getmodule(ModuleClassRegistryTests)
+
+    def test_find_APIConfig_classes(self):
+        classes = ModuleClassRegistry(self.current_module)
+        config_classes = classes.retrieve(APIConfig)
+        self.assertEqual(
+            1, len(config_classes), "the current module should contain a single APIConfig class"
         )
+        self.assertTrue(
+            issubclass(config_classes[0], FindEndpointsConfig),
+            f"Class {config_classes[0]} should be a subclass of APIConfig",
+        )
+
+    def test_find_ResourceConfig_classes(self):
+        classes = ModuleClassRegistry(self.current_module)
+        config_classes = classes.retrieve(ResourceConfig)
+        self.assertEqual(
+            2, len(config_classes), "the current module should contain 2 ResourceConfig classes"
+        )
+        for config_class in config_classes:
+            self.assertTrue(
+                issubclass(config_class, ResourceConfig),
+                f"Class {config_class} should be a subclass of ResourceConfig",
+            )
 
 
 def find_endpoints(config_class):
