@@ -16,6 +16,7 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 # ================================================================================================
 # local imports
+from .module_class_registry import ModuleClassRegistry
 from .response import Response
 from .utils import URLValidator
 from .exception import (
@@ -77,6 +78,31 @@ class API:
                 item_config.processor, resource_name=name, config=item_config
             )
             setattr(self, name, new_resource)
+
+    @classmethod
+    def from_module(cls, imported_module):
+        """Return an API from the configurations in the given imported module."""
+
+        from .conf import APIConfig, ResourceConfig
+
+        registry = ModuleClassRegistry(imported_module)
+
+        api_configs = registry.retrieve(APIConfig)
+        if not api_configs:
+            raise RestClientConfigurationError(
+                f"Imported module '{imported_module.__name__}' does not contain a subclass of "
+                "APIConfig."
+            )
+        elif len(api_configs) > 1:
+            raise RestClientConfigurationError(
+                f"Imported module '{imported_module.__name__}' contains more than 1 subclass of "
+                "APIConfig."
+            )
+
+        resource_configs = registry.retrieve(ResourceConfig)
+        endpoints = {c.name: c.create() for c in resource_configs}
+
+        return cls(api_configs[0](find_endpoints=lambda cls: endpoints))
 
     # ---------------------------------------------------------------------------------------------
     @property

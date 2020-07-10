@@ -1,3 +1,4 @@
+import inspect
 import unittest
 import unittest.mock as mock
 
@@ -22,15 +23,27 @@ class AllPosts(ResourceConfig):
     description = "retrieve all posts"
 
 
-def find_endpoints(o):
-    return {AllPosts.name: AllPosts.create()}
-
-
-class AlternativeConfigurationTests(unittest.TestCase):
+class CreateAPIFromModuleTests(unittest.TestCase):
     def test_all_posts_becomes_an_attribute(self):
 
-        api = qrest.API(JsonPlaceHolderConfig(find_endpoints=find_endpoints))
+        api = qrest.API.from_module(inspect.getmodule(self))
         self.assertIsInstance(api.all_posts, JSONResource)
+
+    def test_raise_proper_exception_when_multiple_APIConfig_classes_are_present(self):
+        registry = mock.Mock()
+        registry.retrieve.return_value = [mock.Mock(), mock.Mock()]
+        with mock.patch("qrest.resource.ModuleClassRegistry", return_value=registry):
+            message = "Imported module '.*' contains more than 1 subclass of APIConfig."
+            with self.assertRaisesRegex(RestClientConfigurationError, message):
+                _ = qrest.API.from_module(inspect.getmodule(self))
+
+    def test_raise_proper_exception_when_no_APIConfig_class_is_present(self):
+        registry = mock.Mock()
+        registry.retrieve.return_value = []
+        with mock.patch("qrest.resource.ModuleClassRegistry", return_value=registry):
+            message = "Imported module '.*' does not contain a subclass of APIConfig."
+            with self.assertRaisesRegex(RestClientConfigurationError, message):
+                _ = qrest.API.from_module(inspect.getmodule(self))
 
 
 @ddt.ddt
