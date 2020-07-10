@@ -5,7 +5,7 @@ from qrest import APIConfig, ResourceConfig
 from qrest.module_class_registry import ModuleClassRegistry
 
 
-class FindEndpointsConfig(APIConfig):
+class MyAPIConfig(APIConfig):
     pass
 
 
@@ -32,7 +32,7 @@ class ModuleClassRegistryTests(unittest.TestCase):
             1, len(config_classes), "the current module should contain a single APIConfig class"
         )
         self.assertTrue(
-            issubclass(config_classes[0], FindEndpointsConfig),
+            issubclass(config_classes[0], MyAPIConfig),
             f"Class {config_classes[0]} should be a subclass of APIConfig",
         )
 
@@ -61,7 +61,7 @@ def find_endpoints(config_class):
 
 class FindEndpointTests(unittest.TestCase):
     def test_initial(self):
-        configs = find_endpoints(FindEndpointsConfig)
+        configs = find_endpoints(MyAPIConfig)
 
         self.assertEqual(2, len(configs), "Two endpoints should have been found")
         self.assertSetEqual(set(["first", "second"]), set(configs.keys()))
