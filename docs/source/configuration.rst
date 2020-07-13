@@ -1,21 +1,14 @@
-#####################
-Configuring resources
-#####################
-
-This section documents the use of the qrest package to query arbitrary REST
-APIs.
-
-*********************
-General configuration
-*********************
+##################################
+Server and endpoints configuration
+##################################
 
 The way access to a REST API is configured, is inspired by Django Model objects.
 For any given REST API, you create
 
-#. subclasses of ResourceConfig that each configure an endpoint of the REST API,
-   and
-#. a single subclass of APIConfig to configure values that hold for each of the
-   endpoints, e.g. the url of the REST server.
+#. subclasses of ResourceConfig, where each subclass configures an endpoint of
+   the REST API, and
+#. a single subclass of APIConfig to configure values that hold for each of
+   these endpoints, e.g. the url of the REST server.
 
 The introduction already showed how that looks for the JSONPlaceholder website::
 
