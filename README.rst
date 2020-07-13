@@ -43,52 +43,62 @@ details of writing REST API code. For example, using qrest the code to retrieve
 the posts looks like this::
 
     import qrest
+    import jsonplaceholderconfig
 
-    api = qrest.API(JSONPlaceholderConfig())
+    api = qrest.API(jsonplaceholderconfig)
 
     posts = api.all_posts()
 
-If you want to retrieve the posts with a specific title::
+If you want to retrieve the posts from a specific author::
 
     import pprint
 
-    posts = api.filter_posts(title="qui est esse")
-    pprint.pprint(post)
+    # all authors are numbered from 1 to 10
+    posts = api.filter_posts(user_id=7)
+
+    # only output the title of each post for brevity
+    titles = [post["title"] for post in posts]
+    pprint.pprint(titles)
 
 which outputs::
 
-    [{'body': 'est rerum tempore vitae\n'
-              'sequi sint nihil reprehenderit dolor beatae ea dolores neque\n'
-              'fugiat blanditiis voluptate porro vel nihil molestiae ut '
-              'reiciendis\n'
-              'qui aperiam non debitis possimus qui neque nisi nulla',
-      'id': 2,
-      'title': 'qui est esse',
-      'userId': 1}]
+    ['voluptatem doloribus consectetur est ut ducimus',
+     'beatae enim quia vel',
+     'voluptas blanditiis repellendus animi ducimus error sapiente et suscipit',
+     'et fugit quas eum in in aperiam quod',
+     'consequatur id enim sunt et et',
+     'repudiandae ea animi iusto',
+     'aliquid eos sed fuga est maxime repellendus',
+     'odio quis facere architecto reiciendis optio',
+     'fugiat quod pariatur odit minima',
+     'voluptatem laborum magni']
 
-The one thing you have to do is configure this API. The JSONPlaceholderConfig in
-the example above is configured like this::
+The one thing you have to do is configure this API. The module
+``jsonplaceholderconfig`` in the example above is configured like this::
 
     from qrest import APIConfig, ResourceConfig, QueryParameter
 
+
     class JSONPlaceholderConfig(APIConfig):
+        url = "https://jsonplaceholder.typicode.com"
 
-        url = 'https://jsonplaceholder.typicode.com'
 
-        all_posts = ResourceConfig(path=["posts"], method="GET", description="retrieve all posts")
+    class AllPosts(ResourceConfig):
 
-        filter_posts = ResourceConfig(
-            path=["posts"],
-            method="GET",
-            description="retrieve all posts by filter criteria",
-            parameters={
-                "title": QueryParameter(
-                    name="title",
-                    required=False,
-                    description="the title of the post",
-                ),
-            },
-        )
+        name = "all_posts"
+        path = ["posts"]
+        method = "GET"
+        description = "retrieve all posts"
+
+
+    class FilterPosts(ResourceConfig):
+
+        name = "filter_posts"
+        path = ["posts"]
+        method = "GET"
+        description = "retrieve all posts with a given title"
+
+        user_id = QueryParameter(name="userId", description="the user ID of the author of the post")
 
 For more information about qrest and its usage, we refer to the documentation.
 
