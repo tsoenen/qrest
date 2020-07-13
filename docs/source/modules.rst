@@ -9,27 +9,22 @@ configuration
 
 .. autoclass:: APIConfig
   :members:
-  :private-members:
   :special-members: __init__
 
 .. autoclass:: ResourceConfig
   :members:
-  :private-members:
   :special-members: __init__
 
 .. autoclass:: ParameterConfig
   :members:
-  :private-members:
   :special-members: __init__
 
 .. autoclass:: QueryParameter
   :members:
-  :private-members:
   :special-members: __init__
 
 .. autoclass:: BodyParameter
   :members:
-  :private-members:
   :special-members: __init__
 
 resource
@@ -39,17 +34,14 @@ resource
 
 .. autoclass:: API
   :members:
-  :private-members:
   :special-members: __init__
 
 .. autoclass:: Resource
   :members:
-  :private-members:
   :special-members: __init__
 
 .. autoclass:: JSONResource
   :members:
-  :private-members:
   :special-members: __init__
 
 authentication
@@ -62,22 +54,18 @@ Classes
 
 .. autoclass:: RESTAuthentication
 	:members:
-	:private-members:
 	:special-members: __init__
 
 .. autoclass:: UserPassAuth
 	:members:
-	:private-members:
 	:special-members: __init__
 
 .. autoclass:: NetRCAuth
 	:members:
-	:private-members:
 	:special-members: __init__
 
 .. autoclass:: UserPassOrNetRCAuth
 	:members:
-	:private-members:
 	:special-members: __init__
 
 Configuration
@@ -85,12 +73,10 @@ Configuration
 
 .. autoclass:: UserPassAuthConfig
 	:members:
-	:private-members:
 	:special-members: __init__
 
 .. autoclass:: NetrcOrUserPassAuthConfig
 	:members:
-	:private-members:
 	:special-members: __init__
 
 response
@@ -107,15 +93,12 @@ and dictionaries
 
 .. autoclass:: Response
 	:members:
-	:private-members:
 	:special-members: __init__
 
 .. autoclass:: JSONResponse
 	:members:
-	:private-members:
 	:special-members: __init__
 
 .. autoclass:: CSVResponse
 	:members:
-	:private-members:
 	:special-members: __init__
