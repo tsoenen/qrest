@@ -194,8 +194,9 @@ class TestJsonPlaceHolder(unittest.TestCase):
 
             self.assertEqual(self.mock_response.content, post)
 
-    def test_filter_posts_queries_the_right_endpoint(self):
-        api = qrest.API(self.config)
+    @ddt.data("_create_api_from_class", "_create_api_from_module")
+    def test_filter_posts_queries_the_right_endpoint(self, function_name):
+        api = getattr(self, function_name)()
         api.filter_posts.response = ContentResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:

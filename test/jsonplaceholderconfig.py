@@ -1,4 +1,4 @@
-from qrest import APIConfig, ResourceConfig
+from qrest import APIConfig, ResourceConfig, QueryParameter
 
 
 class JsonPlaceHolderConfig(APIConfig):
@@ -11,3 +11,13 @@ class AllPosts(ResourceConfig):
     path = ["posts"]
     method = "GET"
     description = "retrieve all posts"
+
+
+class FilterPosts(ResourceConfig):
+
+    name = "filter_posts"
+    path = ["posts"]
+    method = "GET"
+    description = "retrieve all posts from the given author"
+
+    user_id = QueryParameter(name="userId", description="the user ID of the author of the post")
