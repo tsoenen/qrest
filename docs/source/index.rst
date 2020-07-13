@@ -8,6 +8,7 @@ qrest: build Python clients for REST APIs
    :caption: Table of Contents:
    :maxdepth: 2
 
+   introduction
    configuration
 
    rest-client
