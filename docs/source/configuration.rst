@@ -1,6 +1,6 @@
-##################################
-Server and endpoints configuration
-##################################
+#####################################
+Configuration of server and endpoints
+#####################################
 
 The way access to a REST API is configured, is inspired by Django Model objects.
 For any given REST API, you create
@@ -236,14 +236,14 @@ attribute doubles that of the ``myposts`` attribute. This is done to allow both
 user-friendly coding (using the myposts), but the possibility to be consistent
 (``data`` is always available and thus predictable)
 
-Headers
+headers
 =======
 
 The required headers to be added to the request. Needs to be a dictionary
 
 
-Parameter configuration
-=======================
+query parameters
+================
 
 A ResourceConfig has special attributes for a BodyParameter or QueryParameter,
 both subclasses of ParameterConfig. A BodyParameter ends up inside the body of a
