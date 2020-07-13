@@ -1,22 +1,30 @@
 qrest: build Python clients for REST APIs
 =========================================
 
-.. include:: ../../README.rst
+qrest is a Python package that allows you to easily build a Python client to
+access a REST API.
+
+##############
+The user guide
+##############
 
 .. toctree::
-   :titlesonly:
-   :caption: Table of Contents:
-   :maxdepth: 2
+   :maxdepth: 1
 
    introduction
    configuration
 
-   rest-client
-   authentication
-   responses
+#############
+The API guide
+#############
+
+.. toctree::
+   :maxdepth: 2
+
+   modules
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
