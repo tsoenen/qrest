@@ -1,5 +1,5 @@
 """
-Contains all the configuration classes to create a API Configuration
+Contains the configuration classes to create a :class:`qrest.resource.API`.
 """
 from collections import defaultdict
 from typing import Dict, Optional, Type
@@ -424,9 +424,13 @@ class APIConfig:
     Class to configure and validate endpoints
     """
 
-    authentication = None
     url = None
+    """base URL of the REST API"""
+
+    authentication = None
+
     verify_ssl = False
+    """False if and only if verification of the SSL certificate should be ignored"""
 
     endpoints: Dict[str, ResourceConfig]
 
