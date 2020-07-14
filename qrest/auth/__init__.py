@@ -54,23 +54,19 @@ class RESTAuthentication(ABC, requests.auth.HTTPBasicAuth):
 
     @staticmethod
     def is_valid_credential(credential):
-        """ Determines whether the given credential is valid.
-            The credential should not be None and should not be the empty string.
+        """Return True iff the given credential, e.g. a username, is valid.
 
-            :param credential: The credential to check
-            :type credential: ``string_type_or_none``
+        This method considers a credential to be valid if it contains
+        non-whitespace characters.
+
         """
         return credential is not None and credential.strip() != ""
 
     def are_valid_credentials(self, username, password):
-        """ Determines whether given credentials are valid.
-            Both username and password should not be None and should not be the empty string.
+        """Return True iff both the given credentials are valid.
 
-            :param username: The username to check
-            :type username: ``string_type_or_none``
+        This method uses :meth:`is_valid_credential` to check each credential.
 
-            :param password: The password to check
-            :type password: ``string_type_or_none``
         """
 
         if self.is_valid_credential(username):
