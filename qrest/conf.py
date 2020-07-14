@@ -22,26 +22,6 @@ logger = logging.getLogger(__name__)
 
 disable_warnings(InsecureRequestWarning)
 
-
-def _find_endpoints(api_config):
-    """Return the dictionary of attribute name to ResourceConfig.
-
-    An APIConfig has attributes that store a ResourceConfig. This function
-    collects these attributes and returns the dictionary of attribute name to
-    ResourceConfig.
-
-    """
-    endpoints = {}
-    members = [m for m in dir(api_config) if not m.startswith("_")]
-    for item in members:
-        endpoint = getattr(api_config, item)
-        if isinstance(endpoint, ResourceConfig):
-            endpoints[item] = endpoint
-    if not endpoints:
-        raise RestClientConfigurationError("no endpoints defined for this REST client at all!")
-    return endpoints
-
-
 # ================================================================================================
 class ParameterConfig:
     """Contain and validate parameters for a REST endpoint. As this is a
@@ -434,8 +414,10 @@ class APIConfig:
 
     endpoints: Dict[str, ResourceConfig]
 
-    def __init__(self, find_endpoints=_find_endpoints):
-        self.endpoints = find_endpoints(self)
+    def __init__(self, endpoints: Dict[str, ResourceConfig]):
+        if not endpoints:
+            raise RestClientConfigurationError("no endpoints defined for this REST client at all!")
+        self.endpoints = endpoints
         self._apply_defaults()
         self._validate()
 

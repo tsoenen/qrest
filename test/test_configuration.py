@@ -1,9 +1,22 @@
 import unittest
 
+from typing import Dict
+
 from qrest import APIConfig, RestClientConfigurationError
 from qrest import QueryParameter, BodyParameter, ResourceConfig
 from qrest import JSONResource
 from qrest.auth import UserPassAuthConfig
+
+
+def _create_endpoints(**kwargs) -> Dict[str, ResourceConfig]:
+    """Return endpoints for testing purposes.
+
+    This function creates a single ResourceConfig for path ``[""]``, method
+    ``GET`` and the keyword arguments from its signature. The endpoint is named
+    ``ep``.
+
+    """
+    return {"ep": ResourceConfig(path=[""], method="GET", **kwargs)}
 
 
 class TestMinimal(unittest.TestCase):
@@ -14,334 +27,186 @@ class TestMinimal(unittest.TestCase):
 
         class Config(APIConfig):
             url = "http://localhost"
-            ep = ResourceConfig(path=[""], method="GET")
 
-        Config()
+        Config({"ep": ResourceConfig(path=[""], method="GET")})
 
-        class Config(APIConfig):
-            url = "http://localhost"
-            ep = ResourceConfig(path=["test"], method="GET")
-
-        Config()
+        Config({"ep": ResourceConfig(path=["test"], method="GET")})
 
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(APIConfig):
-                url = "http://localhost"
-                ep = ResourceConfig(path=["test"], method="ERR")
-
-            Config()
+            Config({"ep": ResourceConfig(path=["test"], method="ERR")})
 
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(APIConfig):
-                url = "http://localhost"
-                ep = ResourceConfig(path=3, method="GET")
-
-            Config()
+            Config({"ep": ResourceConfig(path=3, method="GET")})
 
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(APIConfig):
-                ep = ResourceConfig(path=[""], method="GET")
-
-            Config()
+            Config({"ep": ResourceConfig(path=[""], method="ERR")})
 
 
 class TestParameters(unittest.TestCase):
-
-    UrlApiConfig = None
-
     def setUp(self):
         class UrlApiConfig(APIConfig):
             url = "http://localhost"
 
         self.UrlApiConfig = UrlApiConfig
 
-    def tearDown(self):
-        pass
-
     def test_good_query_parameters(self):
-        # --------------------------------------------------------------
-        class Config(self.UrlApiConfig):
-            ep = ResourceConfig(
-                path=[""],
-                method="GET",
-                parameters={
-                    "para": QueryParameter(
-                        name="sort", default="some_default", description="description",
-                    ),
-                },
-            )
+        parameters = {
+            "para": QueryParameter(name="sort", default="some_default", description="description")
+        }
+        self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
-        Config()
-
-        # --------------------------------------------------------------
-        class Config(self.UrlApiConfig):
-            ep = ResourceConfig(
-                path=[""],
-                method="GET",
-                parameters={"para": QueryParameter(name="sort", required=False,)},
-            )
-
-        _ = Config()  # noqa: F841
+        parameters = {"para": QueryParameter(name="sort", required=False)}
+        self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
     def test_bad_query_parameters(self):
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
-                ep = ResourceConfig(
-                    path=[""],
-                    method="GET",
-                    parameters={"para": QueryParameter(name="sort", required=3)},
-                )
+            parameters = {"para": QueryParameter(name="sort", required=3)}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config2(self.UrlApiConfig):
-                ep = ResourceConfig(
-                    path=[""],
-                    method="GET",
-                    parameters={"para": QueryParameter(name="sort", multiple=3)},
-                )
+            parameters = {"para": QueryParameter(name="sort", multiple=3)}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config3(self.UrlApiConfig):
-                ep = ResourceConfig(
-                    path=[""],
-                    method="GET",
-                    parameters={"para": QueryParameter(name="sort", exclusion_group=3)},
-                )
+            parameters = {"para": QueryParameter(name="sort", exclusion_group=3)}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config4(self.UrlApiConfig):
-                ep = ResourceConfig(
-                    path=[""],
-                    method="GET",
-                    parameters={
-                        "para": QueryParameter(name="sort", default="some_default", required=True),
-                    },
-                )
+            parameters = {
+                "para": QueryParameter(name="sort", default="some_default", required=True)
+            }
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
     def test_exclusion_group(self):
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
-                ep = ResourceConfig(
-                    path=[""],
-                    method="GET",
-                    parameters={"para": QueryParameter(name="sort", exclusion_group="\n",)},
-                )
+            parameters = {"para": QueryParameter(name="sort", exclusion_group="\n")}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config2(self.UrlApiConfig):
-                ep = ResourceConfig(
-                    path=[""],
-                    method="GET",
-                    parameters={
-                        "para": QueryParameter(name="sort", default="x", choices=["a", "b"],),
-                    },
-                )
+            parameters = {"para": QueryParameter(name="sort", default="x", choices=["a", "b"])}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
-    # --------------------------------------------------------------
     def test_choices(self):
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
-                ep = ResourceConfig(
-                    path=[""],
-                    method="GET",
-                    parameters={"para": QueryParameter(name="sort", choices="some_default",)},
-                )
+            parameters = {"para": QueryParameter(name="sort", choices="some_default")}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
-    # --------------------------------------------------------------
     def test_descriptions(self):
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
-                ep = ResourceConfig(
-                    path=[""],
-                    method="GET",
-                    parameters={"para": QueryParameter(name="sort", description=3,)},
-                )
+            parameters = {"para": QueryParameter(name="sort", description=3)}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
-    # --------------------------------------------------------------
     def test_bad_body_parameters(self):
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
-                ep = ResourceConfig(
-                    path=[""], method="GET", parameters={"para": BodyParameter(name="sort")}
-                )
+            parameters = {"para": BodyParameter(name="sort")}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
 
 class TestEndpoint(unittest.TestCase):
-
-    UrlApiConfig = None
-
     def setUp(self):
         class UrlApiConfig(APIConfig):
             url = "http://localhost"
 
         self.UrlApiConfig = UrlApiConfig
 
-    def tearDown(self):
-        pass
-
-    # --------------------------------------------------------------
     def test_bad_init_parameters(self):
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
-                ep = ResourceConfig(path=[""], method="GET", description=3)
+            self.UrlApiConfig(_create_endpoints(description=3))
 
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config2(self.UrlApiConfig):
-                ep = ResourceConfig(path=[""], method="GET", path_description=3)
+            self.UrlApiConfig(_create_endpoints(path_description=3))
 
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config3(self.UrlApiConfig):
-                ep = ResourceConfig(path=[""], method="GET", headers="none")
+            self.UrlApiConfig(_create_endpoints(headers="none"))
 
-    # --------------------------------------------------------------
     def test_no_endpoints(self):
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
-                default_headers = {
-                    "x": "y",
-                }
-
-            c = Config()
-            c.get_list_of_endpoints()
+            self.UrlApiConfig({})
 
     def test_bad_rest_parameters(self):
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
-                ep = ResourceConfig(path=[""], method="GET", parameters="x")
+            self.UrlApiConfig(_create_endpoints(parameters="x"))
 
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config2(self.UrlApiConfig):
-                ep = ResourceConfig(path=[""], method="GET", parameters="x")
-
-        # --------------------------------------------------------------
-        with self.assertRaises(RestClientConfigurationError):
-
-            class Config3(self.UrlApiConfig):
-                ep = ResourceConfig(path=[""], method="GET", parameters={"x": "y"})
+            self.UrlApiConfig(_create_endpoints(parameters={"x": "y"}))
 
     def test_bad_endpoints(self):
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
-                data = ResourceConfig(path=[""], method="GET")
-
-            Config()
+            self.UrlApiConfig({"data": ResourceConfig(path=[""], method="GET")})
 
     def test_bad_defaults(self):
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
             class Config(self.UrlApiConfig):
-                ep = ResourceConfig(path=[""], method="GET")
                 default_headers = "error"
 
-            Config()
+            Config(_create_endpoints())
 
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
             class Config(self.UrlApiConfig):
-                ep = ResourceConfig(path=[""], method="GET")
                 default_headers = ({"key": 3},)
 
-            Config()
+            Config(_create_endpoints())
 
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
             class Config(self.UrlApiConfig):
-                ep = ResourceConfig(path=[""], method="GET")
                 default_headers = ({"key": None},)
 
-            Config()
+            Config(_create_endpoints())
 
     def test_good_defaults(self):
-        # --------------------------------------------------------------
         class Config(self.UrlApiConfig):
-            ep = ResourceConfig(path=[""], method="GET")
             default_headers = {"key": "val"}
 
-        Config()
+        Config(_create_endpoints())
 
-        # --------------------------------------------------------------
-        class Config(self.UrlApiConfig):
-            ep = ResourceConfig(path=[""], method="GET", headers={"key": "oldval"})
-            default_headers = {"key": "val"}
+        config = Config(_create_endpoints(headers={"key": "oldval"}))
+        self.assertDictEqual(config.endpoints["ep"].headers, {"key": "oldval"})
 
-        conf = Config()
-        self.assertDictEqual(conf.endpoints["ep"].headers, {"key": "oldval"})
-
-        # --------------------------------------------------------------
         class Config(self.UrlApiConfig):
             ep = ResourceConfig(path=[""], method="GET", headers={"otherkey": "val"})
             default_headers = {"key": "val"}
 
-        conf = Config()
-        self.assertDictEqual(conf.endpoints["ep"].headers, {"key": "val", "otherkey": "val"})
+        config = Config(_create_endpoints(headers={"otherkey": "val"}))
+        self.assertDictEqual(config.endpoints["ep"].headers, {"key": "val", "otherkey": "val"})
 
     def test_descriptions(self):
-        # --------------------------------------------------------------
+        self.UrlApiConfig(_create_endpoints(description="OK"))
 
-        class Config(self.UrlApiConfig):
-            ep = ResourceConfig(path=[""], method="GET", description="OK")
-
-        _ = Config()  # noqa: F401
-
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
-                ep = ResourceConfig(path=[""], method="GET", description=3)
+            self.UrlApiConfig(_create_endpoints(description=3))
 
-            Config()
+        self.UrlApiConfig(_create_endpoints(path_description={"x": "y"}))
 
-            # --------------------------------------------------------------
-
-        class Config(self.UrlApiConfig):
-            ep = ResourceConfig(path=[""], method="GET", path_description={"x": "y"})
-            Config()
-
-        # --------------------------------------------------------------
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
-                ep = ResourceConfig(path=[""], method="GET", path_description=3)
-
-            Config()
+            self.UrlApiConfig(_create_endpoints(path_description=3))
 
     def test_introspection(self):
-        # --------------------------------------------------------------
-        class Config(self.UrlApiConfig):
-            ep1 = ResourceConfig(
+        endpoints = {
+            "ep1": ResourceConfig(
                 path=[""],
                 method="GET",
                 parameters={
@@ -351,22 +216,26 @@ class TestEndpoint(unittest.TestCase):
                     "p4": QueryParameter("p4", default="def"),
                 },
             )
+        }
 
-        c = Config()
+        c = self.UrlApiConfig(endpoints)
         expected = {"required": ["p3"], "optional": ["p1", "p2", "p4"], "multiple": ["p2"]}
-        self.assertDictEqual(c.ep1.query_parameters, expected)
 
-        self.assertListEqual(c.ep1.all_query_parameters, ["p1", "p2", "p4", "p3"])
-        self.assertListEqual(c.ep1.required_parameters, ["p3"])
-        self.assertListEqual(c.ep1.multiple_parameters, ["p2"])
-        self.assertListEqual(c.ep1.all_parameters, ["p1", "p2", "p4", "p3"])
+        ep1_endpoint = c.endpoints["ep1"]
+        self.assertDictEqual(ep1_endpoint.query_parameters, expected)
 
-        self.assertDictEqual(c.ep1.as_dict, {"required": ["p3"], "optional": ["p1", "p2", "p4"]})
-        self.assertDictEqual(c.ep1.defaults, {"p4": "def"})
+        self.assertListEqual(ep1_endpoint.all_query_parameters, ["p1", "p2", "p4", "p3"])
+        self.assertListEqual(ep1_endpoint.required_parameters, ["p3"])
+        self.assertListEqual(ep1_endpoint.multiple_parameters, ["p2"])
+        self.assertListEqual(ep1_endpoint.all_parameters, ["p1", "p2", "p4", "p3"])
 
-        # --------------------------------------------------------------
-        class Config(self.UrlApiConfig):
-            ep1 = ResourceConfig(
+        self.assertDictEqual(
+            ep1_endpoint.as_dict, {"required": ["p3"], "optional": ["p1", "p2", "p4"]}
+        )
+        self.assertDictEqual(ep1_endpoint.defaults, {"p4": "def"})
+
+        endpoints = {
+            "ep1": ResourceConfig(
                 path=[""],
                 method="GET",
                 parameters={
@@ -376,82 +245,65 @@ class TestEndpoint(unittest.TestCase):
                     "p4": QueryParameter("p4"),
                 },
             )
+        }
+        c = self.UrlApiConfig(endpoints)
 
-        c = Config()
         expected = {"a": ["p2", "p3"]}
-        self.assertDictEqual(c.ep1.query_parameter_groups, expected)
+        ep1_endpoint = c.endpoints["ep1"]
+        self.assertDictEqual(ep1_endpoint.query_parameter_groups, expected)
 
-        # --------------------------------------------------------------
-        class Config(self.UrlApiConfig):
-            ep1 = ResourceConfig(path=["x", "y", "z"], method="GET")
+        endpoints = {"ep1": ResourceConfig(path=["x", "y", "z"], method="GET")}
+        c = self.UrlApiConfig(endpoints)
 
-        c = Config()
         expected = []
-        self.assertListEqual(expected, c.ep1.path_parameters)
+        ep1_endpoint = c.endpoints["ep1"]
+        self.assertListEqual(expected, ep1_endpoint.path_parameters)
 
-        # --------------------------------------------------------------
-        class Config(self.UrlApiConfig):
-            ep1 = ResourceConfig(path=["x", "{y}", "z"], method="GET")
+        endpoints = {"ep1": ResourceConfig(path=["x", "{y}", "z"], method="GET")}
+        c = self.UrlApiConfig(endpoints)
 
-        c = Config()
         expected = ["y"]
-        self.assertListEqual(expected, c.ep1.path_parameters)
+        ep1_endpoint = c.endpoints["ep1"]
+        self.assertListEqual(expected, ep1_endpoint.path_parameters)
 
 
 class TestAuthentication(unittest.TestCase):
-
-    UrlApiConfig = None
-
     def setUp(self):
         class UrlApiConfig(APIConfig):
             url = "http://localhost"
-            ep = ResourceConfig(path=[""], method="GET")
 
         self.UrlApiConfig = UrlApiConfig
 
-    def tearDown(self):
-        pass
-
-    # --------------------------------------------------------------
     def test_bad_auth(self):
         with self.assertRaises(RestClientConfigurationError):
 
             class Config(self.UrlApiConfig):
                 authentication = 4
 
-            Config()
+            Config(_create_endpoints())
 
-    # --------------------------------------------------------------
     def test_not_init_auth(self):
         with self.assertRaises(RestClientConfigurationError):
 
             class Config(self.UrlApiConfig):
                 authentication = UserPassAuthConfig
 
-            Config()
+            Config(_create_endpoints())
 
-    # --------------------------------------------------------------
     def test_good_auth(self):
         class Config(self.UrlApiConfig):
             authentication = UserPassAuthConfig()
 
-        Config()
+        Config(_create_endpoints())
 
 
 class TestMainConfiguration(unittest.TestCase):
-
-    UrlApiConfig = None
-
     def setUp(self):
         class UrlApiConfig(APIConfig):
-            ep = ResourceConfig(path=[""], method="GET")
+            pass
 
         self.UrlApiConfig = UrlApiConfig
 
-    def tearDown(self):
-        pass
-
-    # --------------------------------------------------------------
     def test_bad_verify_ssl(self):
         with self.assertRaises(RestClientConfigurationError):
 
@@ -459,87 +311,69 @@ class TestMainConfiguration(unittest.TestCase):
                 url = "http://localhost"
                 verify_ssl = 3
 
-            Config()
+            Config(_create_endpoints())
 
-    # --------------------------------------------------------------
     def test_good_verify_ssl(self):
         class Config(self.UrlApiConfig):
             url = "http://localhost"
             verify_ssl = True
 
-        Config()
+        Config(_create_endpoints())
 
-    # --------------------------------------------------------------
     def test_bad_server(self):
         with self.assertRaises(RestClientConfigurationError):
 
             class Config(self.UrlApiConfig):
                 url = "http://badserver"
 
-            Config()
+            Config(_create_endpoints())
 
-    # --------------------------------------------------------------
     def test_good_server(self):
+        endpoints = _create_endpoints()
+
         class Config(self.UrlApiConfig):
             url = "http://localhost"
 
-        Config()
+        Config(endpoints)
 
         class Config(self.UrlApiConfig):
             url = "http://server.tld"
 
-        Config()
+        Config(endpoints)
 
         class Config(self.UrlApiConfig):
             url = "http://server.tld:8080"
 
-        Config()
+        Config(endpoints)
 
 
 class TestResourceClass(unittest.TestCase):
-
-    UrlApiConfig = None
-
     def setUp(self):
         class UrlApiConfig(APIConfig):
             url = "http://localhost"
 
         self.UrlApiConfig = UrlApiConfig
 
-    def tearDown(self):
-        pass
-
-    # --------------------------------------------------------------
     def test_empty_processor(self):
-        class Config(self.UrlApiConfig):
-            ep = ResourceConfig(path=[""], method="GET", processor=JSONResource())
 
-        Config()
+        self.UrlApiConfig(_create_endpoints(processor=JSONResource()))
 
-    # --------------------------------------------------------------
     def test_good_processor(self):
-        class Config(self.UrlApiConfig):
-            ep = ResourceConfig(
-                path=[""],
-                method="GET",
-                processor=JSONResource(extract_section=["a", "b", "c"], create_attribute="sink"),
+        self.UrlApiConfig(
+            _create_endpoints(
+                processor=JSONResource(extract_section=["a", "b", "c"], create_attribute="sink")
             )
+        )
 
-        Config()
-
-    # --------------------------------------------------------------
     def test_bad_processor(self):
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config(self.UrlApiConfig):
-                ep = ResourceConfig(path=[""], method="GET", processor="error")
+            self.UrlApiConfig(_create_endpoints(processor="error"))
 
         with self.assertRaises(RestClientConfigurationError):
 
-            class Config2(self.UrlApiConfig):
-                ep = ResourceConfig(path=[""], method="GET", processor=JSONResource)
+            self.UrlApiConfig(_create_endpoints(processor=JSONResource))
 
         with self.assertRaises(TypeError):
 
-            class Config3(self.UrlApiConfig):
-                ep = ResourceConfig(path=[""], method="GET", processor=JSONResource("error"))
+            self.UrlApiConfig(_create_endpoints(processor=JSONResource("error")))
