@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 disable_warnings(InsecureRequestWarning)
 
-# ================================================================================================
+
 class ParameterConfig:
     """Contain and validate parameters for a REST endpoint. As this is a
     configuration container only, the main purpose is to store the config and
@@ -136,7 +136,7 @@ class ResourceConfig:
 
         :param path: a list separation of the path components, e.g. ['api','v2','user','{name},
             'stats'] where names in brackets are converted to path parameters.
-        :param method: one of GET,PUT,etc
+        :param method: either GET or POST
         :param parameters: a dictionary of ParameterConfig instances that each describe one
             parameter. This is relevant for body and query parameters only, path parameters are
             specified in the path itself and subsequent annotation of those parameters is done in
@@ -165,7 +165,12 @@ class ResourceConfig:
 
     @classmethod
     def create(cls):
-        """Return a ResourceConfig initialized using its class attributes."""
+        """Return a ResourceConfig initialized from its class attributes.
+
+        :raises RestClientConfigurationError: when one of the required
+            class attributes ``method`` or ``path`` is missing
+
+        """
         all_attributes = dir(cls)
 
         required_attributes = ["method", "path"]
@@ -415,6 +420,11 @@ class APIConfig:
     endpoints: Dict[str, ResourceConfig]
 
     def __init__(self, endpoints: Dict[str, ResourceConfig]):
+        """Configure and validate the current APIConfig for the given endpoints.
+
+        :raises RestClientConfigurationError: when validation fails
+
+        """
         if not endpoints:
             raise RestClientConfigurationError("no endpoints defined for this REST client at all!")
         self.endpoints = endpoints
