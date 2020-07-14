@@ -70,7 +70,7 @@ class API:
                 )
         endpoints = {c.name: c.create() for c in resource_configs}
 
-        return self._initialize(api_configs[0](find_endpoints=lambda cls: endpoints))
+        self._initialize(api_configs[0](find_endpoints=lambda cls: endpoints))
 
     def _initialize(self, config):
         """REST Client constructor
