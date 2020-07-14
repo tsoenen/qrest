@@ -1,81 +1,12 @@
 import unittest
 import unittest.mock as mock
 
-import ddt
 import requests
 
 import qrest
-from qrest import APIConfig
-from qrest import QueryParameter, BodyParameter, ResourceConfig
-from qrest.response import JSONResponse, Response
+from qrest.response import Response
 
 from . import jsonplaceholderconfig
-
-
-class JsonPlaceHolderConfig(APIConfig):
-    url = "https://jsonplaceholder.typicode.com"
-    default_headers = {"Content-type": "application/json; charset=UTF-8"}
-
-    all_posts = ResourceConfig(path=["posts"], method="GET", description="retrieve all posts")
-
-    filter_posts = ResourceConfig(
-        path=["posts"],
-        method="GET",
-        description="retrieve all posts by filter criteria",
-        parameters={
-            "user_id": QueryParameter(
-                name="userId",
-                required=False,
-                # default='',
-                # choices=[],
-                description="the user Id that made the post",
-            ),
-        },
-    )
-
-    single_post = ResourceConfig(
-        path=["posts", "{item}"],
-        method="GET",
-        description="Retrieve a single post",
-        path_description={"item": "select the post ID to retrieve"},
-        headers={"X-test-post": "qREST python ORM"},
-    )
-
-    comments = ResourceConfig(
-        path=["posts", "{post_id}", "comments"],
-        method="GET",
-        description="Retrieve comments for a single post",
-        path_description={"post_id": "select the post ID to retrieve"},
-    )
-
-    create_post = ResourceConfig(
-        path=["posts"],
-        method="POST",
-        description="Create a new post",
-        parameters={
-            "title": BodyParameter(
-                name="title",
-                required=True,
-                # default='',
-                # choices=[],
-                description="The title of the post",
-            ),
-            "content": BodyParameter(
-                name="body",
-                required=True,
-                # default='',
-                # choices=[],
-                description="The title of the post",
-            ),
-            "user_id": BodyParameter(
-                name="userId",
-                required=False,
-                default=101,
-                # choices=[],
-                description="The id of the user creating the post",
-            ),
-        },
-    )
 
 
 class ContentResponse(Response):
@@ -106,11 +37,8 @@ class ContentResponse(Response):
         pass
 
 
-@ddt.ddt
 class TestJsonPlaceHolder(unittest.TestCase):
     def setUp(self):
-        self.config = JsonPlaceHolderConfig()
-
         self.mock_response = mock.Mock(spec=requests.Response)
         self.mock_response.status_code = 200
         self.mock_response.content = b"Hello World!"
@@ -118,24 +46,8 @@ class TestJsonPlaceHolder(unittest.TestCase):
         # the requests.Response but our Response object requires it
         self.mock_response.headers = {}
 
-    def tearDown(self):
-        # In this testsuite we instantiate an API from the same APIConfig
-        # multiple times. This means we are reusing the same ResourceConfig
-        # objects and as such, the same processor (JSONResource). As we modify
-        # the processor in our tests, we have to reset it after each test.
-        for config_name in ["all_posts", "comments", "filter_posts", "single_post"]:
-            config = getattr(JsonPlaceHolderConfig, config_name)
-            config.processor.response = JSONResponse()
-
-    def _create_api_from_class(self):
-        return qrest.API(self.config)
-
-    def _create_api_from_module(self):
-        return qrest.API.from_module(jsonplaceholderconfig)
-
-    @ddt.data("_create_api_from_class", "_create_api_from_module")
-    def test_all_posts_queries_the_right_endpoint(self, function_name):
-        api = getattr(self, function_name)()
+    def test_all_posts_queries_the_right_endpoint(self):
+        api = qrest.API(jsonplaceholderconfig)
         api.all_posts.response = ContentResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
@@ -154,7 +66,7 @@ class TestJsonPlaceHolder(unittest.TestCase):
             self.assertEqual(self.mock_response.content, posts)
 
     def test_all_posts_queries_the_right_endpoint_2(self):
-        api = qrest.API.from_module(jsonplaceholderconfig)
+        api = qrest.API(jsonplaceholderconfig)
         api.all_posts.response = ContentResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
@@ -173,7 +85,7 @@ class TestJsonPlaceHolder(unittest.TestCase):
             self.assertEqual(self.mock_response.content, posts)
 
     def test_single_post_queries_the_right_endpoint(self):
-        api = qrest.API(self.config)
+        api = qrest.API(jsonplaceholderconfig)
         api.single_post.response = ContentResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
@@ -194,9 +106,8 @@ class TestJsonPlaceHolder(unittest.TestCase):
 
             self.assertEqual(self.mock_response.content, post)
 
-    @ddt.data("_create_api_from_class", "_create_api_from_module")
-    def test_filter_posts_queries_the_right_endpoint(self, function_name):
-        api = getattr(self, function_name)()
+    def test_filter_posts_queries_the_right_endpoint(self):
+        api = qrest.API(jsonplaceholderconfig)
         api.filter_posts.response = ContentResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
@@ -215,7 +126,7 @@ class TestJsonPlaceHolder(unittest.TestCase):
             self.assertEqual(self.mock_response.content, posts)
 
     def test_filter_posts_returns_the_response_when_called(self):
-        api = qrest.API(self.config)
+        api = qrest.API(jsonplaceholderconfig)
         api.filter_posts.response = ContentResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response):
@@ -223,7 +134,7 @@ class TestJsonPlaceHolder(unittest.TestCase):
             self.assertIs(api.filter_posts.response, response)
 
     def test_comments_queries_the_right_endpoint(self):
-        api = qrest.API(self.config)
+        api = qrest.API(jsonplaceholderconfig)
         api.comments.response = ContentResponse()
 
         with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
@@ -242,12 +153,11 @@ class TestJsonPlaceHolder(unittest.TestCase):
             self.assertEqual(self.mock_response.content, comments)
 
     def test_create_post_help_returns_the_correct_title(self):
-
-        api = qrest.API(self.config)
+        api = qrest.API(jsonplaceholderconfig)
         self.assertEqual("The title of the post", api.create_post.help("title"))
 
     def test_create_post_accesses_the_right_endpoint_when_called(self):
-        api = qrest.API(self.config)
+        api = qrest.API(jsonplaceholderconfig)
         api.create_post.response = ContentResponse()
 
         title = "new post using qREST ORM"

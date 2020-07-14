@@ -43,17 +43,17 @@ to access the REST API::
   import qrest
   import jsonplaceholderconfig
 
-  api = qrest.API.from_module(jsonplaceholderconfig)
+  api = qrest.API(jsonplaceholderconfig)
 
   posts = api.all_posts()
 
   # posts is the list of dictionaries, where each dictionary stores the
   # information of a post
 
-Method ``qrest.API.from_module`` inspects the module that is passed and
+The init dunder of ``qrest.API`` inspects the module that is passed and
 automatically retrieves the APIConfig and ResourceConfig subclasses. If the
-module does not an APIConfig, or has more than one, ``from_module`` will raise
-an exception.
+module does not an APIConfig, or has more than one, the dunder will raise an
+exception.
 
 You see that the name attribute of each ResourceConfig is used as the attribute
 name of the actual API object, e.g. the value of ``AllPosts.name``, which is
@@ -65,14 +65,14 @@ Each API instance has a property ``resources`` that lists the resources::
 
 One other thing, you don't have to configure the API in a separate Python
 module. You can also define them in the current module and pass that module to
-method ``qrest.API.from_module``::
+``qrest.API``::
 
   # subclasses of APIConfig and ResourceConfig
 
   import sys
 
   current_module = sys.modules[__name__]
-  api = qrest.API.from_module(current_module)
+  api = qrest.API(current_module)
 
 
 ********************
