@@ -1,7 +1,7 @@
 """The main working module of the package: contains the API class (to access
-the REST server), and the Resource class (which wraps around a single endpoint
-/ resources ). The Resource class is encouraged to be subclassed to add
-functionality such as complex pagination or response processing
+the REST server), and the ResourceConfig class (which wraps around a single
+endpoint / resources ). The ResourceConfig class is encouraged to be subclassed
+to add functionality such as complex pagination or response processing
 
 """
 
@@ -44,7 +44,16 @@ class API:
     auth = None
 
     def __init__(self, imported_module):
-        """Initialize an API from the configurations in the given imported module."""
+        """Initialize an API from the configurations in the given imported module.
+
+        An API describes a REST server, and contains a list of resources. We
+        allow customization of the "resource class", which is basically a
+        wrapper around the response object: default is JSON, so we pre-made a
+        JSON resource class. Optionally this resource class handles
+        non-standard responses such as pagination or a specific response format
+        from which the payload needs to be derived
+
+        """
 
         from .conf import APIConfig, ResourceConfig
 
@@ -70,20 +79,13 @@ class API:
                 )
         endpoints = {c.name: c.create() for c in resource_configs}
 
-        self._initialize(api_configs[0](find_endpoints=lambda cls: endpoints))
+        self._initialize(api_configs[0](endpoints))
 
     def _initialize(self, config):
-        """REST Client constructor
+        """Initialize the current API from the given APIConfig.
 
         :param config: The configuration object of the REST API resources
         :type config: Subclass of APIConfig
-
-        An API describes a REST server, and contains a list of resources. We
-        allow customization of the "resource class", which is basically a
-        wrapper around the response object: default is JSON, so we pre-made a
-        JSON resource class. Optionally this resource class handles
-        non-standard responses such as pagination or a specific response format
-        from which the payload needs to be derived
 
         """
 
@@ -153,7 +155,7 @@ class API:
 # ===================================================================================================
 class Resource(ABC):
     """A resource is defined as a single REST endpoint.
-    This class wraps functionality of creating and querying this resources, starting with a
+    This class wraps functionality of creating and querying the resource, starting with a
     configuration string
 
     :param response: object that wraps the return value of requests.request
@@ -184,7 +186,7 @@ class Resource(ABC):
         :param verify_ssl: boolean to set verify_ssl in the request on or off
         :param auth: Which Authentication module to use
         :type auth: subclass of AuthConfig
-        :param config: which ResourceConfiguration to use
+        :param config: which ResourceConfig to use
         :type config: subclass of ResourceConfig
 
         """
@@ -237,7 +239,7 @@ class Resource(ABC):
 
     def help(self, parameter_name: Optional[str] = None):
         """
-        Print description of the endpoint and the parameters
+        Return string description of the endpoint and the parameters
         :param parameter_name: Optional parameter name to request the help text of
         """
         if not parameter_name:
