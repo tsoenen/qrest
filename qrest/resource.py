@@ -26,7 +26,7 @@ from .exception import (
     RestResourceHTTPError,
     InvalidResourceError,
 )
-from .response import JSONResponse
+from .response import CSVResponse, JSONResponse
 
 disable_warnings(InsecureRequestWarning)
 
@@ -486,3 +486,13 @@ class JSONResource(Resource):
         """
 
         self.response = JSONResponse(extract_section, create_attribute)
+
+
+class CSVResource(Resource):
+    """ A REST Resource that expects a text/csv return
+
+    """
+
+    def __init__(self):
+        """Set the use of a CSVResponse."""
+        self.response = CSVResponse()
