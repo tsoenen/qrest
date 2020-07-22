@@ -63,6 +63,24 @@ class JSONResponseTests(unittest.TestCase):
         expected_content = single_post
         self.assertEqual(expected_content, response.fetch())
 
+    def test_store_single_post_as_attribute(self):
+        single_post = _POSTS[0]
+        mock_response = self._create_mock_response(single_post)
+
+        response = JSONResponse()(mock_response)
+
+        expected_content = single_post
+        self.assertEqual(expected_content, response.results)
+
+    def test_store_single_post_as_attribute_with_another_name(self):
+        single_post = _POSTS[0]
+        mock_response = self._create_mock_response(single_post)
+
+        response = JSONResponse(create_attribute="single_post")(mock_response)
+
+        expected_content = single_post
+        self.assertEqual(expected_content, response.single_post)
+
     def test_fetch_body_of_single_post(self):
         single_post = _POSTS[0]
         mock_response = self._create_mock_response(single_post)
