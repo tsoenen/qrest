@@ -160,7 +160,7 @@ class ResourceConfig:
         #  we cannot set default processor above in the parameters as this means all endpoints
         #  share the same processor instance, and they cross-contaminate . By setting this below
         #  we enforce recreation of a new unique Resource instance each time
-        self.processor = processor or JSONResource()
+        self.processor = processor if processor is not None else JSONResource()
         self.validate()
 
     @classmethod
