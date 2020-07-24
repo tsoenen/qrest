@@ -151,7 +151,7 @@ class NetRCAuth(RESTAuthentication):
             except AttributeError as e:
                 raise ValueError('could not expand netrc-path. error is "%s"' % str(e))
             nrc = netrc(file=self.netrc_path)
-            host = urlparse(self.rest_client.url).hostname
+            host = urlparse(self.rest_client.config.url).hostname
             try:
                 (netrc_login, _, netrc_password) = nrc.authenticators(host)
             except TypeError:
