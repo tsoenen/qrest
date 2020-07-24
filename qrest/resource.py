@@ -27,6 +27,7 @@ from .exception import (
     InvalidResourceError,
 )
 from .response import CSVResponse, JSONResponse
+from .auth import AuthConfig
 
 disable_warnings(InsecureRequestWarning)
 
@@ -97,7 +98,7 @@ class API:
 
         self.config = config
         self.verifySSL = config.verify_ssl
-        self.auth = config.authentication
+        self.auth = self._get_authentication_module()
 
         #  process the endpoints
         for name, item_config in self.config.endpoints.items():
@@ -106,7 +107,7 @@ class API:
                     f"defined resource class for {name} is not a Resource instance"
                 )
             new_resource = self._create_rest_resource(
-                item_config.processor, resource_name=name, config=item_config
+                item_config.processor, resource_name=name, config=item_config, auth=self.auth
             )
             setattr(self, name, new_resource)
 
@@ -131,7 +132,7 @@ class API:
         return resources
 
     # ---------------------------------------------------------------------------------------------
-    def _create_rest_resource(self, processor, resource_name, config):
+    def _create_rest_resource(self, processor, resource_name, config, auth=None):
         """ This function is used to dynamically create request functions for a specified REST API resource
 
             :param resource: A string that represents the REST API resource
@@ -146,10 +147,29 @@ class API:
             raise InvalidResourceError(name=type(self).__name__, resource=resource_name)
 
         if not isinstance(processor, Resource):
-            raise RestClientConfigurationError("processor must be a class instance")
+            raise RestClientConfigurationError("processor must be a Resource")
 
-        processor.configure(name=resource_name, config=config, server_url=self.config.url)
+        processor.configure(
+            name=resource_name, config=config, server_url=self.config.url, auth=auth
+        )
         return processor
+
+    def _get_authentication_module(self):
+        """Return authentication module."""
+        try:
+            auth_config = self.config.authentication
+        except AttributeError:
+            # default to no authentication
+            return None
+        else:
+            if auth_config is None:
+                return None
+            if not isinstance(auth_config, AuthConfig):
+                raise RestClientConfigurationError(
+                    "authentication attribute is not an instance of AuthConfig"
+                )
+            auth_module = auth_config.authentication_module
+            return auth_module(self, auth_config)
 
 
 # ===================================================================================================
