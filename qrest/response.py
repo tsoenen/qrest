@@ -56,7 +56,7 @@ class Response(ABC):
         self.raw = response.content
 
         # We also store the headers with lowercase field names so we become
-        # independent of the case of each fiel name. For example, a response
+        # independent of the case of each field name. For example, a response
         # header can have field "Content-Type", but field "content-type" is
         # also allowed.
         self._headers_lowercase = {name.lower(): value for name, value in self.headers.items()}
@@ -93,8 +93,8 @@ class JSONResponse(Response):
         :param extract_section: This indicates which part of the obtained JSON response contains
             the main payload that should be extracted. The tree is provided as a list of items to
             traverse
-        :param create_attribute: The "results_name" which is the property that will be generated to
-            contain the previously obtained subsection of the json tree
+        :param create_attribute: The name of the attribute that will contain the aforementioned
+            payload subsection.
 
         """
 
@@ -128,7 +128,7 @@ class JSONResponse(Response):
                     json = json[element]
                 else:
                     raise RestResourceMissingContentError(f"Element {element} could not be found")
-            setattr(self, self.create_attribute, json)
+        setattr(self, self.create_attribute, json)
         self.data = json
 
 
