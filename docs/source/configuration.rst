@@ -36,7 +36,7 @@ The introduction already showed how that looks for the JSONPlaceholder website::
 
       user_id = QueryParameter(name="userId", description="the user ID of the author of the post")
 
-Suppose the above snippet is saved in a file ``jsonplaceholder.py``. The
+Suppose the above snippet is saved in a file ``jsonplaceholderconfig.py``. The
 following lines import that file and instantiate the API instance that you use
 to access the REST API::
 
