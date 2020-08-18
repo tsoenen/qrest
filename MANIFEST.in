@@ -1,0 +1,4 @@
+exclude pyproject.toml
+
+# exclude test files
+prune test
