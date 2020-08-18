@@ -75,6 +75,8 @@ setup(
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
     # py_modules=["rest_client"],
+    # qrest requires at least Python 3.6 (as it uses f-strings)
+    python_requires="~=3.6",
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
