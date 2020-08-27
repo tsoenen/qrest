@@ -1,4 +1,4 @@
-__version__ = "3.0.2"
+__version__ = "3.0.3-dev"
 
 from .resource import JSONResource  # noqa: F401
 from .conf import APIConfig, ResourceConfig, BodyParameter, QueryParameter  # noqa: F401
