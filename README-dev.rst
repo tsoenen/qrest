@@ -85,7 +85,7 @@ functionality than plain ``unittest``, such as a more extensive configurability
 of test selection and test output. It's compatible to the standard ``unittest``.
 
 Sphinx_ is used to generate the HTML documentation from text files that are
-formatted usinng RestrucuturedText. The text files themselves can be found in
+formatted using reStructuredText. The text files themselves can be found in
 subdirectory ``docs/`` of the repository root.
 
 The following table lists the command to use the aforementioned tools:
