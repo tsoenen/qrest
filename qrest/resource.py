@@ -454,7 +454,7 @@ class Resource(ABC):
             query_parameters[location].update(data_dict)
 
         # Do HTTP request to REST API
-        logger.debug("[RESTCLIENT]: running %s" % self.query_url)
+        logger.debug(" running %s" % self.query_url)
         try:
             response = requests.request(
                 method=self.config.method,
