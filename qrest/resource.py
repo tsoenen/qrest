@@ -149,6 +149,23 @@ class API:
         if not isinstance(processor, Resource):
             raise RestClientConfigurationError("processor must be a Resource")
 
+        par = config.parameters
+        q_names = [par[x].name for x in par if par[x].call_location == "query"]
+        b_names = [par[x].name for x in par if par[x].call_location == "body"]
+
+        if None in q_names:
+            msg = "Query parameters can't have None as name attribute value"
+            raise RestClientConfigurationError(msg)
+
+        if b_names.count(None) > 1:
+            msg = "Only one body parameter with None as name attribute value allowed"
+            raise RestClientConfigurationError(msg)
+
+        if b_names.count(None) == 1 and len(b_names) > 1:
+            msg = "No addtional body parameters allowed if body parameter " \
+                  "has name attribute with value None"
+            raise RestClientConfigurationError(msg)
+
         processor.configure(
             name=resource_name, config=config, server_url=self.config.url, auth=auth
         )
@@ -407,7 +424,10 @@ class Resource(ABC):
             if config_parameters[para_name].call_location == "query":
                 request_parameters[rest_name] = para_val
             elif config_parameters[para_name].call_location == "body":
-                body_parameters[rest_name] = para_val
+                if not rest_name:
+                    body_parameters = para_val
+                else:
+                    body_parameters[rest_name] = para_val
             else:
                 raise RestClientConfigurationError(
                     "call location for %s is not understood" % para_name
