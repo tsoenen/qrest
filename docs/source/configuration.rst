@@ -294,6 +294,11 @@ QueryParameter for key ``choices_param``, whose 'remote' name is
 
 will request the resource at URL http://example.com?ChoicesParam=value
 
+For a BodyParameter, it is allowed that the name attribute has value None. In that
+case, the value that is passed to the BodyParameter will be added as such to the body
+of the request, not as a key/value pair. This is useful for bodies with a
+non-dictionary structure. In that case, a resource can have only one BodyParameter.
+For QueryParameters, a name attribute with value None is not allowed.
 
 required
 --------
