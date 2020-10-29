@@ -93,6 +93,11 @@ class ParameterConfig:
                 raise RestClientConfigurationError(
                     "if there is a choices list, default must be in this list"
                 )
+        #  Query parameters always need a name. Body parameters can do without
+        #  a name, in case you wish a non-dictionary body payload.
+        if not self.name and self.call_location == 'query':
+            msg = "Query parameters can't have None as name attribute value"
+            raise RestClientConfigurationError(msg)
 
 
 # ================================================================================================

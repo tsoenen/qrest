@@ -150,20 +150,15 @@ class API:
             raise RestClientConfigurationError("processor must be a Resource")
 
         par = config.parameters
-        q_names = [par[x].name for x in par if par[x].call_location == "query"]
         b_names = [par[x].name for x in par if par[x].call_location == "body"]
 
-        if None in q_names:
-            msg = "Query parameters can't have None as name attribute value"
-            raise RestClientConfigurationError(msg)
-
-        if b_names.count(None) > 1:
-            msg = "Only one body parameter with None as name attribute value allowed"
-            raise RestClientConfigurationError(msg)
-
-        if b_names.count(None) == 1 and len(b_names) > 1:
-            msg = "No addtional body parameters allowed if body parameter " \
-                  "has name attribute with value None"
+        #  By default, body parameters are added to the body payload as a key-value pair,
+        #  assuming the body is a dictionary. To take a list or string as payload, the
+        #  name attribute of a body parameter should be set to None. In that case, only
+        #  one body parameter is allowed.
+        if b_names.count(None) > 0 and len(b_names) > 1:
+            msg = "No additional body parameters allowed if body parameter " \
+                  "has name attribute with value None."
             raise RestClientConfigurationError(msg)
 
         processor.configure(
