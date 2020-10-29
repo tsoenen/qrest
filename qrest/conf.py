@@ -223,8 +223,8 @@ class ResourceConfig:
             self.headers = {}
 
         # method  --------------------
-        if self.method not in ["GET", "POST"]:
-            raise RestClientConfigurationError("method must be GET or POST")
+        if self.method not in ["GET", "POST", "PUT"]:
+            raise RestClientConfigurationError("method must be GET, POST or PUT")
 
         #  parameters -------------------------------
         if not isinstance(self.parameters, dict):
