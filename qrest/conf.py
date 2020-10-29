@@ -202,8 +202,8 @@ class ResourceConfig:
     def validate(self):
         """ Check quality of each parameter and its type.
         Each parameter is checked for type, and if a specific substructure is required
-        then this is also introspected. Currently Method is limited to GET or POST for no reason
-        other then no tests were conducted with PUT, HEAD etc etc
+        then this is also introspected. Currently Method is limited to GET, POST or PUT for
+        no reason other then no tests were conducted with HEAD, etc etc
 
         :raises RestClientConfigurationError: No response is provided if there is no problem
 
