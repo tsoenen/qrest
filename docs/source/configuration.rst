@@ -142,8 +142,7 @@ method
 ======
 
 This attribute specifies which HTTP request method should be used. Commonly used
-HTTP request methods are GET, POST, PUT and DELETE but at the moment only GET
-and POST are supported.
+HTTP request methods are GET, POST, PUT and DELETE but at the moment only GET, POST and PUT are supported.
 
 path
 ====
