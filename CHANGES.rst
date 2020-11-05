@@ -1,4 +1,4 @@
-3.1.1 (unreleased)
+3.1.1 (2020-11-05)
 ------------------
 
 - New release due to incorrect version (string).
