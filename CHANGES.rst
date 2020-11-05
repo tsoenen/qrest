@@ -1,7 +1,8 @@
 3.0.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Support PUT calls.
+- Allow BodyParameter that is not a dictionary.
 
 
 3.0.2 (2020-08-27)
