@@ -1,7 +1,7 @@
 3.1.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- New release due to incorrect version (string).
 
 
 3.1 (2020-11-05)
