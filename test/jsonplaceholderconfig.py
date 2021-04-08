@@ -1,4 +1,4 @@
-from qrest import APIConfig, ResourceConfig, BodyParameter, QueryParameter
+from qrest import APIConfig, ResourceConfig, BodyParameter, QueryParameter, FileParameter
 
 
 class JsonPlaceHolderConfig(APIConfig):
@@ -57,3 +57,13 @@ class CreatePost(ResourceConfig):
         default=101,
         description="The id of the user creating the post",
     )
+
+
+class UploadFile(ResourceConfig):
+
+    name = "upload_file"
+    path = ["files"]
+    method = "POST"
+    description = "upload a file"
+
+    file = FileParameter(name='file', required=True, description="The file to be uploaded")

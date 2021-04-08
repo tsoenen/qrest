@@ -10,6 +10,7 @@ import logging
 from urllib.parse import quote, urljoin
 from abc import ABC
 from typing import Optional
+from _io import BufferedReader
 
 from requests.packages.urllib3 import disable_warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -363,6 +364,36 @@ class Resource(ABC):
                     "parameter '{kwarg}' is not multiple".format(kwarg=kwarg)
                 )
 
+        # ----------------------------------
+        # check file parameters
+        for parameter in kwargs:
+            if parameter not in self.config.parameters:
+                continue
+            if self.config.parameters[parameter].call_location != 'file':
+                continue
+            val = kwargs[parameter]
+            if not isinstance(val, tuple):
+                raise RestClientConfigurationError(
+                    "parameter {} should be tuple (filename(str), file(BufferedReader))".format(
+                        parameter)
+                    )
+            if len(val) != 2:
+                raise RestClientConfigurationError(
+                    "parameter {} should be tuple (filename(str), file(BufferedReader)) of "
+                    "size 2".format(
+                        parameter)
+                    )
+            if not isinstance(val[0], str):
+                raise RestClientConfigurationError(
+                    "First item of parameter {} (tuple) should be str (filename)".format(
+                        parameter)
+                    )
+            if not isinstance(val[1], BufferedReader):
+                raise RestClientConfigurationError(
+                    "Second item of parameter {} (tuple) should be BufferedReader (file)".format(
+                        parameter)
+                    )
+
         # apply defaults for missing optional parameters that do have default values
         defaults = self.config.defaults
         for item, value in defaults.items():
@@ -409,6 +440,7 @@ class Resource(ABC):
         """
         request_parameters = {}
         body_parameters = {}
+        file_parameters = []
 
         # process via the config
         config_parameters = self.config.parameters
@@ -423,6 +455,8 @@ class Resource(ABC):
                     body_parameters = para_val
                 else:
                     body_parameters[rest_name] = para_val
+            elif config_parameters[para_name].call_location == "file":
+                file_parameters.append((config_parameters[para_name].name, para_val))
             else:
                 raise RestClientConfigurationError(
                     "call location for %s is not understood" % para_name
@@ -432,12 +466,13 @@ class Resource(ABC):
         return_structure = {
             "request": request_parameters,
             "body": body_parameters,
+            "file": file_parameters
         }
 
         return return_structure
 
     # ---------------------------------------------------------------------------------------------
-    def _get(self, extra_request=None, extra_body=None):
+    def _get(self, extra_request=None, extra_body=None, extra_file=None):
         """ This function builds and sends a request for a specified REST API resource.
             The parameters are validated in a previous call to validate_query().
             It returns a dictionary of the response or throws an appropriate
@@ -468,6 +503,30 @@ class Resource(ABC):
                     raise RestClientQueryError("trying to overload parameter " + item)
             query_parameters[location].update(data_dict)
 
+        if extra_file:
+            if not isinstance(extra_file, list):
+                raise RestClientQueryError("extra_file must be list")
+            for item in extra_file:
+                if not isinstance(item, tuple):
+                    raise RestClientQueryError(f"extra_file item is not tuple: {item}")
+                if len(item) != 2:
+                    raise RestClientQueryError(f"extra_file item should have two items: {item}")
+                if not isinstance(item[0], str):
+                    raise RestClientQueryError(f"extra_file item[0] is not str: {item[0]}")
+                if not isinstance(item[1], tuple):
+                    raise RestClientQueryError(f"exra_file item[1] is not tuple: {item[1]}")
+                if len(item[1]) != 2:
+                    raise RestClientQueryError(
+                        f"extra_file item[1] should have two items: {item[1]}"
+                        )
+                if not isinstance(item[1][0], str):
+                    raise RestClientQueryError(f"extra_file item[1][0] is not str: {item[1][0]}")
+                if not isinstance(item[1][1], BufferedReader):
+                    raise RestClientQueryError(
+                        f"extra_file item[1][1] is not BufferedReader: {item[1][1]}"
+                        )
+            query_parameters['file'].extend(extra_file)
+
         # Do HTTP request to REST API
         logger.debug(" running %s" % self.query_url)
         try:
@@ -478,6 +537,7 @@ class Resource(ABC):
                 url=self.query_url,
                 params=query_parameters["request"],
                 json=query_parameters["body"],
+                files=query_parameters["file"],
                 headers=self.config.headers,
             )
             assert isinstance(response, requests.Response)

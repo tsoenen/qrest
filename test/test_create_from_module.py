@@ -5,7 +5,7 @@ import unittest.mock as mock
 import ddt
 
 import qrest
-from qrest import APIConfig, BodyParameter, QueryParameter
+from qrest import APIConfig, BodyParameter, QueryParameter, FileParameter
 from qrest import ResourceConfig
 from qrest.exception import RestClientConfigurationError
 from qrest.resource import JSONResource
@@ -127,11 +127,14 @@ class ResourceConfigCreateTests(unittest.TestCase):
 
             title = BodyParameter(name="title")
             user_id = QueryParameter(name="userId")
+            file = FileParameter(name="file")
 
         with mock.patch.object(MyConfig, "__init__", return_value=None) as init_dunder:
             _ = MyConfig.create()
 
-            expected_parameters = {"title": MyConfig.title, "user_id": MyConfig.user_id}
+            expected_parameters = {"title": MyConfig.title,
+                                   "user_id": MyConfig.user_id,
+                                   "file": MyConfig.file}
 
             _, kwargs = init_dunder.call_args
             self.assertDictEqual({"parameters": expected_parameters}, kwargs)

@@ -1,7 +1,7 @@
 3.1.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- introduction of FileParameter to support files in REST calls.
 
 
 3.1.1 (2020-11-05)

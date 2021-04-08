@@ -93,11 +93,6 @@ class ParameterConfig:
                 raise RestClientConfigurationError(
                     "if there is a choices list, default must be in this list"
                 )
-        #  Query parameters always need a name. Body parameters can do without
-        #  a name, in case you wish a non-dictionary body payload.
-        if not self.name and self.call_location == 'query':
-            msg = "Query parameters can't have None as name attribute value"
-            raise RestClientConfigurationError(msg)
 
 
 # ================================================================================================
@@ -108,14 +103,61 @@ class QueryParameter(ParameterConfig):
 
     call_location = "query"
 
+    def _validate(self):
+        """
+        internal routine to check a set of rules to validate if the QueryParameter
+        is configured correctly
+        """
+        super()._validate()
+
+        #  Query parameters always need a name.
+        if not self.name:
+            raise RestClientConfigurationError(
+                "parameter 'name' can't be 'None' for QueryParameter"
+            )
+
 
 # ================================================================================================
 class BodyParameter(ParameterConfig):
     """
-    Subclass to specify parameters to be placed in the query part of the REST request
+    Subclass to specify parameters to be placed in the body part of the REST request
     """
 
     call_location = "body"
+
+
+# ================================================================================================
+class FileParameter(ParameterConfig):
+    """
+    Subclass to specify parameters to be placed in the files part of the REST request
+    """
+
+    call_location = "file"
+
+    def _validate(self):
+        """
+        internal routine to check a set of rules to validate if the FileParameter
+        is configured correctly
+        """
+        super()._validate()
+
+        if self.default:
+            raise RestClientConfigurationError(
+                "parameter 'default' should be 'None' for FileParameter"
+            )
+        if self.choices:
+            raise RestClientConfigurationError(
+                "parameter 'choices' should be 'None' for FileParameter"
+            )
+        if self.exclusion_group:
+            raise RestClientConfigurationError(
+                "parameter 'exclusion_group' should be 'None' for FileParameter"
+            )
+        #  File parameters always need a name.
+        if not self.name:
+            raise RestClientConfigurationError(
+                "parameter 'name' can't be 'None' for FileParameter"
+            )
 
 
 # ================================================================================================
@@ -143,9 +185,9 @@ class ResourceConfig:
             'stats'] where names in brackets are converted to path parameters.
         :param method: either GET or POST
         :param parameters: a dictionary of ParameterConfig instances that each describe one
-            parameter. This is relevant for body and query parameters only, path parameters are
-            specified in the path itself and subsequent annotation of those parameters is done in
-            path_description.
+            parameter. This is relevant for body, query and file parameters only, path parameters
+            are specified in the path itself and subsequent annotation of those parameters is done
+            in path_description.
         :param headers: a dictionary of headers that will be provided to the endpoint. Typical use
             is the response_type
         :param processor: a subclass of rest_client.RestResource that handles specific use cases.
@@ -248,8 +290,11 @@ class ResourceConfig:
         # integration tests ---------------------------------------------------
         if self.method == "GET":
             for key in self.parameters:
-                if self.parameters[key].call_location == "body":
-                    raise RestClientConfigurationError("body parameter not allowed in GET request")
+                if self.parameters[key].call_location in ["body", "file"]:
+                    raise RestClientConfigurationError(
+                        "{} parameter not allowed in GET request".format(
+                            self.parameters[key].call_location)
+                    )
 
     # --------------------------------------------------------------------------------------------
     def apply_default_headers(self, default):

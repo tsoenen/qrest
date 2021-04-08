@@ -27,6 +27,10 @@ configuration
   :members:
   :special-members: __init__
 
+.. autoclass:: FileParameter
+  :members:
+  :special-members: __init__
+
 resource
 ========
 

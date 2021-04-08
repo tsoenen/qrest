@@ -3,7 +3,7 @@ import unittest
 from typing import Dict
 
 from qrest import APIConfig, RestClientConfigurationError
-from qrest import QueryParameter, BodyParameter, ResourceConfig
+from qrest import QueryParameter, BodyParameter, FileParameter, ResourceConfig
 from qrest import JSONResource
 from qrest.auth import UserPassAuthConfig
 
@@ -79,6 +79,11 @@ class TestParameters(unittest.TestCase):
 
         with self.assertRaises(RestClientConfigurationError):
 
+            parameters = {"para": QueryParameter(name=None)}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
+
+        with self.assertRaises(RestClientConfigurationError):
+
             parameters = {
                 "para": QueryParameter(name="sort", default="some_default", required=True)
             }
@@ -111,6 +116,17 @@ class TestParameters(unittest.TestCase):
         with self.assertRaises(RestClientConfigurationError):
 
             parameters = {"para": BodyParameter(name="sort")}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
+
+    def test_bad_file_parameters(self):
+        with self.assertRaises(RestClientConfigurationError):
+
+            parameters = {"para": FileParameter(name="sort", default="c")}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
+
+        with self.assertRaises(RestClientConfigurationError):
+
+            parameters = {"para": FileParameter(name=None)}
             self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
 

@@ -60,6 +60,7 @@ class TestJsonPlaceHolder(unittest.TestCase):
                 url="https://jsonplaceholder.typicode.com/posts",
                 params={},
                 json={},
+                files=[],
                 headers={"Content-type": "application/json; charset=UTF-8"},
             )
 
@@ -79,6 +80,7 @@ class TestJsonPlaceHolder(unittest.TestCase):
                 url="https://jsonplaceholder.typicode.com/posts",
                 params={},
                 json={},
+                files=[],
                 headers={"Content-type": "application/json; charset=UTF-8"},
             )
 
@@ -98,6 +100,7 @@ class TestJsonPlaceHolder(unittest.TestCase):
                 url="https://jsonplaceholder.typicode.com/posts/1",
                 params={},
                 json={},
+                files=[],
                 headers={
                     "Content-type": "application/json; charset=UTF-8",
                     "X-test-post": "qREST python ORM",
@@ -120,6 +123,7 @@ class TestJsonPlaceHolder(unittest.TestCase):
                 url="https://jsonplaceholder.typicode.com/posts",
                 params={"userId": 1},
                 json={},
+                files=[],
                 headers={"Content-type": "application/json; charset=UTF-8"},
             )
 
@@ -147,6 +151,7 @@ class TestJsonPlaceHolder(unittest.TestCase):
                 url="https://jsonplaceholder.typicode.com/posts/1/comments",
                 params={},
                 json={},
+                files=[],
                 headers={"Content-type": "application/json; charset=UTF-8"},
             )
 
@@ -174,6 +179,28 @@ class TestJsonPlaceHolder(unittest.TestCase):
                 url="https://jsonplaceholder.typicode.com/posts",
                 params={},
                 json={"title": title, "body": content, "userId": user_id},
+                files=[],
                 headers={"Content-type": "application/json; charset=UTF-8"},
             )
             self.assertIs(api.create_post.response, response)
+
+    def test_upload_file_accesses_the_right_endpoint_when_called(self):
+        api = qrest.API(jsonplaceholderconfig)
+        api.upload_file.response = ContentResponse()
+
+        file = open(qrest.__file__, 'rb')
+
+        with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
+            response = api.upload_file.get_response(file=('__init__.py', file))
+
+            mock_request.assert_called_with(
+                method="POST",
+                auth=None,
+                verify=False,
+                url="https://jsonplaceholder.typicode.com/files",
+                params={},
+                json={},
+                files=[('file', ('__init__.py', file))],
+                headers={"Content-type": "application/json; charset=UTF-8"},
+            )
+            self.assertIs(api.upload_file.response, response)

@@ -244,9 +244,9 @@ The required headers to be added to the request. Needs to be a dictionary
 query parameters
 ================
 
-A ResourceConfig has special attributes for a BodyParameter or QueryParameter,
-both subclasses of ParameterConfig. A BodyParameter ends up inside the body of a
-request similar to the parameters in curl, e.g
+A ResourceConfig has special attributes for a BodyParameter, QueryParameter or
+FileParameter, all subclasses of ParameterConfig. A BodyParameter ends up inside
+the body of a request similar to the parameters in curl, e.g
 
 ::
 
@@ -278,6 +278,17 @@ QueryParameter, we use the following example ResourceConfig::
       choices_param = QueryParameter(
               name="ChoicesParam", default="key", choices=["key", "name", "date", "value"]
           )
+
+FileParameter should be used to attach a file to a request. It has a similar effect
+as the following example curl command to send a password file to a server
+
+::
+
+  curl -F password=@/etc/passwd www.mypasswords.com
+
+In this example, password is the name of the form-field to which the file /etc/passwd is
+the input. The name attribute of FileParameter should match the name of the form-field.
+Files should be added as tuples: (filename(str), file(_io.BufferedReader)).
 
 name
 ----
