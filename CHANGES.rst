@@ -1,4 +1,4 @@
-3.1.2 (unreleased)
+3.2.0 (2021-04-14)
 ------------------
 
 - Introduce FileParameter to support file upload.
