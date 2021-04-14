@@ -1,7 +1,7 @@
 3.1.2 (unreleased)
 ------------------
 
-- introduction of FileParameter to support files in REST calls.
+- Introduce FileParameter to support file upload.
 
 
 3.1.1 (2020-11-05)
@@ -20,10 +20,10 @@
 3.0.2 (2020-08-27)
 ------------------
 
-- Removes directory rest_client/ accidentally left-over from pre-3.0.0 version.
+- Remove directory rest_client/ accidentally left-over from pre-3.0.0 version.
 
 
 3.0.0 (2020-08-27)
 ------------------
 
-- Uses redesigned API to configure endpoints.
+- Use redesigned API to configure endpoints.
