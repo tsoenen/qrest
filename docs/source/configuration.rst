@@ -371,3 +371,16 @@ description
 -----------
 
 This argument describes the parameter.
+
+example
+-------
+
+This attribute specifies an optional example value for the parameter. If combined
+with 'choices', the example must be in the list of choices.
+
+schema
+------
+
+The schema argument is only supported by the BodyParameter. It specifies a
+dictionary with a json schema to which the value of the parameter should obey.
+If combined with example or default, they should obey the schema.

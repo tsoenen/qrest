@@ -24,6 +24,10 @@ class RestClientConfigurationError(RestClientException):
 
     pass
 
+class RestClientValidationError(RestClientException):
+    """ wrapper exception """
+
+    pass
 
 class RestClientQueryError(RestClientException):
     """ wrapper exception """

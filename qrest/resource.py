@@ -7,6 +7,7 @@ to add functionality such as complex pagination or response processing
 
 import requests
 import logging
+import jsonschema
 from urllib.parse import quote, urljoin
 from abc import ABC
 from typing import Optional
@@ -26,6 +27,7 @@ from .exception import (
     RestCredentailsError,
     RestResourceHTTPError,
     InvalidResourceError,
+    RestClientValidationError
 )
 from .response import CSVResponse, JSONResponse
 from .auth import AuthConfig
@@ -393,6 +395,24 @@ class Resource(ABC):
                     "Second item of parameter {} (tuple) should be BufferedReader (file)".format(
                         parameter)
                     )
+
+        # ----------------------------------
+        # Check body parameters with their schemas
+        for parameter in kwargs:
+            if parameter not in self.config.parameters:
+                continue
+            if self.config.parameters[parameter].call_location != 'body':
+                continue
+            schema = self.config.parameters[parameter].schema
+            if not schema:
+                continue
+            instance = kwargs[parameter]
+            schema_validator_cls = jsonschema.validators.validator_for(schema)
+            try:
+                schema_validator_cls(schema).validate(instance)
+            except jsonschema.ValidationError:
+                msg = 'value for {} does not obey schema'.format(parameter)
+                raise RestClientValidationError(msg)
 
         # apply defaults for missing optional parameters that do have default values
         defaults = self.config.defaults

@@ -5,6 +5,7 @@ import requests
 
 import qrest
 from qrest.response import Response
+from qrest.exception import RestClientValidationError
 
 from . import jsonplaceholderconfig
 
@@ -204,3 +205,34 @@ class TestJsonPlaceHolder(unittest.TestCase):
                 headers={"Content-type": "application/json; charset=UTF-8"},
             )
             self.assertIs(api.upload_file.response, response)
+
+    def test_create_post_with_schema(self):
+        api = qrest.API(jsonplaceholderconfig)
+        api.create_post_with_schema.response = ContentResponse()
+
+        post = {'user': 'Alice', 'body': 'Something about bob'}
+
+        with mock.patch("requests.request", return_value=self.mock_response) as mock_request:
+            response = api.create_post_with_schema.get_response(post=post)
+
+            mock_request.assert_called_with(
+                method="POST",
+                auth=None,
+                verify=False,
+                url="https://jsonplaceholder.typicode.com/posts",
+                params={},
+                json=post,
+                files=[],
+                headers={"Content-type": "application/json; charset=UTF-8"},
+            )
+            self.assertIs(api.create_post_with_schema.response, response)
+
+    def test_bad_create_post_with_schema(self):
+        api = qrest.API(jsonplaceholderconfig)
+        api.create_post_with_schema.response = ContentResponse()
+
+        # parameter that does not obey the schema
+        post = {'user': 'Alice', 'message': 'Something about bob'}
+
+        with self.assertRaises(RestClientValidationError):
+            response = api.create_post_with_schema.get_response(post=post)

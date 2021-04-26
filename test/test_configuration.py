@@ -54,7 +54,10 @@ class TestParameters(unittest.TestCase):
 
     def test_good_query_parameters(self):
         parameters = {
-            "para": QueryParameter(name="sort", default="some_default", description="description")
+            "para": QueryParameter(name="sort",
+                                   default="some_default",
+                                   description="description",
+                                   example='foobar')
         }
         self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
@@ -112,6 +115,22 @@ class TestParameters(unittest.TestCase):
             parameters = {"para": QueryParameter(name="sort", description=3)}
             self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
+    def test_good_example_with_choices(self):
+        parameters = {"para": QueryParameter(name="sort",
+                                             example=3,
+                                             choices=[1,2,3])}
+        self.UrlApiConfig(_create_endpoints(parameters=parameters))
+
+    def test_bad_example_with_choices(self):
+        with self.assertRaises(RestClientConfigurationError) as exc:
+
+            parameters = {"para": QueryParameter(name="sort",
+                                                 example=3,
+                                                 choices=[1,2,4])}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
+
+        self.assertEqual(exc.exception.args[0], "example should be one of the choices")
+
     def test_bad_body_parameters(self):
         with self.assertRaises(RestClientConfigurationError):
 
@@ -119,15 +138,84 @@ class TestParameters(unittest.TestCase):
             self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
     def test_bad_file_parameters(self):
-        with self.assertRaises(RestClientConfigurationError):
+        with self.assertRaises(RestClientConfigurationError) as exc:
 
             parameters = {"para": FileParameter(name="sort", default="c")}
             self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
-        with self.assertRaises(RestClientConfigurationError):
+        msg = "parameter 'default' should be 'None' for FileParameter"
+        self.assertEqual(exc.exception.args[0], msg)
+
+        with self.assertRaises(RestClientConfigurationError) as exc:
+
+            parameters = {"para": FileParameter(name="test", example=3)}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
+
+        msg = "parameter 'example' should be 'None' for FileParameter"
+        self.assertEqual(exc.exception.args[0], msg)
+
+        with self.assertRaises(RestClientConfigurationError) as exc:
 
             parameters = {"para": FileParameter(name=None)}
             self.UrlApiConfig(_create_endpoints(parameters=parameters))
+
+        msg = "parameter 'name' can't be 'None' for FileParameter"
+        self.assertEqual(exc.exception.args[0], msg)
+
+    def test_good_schema_parameters(self):
+        parameters = {"para": BodyParameter(name="foo",
+                                            schema={'type': 'boolean'},
+                                            example=True)}
+
+        self.UrlApiConfig({"ep": ResourceConfig(path=[""],
+                                                method="POST",
+                                                parameters=parameters)})
+
+        parameters = {"para": BodyParameter(name="foo",
+                                            schema={'type': 'boolean'},
+                                            default=False)}
+
+        self.UrlApiConfig({"ep": ResourceConfig(path=[""],
+                                                method="POST",
+                                                parameters=parameters)})
+
+    def test_bad_schema_parameters(self):
+
+        with self.assertRaises(RestClientConfigurationError) as exc:
+
+            parameters = {"para": BodyParameter(name="foo",
+                                                schema="bar")}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
+
+        self.assertEqual(exc.exception.args[0], "parameter schema must be dict")
+
+        with self.assertRaises(RestClientConfigurationError) as exc:
+
+            parameters = {"para": BodyParameter(name="foo",
+                                                schema={'type': 'ni'},
+                                                example="bar")}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
+
+        self.assertEqual(exc.exception.args[0], "schema is not valid")
+
+        with self.assertRaises(RestClientConfigurationError) as exc:
+
+            parameters = {"para": BodyParameter(name="foo",
+                                                schema={'type': 'boolean'},
+                                                example="bar")}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
+
+        self.assertEqual(exc.exception.args[0], "example does not obey schema")
+
+        with self.assertRaises(RestClientConfigurationError) as exc:
+
+            parameters = {"para": BodyParameter(name="foo",
+                                                schema={'type': 'boolean'},
+                                                default="bar")}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
+
+        self.assertEqual(exc.exception.args[0], "default does not obey schema")
+
 
 
 class TestEndpoint(unittest.TestCase):

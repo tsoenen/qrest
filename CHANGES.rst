@@ -1,7 +1,7 @@
-3.2.1 (unreleased)
+3.3.0 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- New schema and example attributes for ParameterConfig.
 
 
 3.2.0 (2021-04-14)

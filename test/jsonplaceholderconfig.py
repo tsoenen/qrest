@@ -59,6 +59,33 @@ class CreatePost(ResourceConfig):
     )
 
 
+class CreatePostWithSchema(ResourceConfig):
+
+    name = "create_post_with_schema"
+    path = ["posts"]
+    method = "POST"
+    description = "Create a new post"
+
+    schema = {
+                "title": "create post",
+                "description": "a schema to create a post",
+                "type": "object",
+                "properties": {
+                    "user": {
+                        "description": "id of the user",
+                        "type": "string"
+                    },
+                    "body": {
+                        "description": "the body of the post",
+                        "type": "string"
+                    }
+                },
+                "required": ["user", "body"]
+     }
+
+    post = BodyParameter(name=None, required=True, schema=schema)
+
+
 class UploadFile(ResourceConfig):
 
     name = "upload_file"
