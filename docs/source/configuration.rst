@@ -381,6 +381,10 @@ with 'choices', the example must be in the list of choices.
 schema
 ------
 
-The schema argument is only supported by the BodyParameter. It specifies a
-dictionary with a json schema to which the value of the parameter should obey.
-If combined with example or default, they should obey the schema.
+The data in a body can range from a trivial key-value pair, to a complex nested
+multi-level structure. For body structures that are too complex to be covered by
+a manageable set of key-value pair BodyParameters, a single BodyParameter can be
+used to cover the entire structure (see ``name`` attribute). The optional ``schema``
+argument specifies a dictionary that describes the data format of the structure.
+The value of the BodyParameter must obey this schema, as must values for the ``example``
+and ``default`` attributes.
