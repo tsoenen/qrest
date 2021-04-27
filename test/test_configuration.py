@@ -118,7 +118,7 @@ class TestParameters(unittest.TestCase):
     def test_good_example_with_choices(self):
         parameters = {"para": QueryParameter(name="sort",
                                              example=3,
-                                             choices=[1,2,3])}
+                                             choices=[1, 2, 3])}
         self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
     def test_bad_example_with_choices(self):
@@ -126,7 +126,7 @@ class TestParameters(unittest.TestCase):
 
             parameters = {"para": QueryParameter(name="sort",
                                                  example=3,
-                                                 choices=[1,2,4])}
+                                                 choices=[1, 2, 4])}
             self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
         self.assertEqual(exc.exception.args[0], "example should be one of the choices")
@@ -215,7 +215,6 @@ class TestParameters(unittest.TestCase):
             self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
         self.assertEqual(exc.exception.args[0], "default does not obey schema")
-
 
 
 class TestEndpoint(unittest.TestCase):

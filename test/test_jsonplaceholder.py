@@ -235,4 +235,4 @@ class TestJsonPlaceHolder(unittest.TestCase):
         post = {'user': 'Alice', 'message': 'Something about bob'}
 
         with self.assertRaises(RestClientValidationError):
-            response = api.create_post_with_schema.get_response(post=post)
+            api.create_post_with_schema.get_response(post=post)

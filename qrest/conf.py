@@ -178,6 +178,7 @@ class BodyParameter(ParameterConfig):
                 except jsonschema.ValidationError:
                     raise RestClientConfigurationError("default does not obey schema")
 
+
 # ================================================================================================
 class FileParameter(ParameterConfig):
     """
