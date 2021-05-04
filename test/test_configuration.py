@@ -131,6 +131,16 @@ class TestParameters(unittest.TestCase):
 
         self.assertEqual(exc.exception.args[0], "example should be one of the choices")
 
+    def test_schema_with_choices(self):
+        with self.assertRaises(RestClientConfigurationError) as exc:
+
+            parameters = {"para": QueryParameter(name="sort",
+                                                 schema={'type': 'string'},
+                                                 choices=[1, 2, 4])}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
+
+        self.assertEqual(exc.exception.args[0], "choices and schema can't be combined")
+
     def test_bad_body_parameters(self):
         with self.assertRaises(RestClientConfigurationError):
 
@@ -156,6 +166,14 @@ class TestParameters(unittest.TestCase):
 
         with self.assertRaises(RestClientConfigurationError) as exc:
 
+            parameters = {"para": FileParameter(name="test", schema={'type': 'string'})}
+            self.UrlApiConfig(_create_endpoints(parameters=parameters))
+
+        msg = "parameter 'schema' should be 'None' for FileParameter"
+        self.assertEqual(exc.exception.args[0], msg)
+
+        with self.assertRaises(RestClientConfigurationError) as exc:
+
             parameters = {"para": FileParameter(name=None)}
             self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
@@ -171,9 +189,9 @@ class TestParameters(unittest.TestCase):
                                                 method="POST",
                                                 parameters=parameters)})
 
-        parameters = {"para": BodyParameter(name="foo",
-                                            schema={'type': 'boolean'},
-                                            default=False)}
+        parameters = {"para": QueryParameter(name="foo",
+                                             schema={'type': 'integer'},
+                                             default=4)}
 
         self.UrlApiConfig({"ep": ResourceConfig(path=[""],
                                                 method="POST",
@@ -191,12 +209,12 @@ class TestParameters(unittest.TestCase):
 
         with self.assertRaises(RestClientConfigurationError) as exc:
 
-            parameters = {"para": BodyParameter(name="foo",
-                                                schema={'type': 'ni'},
-                                                example="bar")}
+            parameters = {"para": QueryParameter(name="foo",
+                                                 schema={'type': 'ni'},
+                                                 example="bar")}
             self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
-        self.assertEqual(exc.exception.args[0], "schema is not valid")
+        self.assertEqual(exc.exception.args[0], "provided schema is not a valid schema")
 
         with self.assertRaises(RestClientConfigurationError) as exc:
 
@@ -209,9 +227,9 @@ class TestParameters(unittest.TestCase):
 
         with self.assertRaises(RestClientConfigurationError) as exc:
 
-            parameters = {"para": BodyParameter(name="foo",
-                                                schema={'type': 'boolean'},
-                                                default="bar")}
+            parameters = {"para": QueryParameter(name="foo",
+                                                 schema={'type': 'boolean'},
+                                                 default="bar")}
             self.UrlApiConfig(_create_endpoints(parameters=parameters))
 
         self.assertEqual(exc.exception.args[0], "default does not obey schema")

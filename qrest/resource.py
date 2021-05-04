@@ -345,6 +345,21 @@ class Resource(ABC):
                     )
 
         # ----------------------------------
+        # Check schemas
+        for parameter in kwargs:
+            if parameter not in self.config.parameters:
+                continue
+            config = self.config.parameters[parameter]
+            if config.schema:
+                instance = kwargs[parameter]
+                schema_validator_cls = jsonschema.validators.validator_for(config.schema)
+                try:
+                    schema_validator_cls(config.schema).validate(instance)
+                except jsonschema.ValidationError:
+                    msg = 'value for {} does not obey schema'.format(parameter)
+                    raise RestClientValidationError(msg)
+
+        # ----------------------------------
         # check query parameters
         intersection = set(conf.all_query_parameters).intersection(kwargs.keys())
         groups_used = {}
@@ -395,24 +410,6 @@ class Resource(ABC):
                     "Second item of parameter {} (tuple) should be BufferedReader (file)".format(
                         parameter)
                     )
-
-        # ----------------------------------
-        # Check body parameters with their schemas
-        for parameter in kwargs:
-            if parameter not in self.config.parameters:
-                continue
-            if self.config.parameters[parameter].call_location != 'body':
-                continue
-            schema = self.config.parameters[parameter].schema
-            if not schema:
-                continue
-            instance = kwargs[parameter]
-            schema_validator_cls = jsonschema.validators.validator_for(schema)
-            try:
-                schema_validator_cls(schema).validate(instance)
-            except jsonschema.ValidationError:
-                msg = 'value for {} does not obey schema'.format(parameter)
-                raise RestClientValidationError(msg)
 
         # apply defaults for missing optional parameters that do have default values
         defaults = self.config.defaults

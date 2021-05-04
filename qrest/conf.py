@@ -42,7 +42,8 @@ class ParameterConfig:
         default: Optional[str] = None,
         choices: Optional[list] = None,
         description: Optional[str] = None,
-        example: Optional = None,
+        schema: Optional[str] = None,
+        example: Optional = None
     ):
         """
         Parameter configuration. Details the name and limitations on the REST parameter and how it
@@ -56,6 +57,7 @@ class ParameterConfig:
         :param default: the default entry if this parameter is not supplied
         :param choices: a list of possible values for this parameter
         :param description: any information about the parameter, such as data format
+        :param schema: a jsonschema describing how the value for this parameter should be formatted
         :param example: an example value for the parameter
         """
 
@@ -66,6 +68,7 @@ class ParameterConfig:
         self.default = default
         self.choices = choices
         self.description = description or ""
+        self.schema = schema
         self.example = example
         self._validate()
 
@@ -81,25 +84,51 @@ class ParameterConfig:
             raise RestClientConfigurationError('parameter "multiple" must be boolean')
         if not isinstance(self.description, str):
             raise RestClientConfigurationError('parameter "description" must be string')
+
         if self.exclusion_group:
             if not isinstance(self.exclusion_group, str):
                 raise RestClientConfigurationError("group name must be a string")
             if not self.exclusion_group.strip():
                 raise RestClientConfigurationError("group name must be a string")
+
         if self.default and self.required:
             raise RestClientConfigurationError(
                 "you cannot combine required=True and a default setting"
             )
-        if self.choices and not isinstance(self.choices, list):
-            raise RestClientConfigurationError("choices must be a list")
-        if self.default and self.choices:
-            if self.default not in self.choices:
-                raise RestClientConfigurationError(
-                    "if there is a choices list, default must be in this list"
-                )
-        if self.example and self.choices:
-            if self.example not in self.choices:
-                raise RestClientConfigurationError("example should be one of the choices")
+
+        if self.choices:
+            if not isinstance(self.choices, list):
+                raise RestClientConfigurationError("choices must be a list")
+            if self.default:
+                if self.default not in self.choices:
+                    raise RestClientConfigurationError(
+                        "if there is a choices list, default must be in this list"
+                    )
+            if self.example:
+                if self.example not in self.choices:
+                    raise RestClientConfigurationError("example should be one of the choices")
+
+        if self.schema:
+            if not isinstance(self.schema, dict):
+                raise RestClientConfigurationError('parameter schema must be dict')
+            try:
+                #  Select the correct validator for the provided schema
+                schema_validator_cls = jsonschema.validators.validator_for(self.schema)
+                schema_validator_cls.check_schema(self.schema)
+            except jsonschema.SchemaError:
+                raise RestClientConfigurationError("provided schema is not a valid schema")
+            if self.example:
+                try:
+                    schema_validator_cls(self.schema).validate(self.example)
+                except jsonschema.ValidationError:
+                    raise RestClientConfigurationError("example does not obey schema")
+            if self.default:
+                try:
+                    schema_validator_cls(self.schema).validate(self.default)
+                except jsonschema.ValidationError:
+                    raise RestClientConfigurationError("default does not obey schema")
+            if self.choices:
+                raise RestClientConfigurationError("choices and schema can't be combined")
 
 
 # ================================================================================================
@@ -133,51 +162,6 @@ class BodyParameter(ParameterConfig):
 
     call_location = "body"
 
-    def __init__(self, *args, **kwargs):
-        """
-        Extend the init of ParameterConfig with the optional BodyParameter specific 'schema'
-        parameter
-
-        :param schema: a jsonschema describing how the body parameter should be structured
-        """
-
-        self.schema = kwargs.pop('schema', None)
-
-        super().__init__(*args, **kwargs)
-
-    # -----------------------------------------------------------------------------------------------------
-    def _validate(self):
-        """
-        internal routine to check a set of rules to validate if the BodyParameter
-        is configured correctly
-        """
-        super()._validate()
-
-        #  A schema should be a dict and should be a valid jsonschema
-        if self.schema:
-            if not isinstance(self.schema, dict):
-                raise RestClientConfigurationError('parameter schema must be dict')
-
-            try:
-                #  Select the correct validator for the provided schema
-                schema_validator_cls = jsonschema.validators.validator_for(self.schema)
-                schema_validator_cls.check_schema(self.schema)
-            except jsonschema.SchemaError:
-                raise RestClientConfigurationError("schema is not valid")
-
-            # if a schema and an example/default are both provided, they should obey the schema
-            if self.example:
-                try:
-                    schema_validator_cls(self.schema).validate(self.example)
-                except jsonschema.ValidationError:
-                    raise RestClientConfigurationError("example does not obey schema")
-
-            if self.default:
-                try:
-                    schema_validator_cls(self.schema).validate(self.default)
-                except jsonschema.ValidationError:
-                    raise RestClientConfigurationError("default does not obey schema")
-
 
 # ================================================================================================
 class FileParameter(ParameterConfig):
@@ -210,6 +194,10 @@ class FileParameter(ParameterConfig):
         if self.example:
             raise RestClientConfigurationError(
                 "parameter 'example' should be 'None' for FileParameter"
+            )
+        if self.schema:
+            raise RestClientConfigurationError(
+                "parameter 'schema' should be 'None' for FileParameter"
             )
         #  File parameters always need a name.
         if not self.name:

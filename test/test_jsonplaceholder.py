@@ -234,5 +234,7 @@ class TestJsonPlaceHolder(unittest.TestCase):
         # parameter that does not obey the schema
         post = {'user': 'Alice', 'message': 'Something about bob'}
 
-        with self.assertRaises(RestClientValidationError):
+        with self.assertRaises(RestClientValidationError) as exc:
             api.create_post_with_schema.get_response(post=post)
+
+        self.assertEqual(exc.exception.args[0], "value for post does not obey schema")

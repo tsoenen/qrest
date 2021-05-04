@@ -376,15 +376,28 @@ example
 -------
 
 This attribute specifies an optional example value for the parameter. If combined
-with 'choices', the example must be in the list of choices.
+with 'choices' or 'schema', the example must be in the list of choices, or obey the schema.
 
 schema
 ------
 
-The data in a body can range from a trivial key-value pair, to a complex nested
-multi-level structure. For body structures that are too complex to be covered by
-a manageable set of key-value pair BodyParameters, a single BodyParameter can be
-used to cover the entire structure (see ``name`` attribute). The optional ``schema``
-argument specifies a dictionary that describes the data format of the structure.
-The value of the BodyParameter must obey this schema, as must values for the ``example``
-and ``default`` attributes.
+This optional argument specifies a json schema. A json schema describes how data should
+be structured and formatted, and therefor provides a powerful tool to impose requirements
+on the value of a parameter.
+
+For example, to ensure that the value of a parameter is formatted as a uuid, one can use
+
+::
+
+  {"type":"string", "pattern":"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"}
+
+as schema. To ensure that the value is a list of unique integers selected from a predefined set,
+
+::
+
+  {"type":"array", "items": {"type": "integer", "enum": [2, 4, 8, 16]}, "uniqueItems": true}
+
+would be appropriate. For more info, visit the `json schema website <https://json-schema.org/>`.
+
+When combined with schema, values for the 'default' and 'example' argument must obey the schema.
+Schema can't be combined with the 'choices' argument.
