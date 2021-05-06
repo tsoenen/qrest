@@ -382,7 +382,7 @@ schema
 ------
 
 This optional argument specifies a json schema. A json schema describes how data should
-be structured and formatted, and therefor provides a powerful tool to impose requirements
+be structured and formatted, and therefore provides a powerful tool to impose requirements
 on the value of a parameter.
 
 For example, to ensure that the value of a parameter is formatted as a uuid, one can use
